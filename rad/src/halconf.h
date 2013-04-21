@@ -1,15 +1,14 @@
 /*
-    ChibiOS/RT - Copyright (C) 2006,2007,2008,2009,2010,
-                 2011,2012 Giovanni Di Sirio.
+    RAD - Copyright (C) 2013 Sam Wong
 
-    This file is part of ChibiOS/RT.
+    This file is part of RAD project.
 
-    ChibiOS/RT is free software; you can redistribute it and/or modify
+    RAD is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 3 of the License, or
     (at your option) any later version.
 
-    ChibiOS/RT is distributed in the hope that it will be useful,
+    RAD is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -20,17 +19,14 @@
                                       ---
 
     A special exception to the GPL can be applied should you wish to distribute
-    a combined work that includes ChibiOS/RT, without being obliged to provide
+    a combined work that includes RAD, without being obliged to provide
     the source code for any proprietary components. See the file exception.txt
     for full details of how and when the exception can be applied.
 */
 
 /**
- * @file    templates/halconf.h
+ * @file    src/halconf.h
  * @brief   HAL configuration header.
- * @details HAL configuration file, this file allows to enable or disable the
- *          various device drivers from your application. You may also use
- *          this file in order to override the device drivers default settings.
  *
  * @addtogroup HAL_CONF
  * @{
@@ -157,7 +153,7 @@
  * @brief   Enables the UART subsystem.
  */
 #if !defined(HAL_USE_UART) || defined(__DOXYGEN__)
-#define HAL_USE_UART                FALSE
+#define HAL_USE_UART                TRUE
 #endif
 
 /**

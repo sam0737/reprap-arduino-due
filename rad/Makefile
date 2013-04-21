@@ -30,7 +30,7 @@ endif
 
 # Enable this if you want to see the full log while compiling.
 ifeq ($(USE_VERBOSE_COMPILE),)
-  USE_VERBOSE_COMPILE = no
+  USE_VERBOSE_COMPILE = yes
 endif
 
 #
@@ -54,7 +54,7 @@ PROJECT = rad
 
 # Imported source files and paths
 CHIBIOS = chibios
-include $(CHIBIOS)/boards/REPRAP_ARDUINO_DUE_SHIELD/board.mk
+include $(CHIBIOS)/boards/ARDUINO_DUE/board.mk
 include $(CHIBIOS)/os/hal/platforms/SAM3X8E/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/SAM3X/port.mk
@@ -71,6 +71,7 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
+       $(CHIBIOS)/os/various/syscalls.c \
        $(wildcard src/*.c)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
