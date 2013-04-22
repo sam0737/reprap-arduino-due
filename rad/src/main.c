@@ -11,31 +11,7 @@ static void toggle_rx(void) {
   palTogglePad(IOPORT3, 30);
 }
 
-/*
- * This callback is invoked when a transmission buffer has been completely
- * read by the driver.
- */
-static void txend1(UARTDriver *uartp) {
-  (void)uartp;
-}
-
-static void txend2(UARTDriver *uartp) {
-  (void)uartp;
-}
-
-static void rxchar(UARTDriver *uartp, uint16_t c)
-{
-  (void)uartp;
-  (uint16_t)c;
-  toggle_rx();
-}
-
-static UARTConfig uart_cfg = {
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
+static SerialConfig sd_cfg = {
   {PIOA, 9, PIO_MODE_A},
   {PIOA, 8, PIO_MODE_A},
   {0,0,0},
@@ -52,33 +28,13 @@ static char buf[10];
 static msg_t ThreadUart(void *arg) {
   (void)arg;
 
-  uint8_t slot = 0;
-
-  uartStart(&UARTD1, &uart_cfg);
-
-  uartStartReceive(&UARTD1, buf_len, buf1);
+  sdStart(&SD1, &sd_cfg);
 
   while (TRUE) {
-    chSysLock();
-    size_t remaining = uartStopReceiveI(&UARTD1);
-    slot = 1 - slot;
-    uartStartReceiveI(&UARTD1, buf_len, slot ? buf2 : buf1);
-    chSysUnlock();
-
-    if (buf_len != remaining)
-    {
-      toggle_tx();
-      buf[0] = (buf_len-remaining) / 10 + '0';
-      buf[1] = (buf_len-remaining) % 10 + '0';
-      buf[2] = ' ';
-
-      while (!(UART->UART_SR & UART_SR_TXEMPTY));
-      uartStartSend(&UARTD1, 3, buf);
-      toggle_tx();
-    } else {
-      //chThdSleepMicroseconds(100);
-    }
-    //palTogglePad(IOPORT2, 27); // "L"
+    uint8_t b = chSequentialStreamGet(&SD1);
+    toggle_tx();
+    chSequentialStreamPut(&SD1, b);
+    toggle_tx();
   }
   return 0;
 }

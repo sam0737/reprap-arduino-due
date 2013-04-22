@@ -35,6 +35,6 @@
 /**
  * UART section
  */
-#define SAM3XA_UART_USE_UART    TRUE
+#define SAM3XA_SERIAL_USE_UART    TRUE
 
 /** @} */
