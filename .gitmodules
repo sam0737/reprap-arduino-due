@@ -1,3 +1,7 @@
 [submodule "rad/chibios"]
 	path = rad/chibios
 	url = https://github.com/sam0737/chibios-rt-arduino-due
+
+[submodule "rad/chibios_msd"]
+	path = rad/chibios_msd
+	url = https://github.com/trsaunders/Chibios-USB-Devices.git

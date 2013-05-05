@@ -18,47 +18,64 @@
 #define _USBCFG_H_
 
 extern const USBConfig usbcfg;
-extern const SerialUSBConfig serusbcfg;
+extern const SerialUSBConfig serusb_datacfg;
+extern const SerialUSBConfig serusb_shellcfg;
+
+// USB Device
+extern SerialUSBDriver SDU_SHELL;
+extern SerialUSBDriver SDU_DATA;
 
 #include "LUFA/drivers/USB/USB.h"
-
 /* Macros: */
-  /** Endpoint address of the CDC device-to-host notification IN endpoint. */
-  #define CDC_NOTIFICATION_EPADDR        (ENDPOINT_DIR_IN  | USB_CDC_INTERRUPT_REQUEST_EP)
+/** Size in bytes of the CDC device-to-host notification IN endpoint. */
+#define CDC_NOTIFICATION_EPSIZE        16
 
-  /** Endpoint address of the CDC device-to-host data IN endpoint. */
-  #define CDC_TX_EPADDR                  (ENDPOINT_DIR_IN  | USB_CDC_DATA_REQUEST_EP)
+/** Size in bytes of the CDC data IN and OUT endpoints. */
+#define CDC_TXRX_EPSIZE                512
 
-  /** Endpoint address of the CDC host-to-device data OUT endpoint. */
-  #define CDC_RX_EPADDR                  (ENDPOINT_DIR_OUT | USB_CDC_DATA_AVAILABLE_EP)
-
-  /** Size in bytes of the CDC device-to-host notification IN endpoint. */
-  #define CDC_NOTIFICATION_EPSIZE        16
-
-  /** Size in bytes of the CDC data IN and OUT endpoints. */
-  #define CDC_TXRX_EPSIZE                512
+/** Size in bytes of the Mass Storage data endpoints. */
+#define MASS_STORAGE_IO_EPSIZE         512
 
 /* Type Defines: */
-  /** Type define for the device configuration descriptor structure. This must be defined in the
-   *  application code, as the configuration descriptor contains several sub-descriptors which
-   *  vary between devices, and which describe the device's usage to the host.
-   */
-  typedef struct
-  {
+/** Type define for the device configuration descriptor structure. This must be defined in the
+ *  application code, as the configuration descriptor contains several sub-descriptors which
+ *  vary between devices, and which describe the device's usage to the host.
+ */
+typedef struct
+{
     USB_Descriptor_Configuration_Header_t    Config;
 
-    // CDC Control Interface
-    USB_Descriptor_Interface_t               CDC_CCI_Interface;
-    USB_CDC_Descriptor_FunctionalHeader_t    CDC_Functional_Header;
-    USB_CDC_Descriptor_FunctionalACM_t       CDC_Functional_ACM;
-    USB_CDC_Descriptor_FunctionalUnion_t     CDC_Functional_Union;
-    USB_Descriptor_Endpoint_t                CDC_NotificationEndpoint;
+    // First CDC Control Interface
+    USB_Descriptor_Interface_Association_t   CDC1_IAD;
+    USB_Descriptor_Interface_t               CDC1_CCI_Interface;
+    USB_CDC_Descriptor_FunctionalHeader_t    CDC1_Functional_Header;
+    USB_CDC_Descriptor_FunctionalACM_t       CDC1_Functional_ACM;
+    USB_CDC_Descriptor_FunctionalUnion_t     CDC1_Functional_Union;
+    USB_Descriptor_Endpoint_t                CDC1_ManagementEndpoint;
 
-    // CDC Data Interface
-    USB_Descriptor_Interface_t               CDC_DCI_Interface;
-    USB_Descriptor_Endpoint_t                CDC_DataOutEndpoint;
-    USB_Descriptor_Endpoint_t                CDC_DataInEndpoint;
-  } USB_Descriptor_Configuration_t;
+    // First CDC Data Interface
+    USB_Descriptor_Interface_t               CDC1_DCI_Interface;
+    USB_Descriptor_Endpoint_t                CDC1_DataOutEndpoint;
+    USB_Descriptor_Endpoint_t                CDC1_DataInEndpoint;
+
+    // Second CDC Control Interface
+    USB_Descriptor_Interface_Association_t   CDC2_IAD;
+    USB_Descriptor_Interface_t               CDC2_CCI_Interface;
+    USB_CDC_Descriptor_FunctionalHeader_t    CDC2_Functional_Header;
+    USB_CDC_Descriptor_FunctionalACM_t       CDC2_Functional_ACM;
+    USB_CDC_Descriptor_FunctionalUnion_t     CDC2_Functional_Union;
+    USB_Descriptor_Endpoint_t                CDC2_ManagementEndpoint;
+
+    // Second CDC Data Interface
+    USB_Descriptor_Interface_t               CDC2_DCI_Interface;
+    USB_Descriptor_Endpoint_t                CDC2_DataOutEndpoint;
+    USB_Descriptor_Endpoint_t                CDC2_DataInEndpoint;
+/*
+    // Mass Storage Interface
+    USB_Descriptor_Interface_t               MS_Interface;
+    USB_Descriptor_Endpoint_t                MS_DataInEndpoint;
+    USB_Descriptor_Endpoint_t                MS_DataOutEndpoint;*/
+} USB_Descriptor_Configuration_t;
 
 #endif  /* _USBCFG_H_ */
 
