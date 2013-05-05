@@ -36,5 +36,9 @@
  * UART section
  */
 #define SAM3XA_SERIAL_USE_UART    TRUE
+#define SAM3XA_USB_USE_UOTGHS     TRUE
 
+#define USB_CDC_DATA_AVAILABLE_EP 1
+#define USB_CDC_DATA_REQUEST_EP 2
+#define USB_CDC_INTERRUPT_REQUEST_EP 3
 /** @} */
