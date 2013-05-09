@@ -25,7 +25,7 @@
 */
 
 /**
- * @file    src/chconf.h
+ * @file    RADS/chconf.h
  * @brief   Configuration file template.
  * @details A copy of this file must be placed in each project directory, it
  *          contains the application specific kernel settings.
@@ -35,8 +35,10 @@
  * @{
  */
 
-#ifndef _CHCONF_H_
-#define _CHCONF_H_
+#ifndef _ARDUINODUE_CHCONF_H_
+#define _ARDUINODUE_CHCONF_H_
+
+#define CHPRINTF_USE_FLOAT  TRUE
 
 /*===========================================================================*/
 /**
@@ -536,6 +538,6 @@
 /* Port-specific settings (override port settings defaulted in chcore.h).    */
 /*===========================================================================*/
 
-#endif  /* _CHCONF_H_ */
+#endif  /* _ARDUINODUE_CHCONF_H_ */
 
 /** @} */

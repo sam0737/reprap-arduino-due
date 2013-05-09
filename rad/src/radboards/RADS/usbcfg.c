@@ -1,24 +1,38 @@
 /*
-    ChibiOS/RT - Copyright (C) 2006-2013 Giovanni Di Sirio
+    RAD - Copyright (C) 2013 Sam Wong
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+    This file is part of RAD project.
 
-        http://www.apache.org/licenses/LICENSE-2.0
+    RAD is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+    RAD is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 */
+
+/**
+ * @file    RADS/usbcfg.c
+ * @brief   USB Configuration
+ *
+ * @addtogroup USB_CFG
+ * @{
+ */
 
 #include "ch.h"
 #include "hal.h"
 #include "usb_cdc.h"
 #include "usb_msd.h"
 #include "usbcfg.h"
+
+#include "mcuconf.h"
 
 static bool_t usbRequestsHook(USBDriver *usbp);
 
@@ -604,14 +618,18 @@ const USBConfig usbcfg = {
 /*
  * Serial over USB driver configuration.
  */
-const SerialUSBConfig serusb_datacfg = {
+SerialUSBConfig serusb_datacfg = {
     &USBD1, 0,
-    CDC1_NOTIFICATION_EPADDR, CDC1_TX_EPADDR, CDC1_RX_EPADDR
+    CDC1_NOTIFICATION_EPADDR, CDC1_TX_EPADDR, CDC1_RX_EPADDR,
+    .linecoding_cb = NULL,
+    .controllinestate_cb = NULL
 };
 
-const SerialUSBConfig serusb_shellcfg = {
+SerialUSBConfig serusb_shellcfg = {
     &USBD1, 2,
-    CDC2_NOTIFICATION_EPADDR, CDC2_TX_EPADDR, CDC2_RX_EPADDR
+    CDC2_NOTIFICATION_EPADDR, CDC2_TX_EPADDR, CDC2_RX_EPADDR,
+    .linecoding_cb = NULL,
+    .controllinestate_cb = NULL
 };
 
 static bool_t usbRequestsHook(USBDriver *usbp)
@@ -620,3 +638,9 @@ static bool_t usbRequestsHook(USBDriver *usbp)
   //    msdRequestsHook(usbp) :
   return sduRequestsHook(usbp);
 }
+
+/* Virtual serial port over USB.*/
+SerialUSBDriver SDU_SHELL;
+SerialUSBDriver SDU_DATA;
+
+/** @} */

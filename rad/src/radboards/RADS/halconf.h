@@ -25,7 +25,7 @@
 */
 
 /**
- * @file    src/halconf.h
+ * @file    RADS/halconf.h
  * @brief   HAL configuration header.
  *
  * @addtogroup HAL_CONF
@@ -55,7 +55,7 @@
  * @brief   Enables the ADC subsystem.
  */
 #if !defined(HAL_USE_ADC) || defined(__DOXYGEN__)
-#define HAL_USE_ADC                 FALSE
+#define HAL_USE_ADC                 TRUE
 #endif
 
 /**
@@ -111,7 +111,7 @@
  * @brief   Enables the PWM subsystem.
  */
 #if !defined(HAL_USE_PWM) || defined(__DOXYGEN__)
-#define HAL_USE_PWM                 FALSE
+#define HAL_USE_PWM                 TRUE
 #endif
 
 /**

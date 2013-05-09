@@ -1,0 +1,208 @@
+/*
+    RAD - Copyright (C) 2013 Sam Wong
+
+    This file is part of RAD project.
+
+    RAD is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    RAD is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
+
+/**
+ * @file    RADS/radboard.c
+ * @brief   Reprap Arduino Due Shield radboard configuration.
+ *
+ * @addtogroup RAD_BOARD
+ * @{
+ */
+
+#include "hal.h"
+#include "rad.h"
+#include "usbcfg.h"
+
+void arduinoEraseConditionCallback(SerialUSBDriver *sdup)
+{
+  if (*((uint32_t*)&sdup->line_coding) == 1200) {
+    if (!(sdup->control_line_state & USB_SERIAL_DTR)) {
+      debugErase();
+    }
+  }
+}
+
+void debugEraseCallback(void)
+{
+  chSysLock();
+
+  // Set bootflag to run SAM-BA bootloader at restart
+  const int EEFC_FCMD_CGPB = 0x0C;
+  const int EEFC_KEY = 0x5A;
+  while (!(EFC0->EEFC_FSR & EEFC_FSR_FRDY));
+  EFC0->EEFC_FCR =
+    EEFC_FCR_FCMD(EEFC_FCMD_CGPB) |
+    EEFC_FCR_FARG(1) |
+    EEFC_FCR_FKEY(EEFC_KEY);
+  while (!(EFC0->EEFC_FSR & EEFC_FSR_FRDY));
+
+  // Reset
+  const int RSTC_KEY = 0xA5;
+  RSTC->RSTC_CR = RSTC_CR_KEY(RSTC_KEY) | RSTC_CR_PROCRST | RSTC_CR_PERRST;
+
+  while (1);
+}
+
+static const PWMConfig beeper_cfg = {
+  .frequency = SYSTEM_CLOCK / 128,
+  .period = (SYSTEM_CLOCK / 128) / 1000,
+  .channels = { { .h_pin = {PIOC, 18, PIO_MODE_B} } }
+};
+
+static const PWMConfig output_cfg[] = { {
+  .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 3, PIO_MODE_B} } }
+},
+{
+  .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 5, PIO_MODE_B} } }
+},
+{
+  .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 7, PIO_MODE_B} } }
+},
+{
+  .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 9, PIO_MODE_B} } }
+},
+{
+  .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 19, PIO_MODE_B} } }
+} };
+
+static const ADCConfig adc_cfg = {
+    .clock = 0,
+    .use_sequence = 1,
+    // We want the ADC captures in the sequence of CH7,CH6,CH5,CH15
+    // The USCH number is 1-based, while the CH is 0-based.
+    .sequence1 = ADC_SEQR1_USCH6(7) | // HBP
+                 ADC_SEQR1_USCH7(6) | // E0
+                 ADC_SEQR1_USCH8(5),  // E1
+    .sequence2 = ADC_SEQR2_USCH16(15)
+};
+
+void radboardInit(void)
+{
+  uint8_t i;
+  // Disable Watchdog
+  WDT->WDT_MR = WDT_MR_WDDIS;
+
+  pwmObjectInit(radboard.hmi.beeperPwm);
+  pwmStart(radboard.hmi.beeperPwm, &beeper_cfg);
+
+  for (i = 0; i < radboard.output.count; i++) {
+    pwmObjectInit(radboard.output.channels[i].pwm);
+    pwmStart(radboard.output.channels[i].pwm, &output_cfg[i]);
+  }
+
+  adcObjectInit(&ADCD1);
+  adcStart(&ADCD1, &adc_cfg);
+
+  serusb_shellcfg.controllinestate_cb = &arduinoEraseConditionCallback;
+  sduObjectInit((SerialUSBDriver*) radboard.debug.channel);
+  sduStart((SerialUSBDriver*)radboard.debug.channel, &serusb_shellcfg);
+
+  sduObjectInit(&SDU_DATA);
+  sduStart(&SDU_DATA, &serusb_datacfg);
+
+  /*
+   * Activates the USB driver and then the USB bus pull-up on D+.
+   * Note, a delay is inserted in order to not have to disconnect the cable
+   * after a reset.
+   */
+  usbDisconnectBus(&USBD1);
+  usbStart(&USBD1, &usbcfg);
+  chThdSleepMilliseconds(500);
+  usbConnectBus(&USBD1);
+}
+
+const radboard_t radboard =
+{
+    .init = &radboardInit,
+    .power = {
+        .psuOn = { .pin = { .port = IOPORT2, .pin = 20 }, .active_low = 1 }
+    },
+    .hmi = {
+        .beeperPwm = &PWMD7,
+        .beeperChannel = 0
+    },
+    .output = {
+        .count = 5,
+        .channels = (RadOutputChannel[]) {
+          { .pwm = &PWMD1, .channel = 0,
+            .signal = { .pin = { IOPORT3, 3 }, .active_low = 0 } },
+          { .pwm = &PWMD2, .channel = 0,
+              .signal = { .pin = { IOPORT3, 5 }, .active_low = 0 } },
+          { .pwm = &PWMD3, .channel = 0,
+              .signal = { .pin = { IOPORT3, 7 }, .active_low = 0 } },
+          { .pwm = &PWMD4, .channel = 0,
+              .signal = { .pin = { IOPORT3, 9 }, .active_low = 0 } },
+          { .pwm = &PWMD6, .channel = 0,
+              .signal = { .pin = { IOPORT3, 19 }, .active_low = 0 } }
+        }
+    },
+    .stepper = {
+        .count = 5,
+        .mainEnable = { .pin = { IOPORT3, 2 }, .active_low = 1 },
+        .channels = (RadStepperChannel[]) {
+          {
+            .step = { .pin = { IOPORT2, 26 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT1, 14 }, .active_low = 0 },
+          },
+          {
+            .step = { .pin = { IOPORT1, 15 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT4, 0 }, .active_low = 0 },
+          },
+          {
+            .step = { .pin = { IOPORT4, 1 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT4, 2 }, .active_low = 0 },
+          },
+          {
+            .step = { .pin = { IOPORT4, 3 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT4, 6 }, .active_low = 0 },
+          },
+          {
+            .step = { .pin = { IOPORT4, 9 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT1, 7 }, .active_low = 0 },
+          }
+        }
+    },
+    .adc = {
+        .count = 1,
+        .channels = (RadAdcChannel[]) {
+          {
+            .adc = &ADCD1,
+            .resolution = 12,
+            .group_base = {
+                .num_channels = 4,
+                .channel_mask = 0x80E0, // Ch 5,6,7,15
+            },
+            .samples = (adcsample_t[]) { 0, 0, 0, 0 }
+          }
+        }
+    },
+    .debug = {
+        .heartbeatLed= { .port = IOPORT2, .pin = 27 },
+        .channel = (BaseAsynchronousChannel*) &SDU_SHELL,
+        .eraseCallback = &debugEraseCallback
+    }
+};
+
+/** @} */

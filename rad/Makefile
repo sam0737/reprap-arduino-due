@@ -54,11 +54,18 @@ PROJECT = rad
 
 # Imported source files and paths
 CHIBIOS = chibios
+RAD = src
+
+# Chibios/RT Chained Makefile
 include $(CHIBIOS)/boards/ARDUINO_DUE/board.mk
 include $(CHIBIOS)/os/hal/platforms/SAM3X8E/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/SAM3X/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
+
+# RAD Chained Makefile
+include $(RAD)/radboards/RADS/radboard.mk
+include $(RAD)/machines/generic/machine.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/sam3x8e_flash.ld
@@ -71,11 +78,13 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
+       $(RADBOARDSRC) \
+       $(MACHINESRC) \
        $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        chibios_msd/mass_storage/usb_msd.c \
-       $(wildcard src/*.c)
+       $(wildcard ${RAD}/*.c)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -108,7 +117,9 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
          chibios_msd/mass_storage \
-         src
+         $(RADBOARDINC) \
+         $(MACHINEINC) \
+         src \
 
 #
 # Project, sources and paths
@@ -169,7 +180,7 @@ DINCDIR =
 DLIBDIR =
 
 # List all default libraries here
-DLIBS =
+DLIBS = -lm
 
 #
 # End of default section
