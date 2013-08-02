@@ -32,10 +32,12 @@
 extern const USBConfig usbcfg;
 extern SerialUSBConfig serusb_datacfg;
 extern SerialUSBConfig serusb_shellcfg;
+extern USBMassStorageConfig ums_cfg;
 
 // USB Device
 extern SerialUSBDriver SDU_SHELL;
 extern SerialUSBDriver SDU_DATA;
+extern USBMassStorageDriver UMSD;
 
 #include "LUFA/drivers/USB/USB.h"
 /* Macros: */
@@ -82,11 +84,11 @@ typedef struct
     USB_Descriptor_Interface_t               CDC2_DCI_Interface;
     USB_Descriptor_Endpoint_t                CDC2_DataOutEndpoint;
     USB_Descriptor_Endpoint_t                CDC2_DataInEndpoint;
-/*
+
     // Mass Storage Interface
     USB_Descriptor_Interface_t               MS_Interface;
     USB_Descriptor_Endpoint_t                MS_DataInEndpoint;
-    USB_Descriptor_Endpoint_t                MS_DataOutEndpoint;*/
+    USB_Descriptor_Endpoint_t                MS_DataOutEndpoint;
 } USB_Descriptor_Configuration_t;
 
 #endif  /* _USBCFG_H_ */

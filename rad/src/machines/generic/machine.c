@@ -39,7 +39,7 @@ const machine_t machine =
         .count = 2,
         .channels = (RadTempChannel[]) {
           { .adcId = 2, .heatingPwmId = 2, .converter = adccType1 },
-          { .adcId = 3, .heatingPwmId = 3, .converter = adccType1 }
+          { .adcId = 3, .heatingPwmId = 3, .converter = adccDummy }
         }
     },
     .heatedBeds = {

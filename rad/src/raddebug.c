@@ -29,11 +29,14 @@
 #include "ch.h"
 #include "hal.h"
 #include "rad.h"
+#include "ff.h"
 
 #include "chprintf.h"
 #include "shell.h"
 
 #include "raddebug.h"
+
+FATFS MMC_FS;
 
 /*===========================================================================*/
 /* Shell entry points.                                                       */
@@ -188,6 +191,77 @@ static void cmd_step(BaseSequentialStream *chp, int argc, char *argv[]) {
     }
 }
 
+static FRESULT scan_files(BaseSequentialStream *chp, char *path) {
+  FRESULT res;
+  FILINFO fno;
+  DIR dir;
+  int i;
+  char *fn;
+
+#if _USE_LFN
+  fno.lfname = 0;
+  fno.lfsize = 0;
+#endif
+  res = f_opendir(&dir, path);
+  if (res == FR_OK) {
+    i = strlen(path);
+    for (;;) {
+      res = f_readdir(&dir, &fno);
+      if (res != FR_OK || fno.fname[0] == 0)
+        break;
+      if (fno.fname[0] == '.')
+        continue;
+      fn = fno.fname;
+      if (fno.fattrib & AM_DIR) {
+        path[i++] = '/';
+        strcpy(&path[i], fn);
+        res = scan_files(chp, path);
+        if (res != FR_OK)
+          break;
+        path[--i] = 0;
+      }
+      else {
+        chprintf(chp, "%s/%s\r\n", path, fn);
+      }
+    }
+  }
+  return res;
+}
+
+PARTITION VolToPart[] = { {0, 0} };
+char path[1024];
+static void cmd_sd(BaseSequentialStream *chp, int argc, char *argv[]) {
+    (void)argv;
+    (void)argc;
+    FRESULT err;
+
+    if (mmcConnect(&MMCD1)) {
+      chprintf(chp, "Connection failed\r\n");
+      return;
+    }
+
+    chprintf(chp, "Mounting...\r\n");
+    err = f_mount(0, &MMC_FS);
+    if (err != FR_OK) {
+      mmcDisconnect(&MMCD1);
+      chprintf(chp, "Mount failed\r\n");
+      return;
+    }
+
+    chprintf(chp, "Capacity: %d\r\n", MMCD1.capacity);
+
+    path[0] = 0;
+    scan_files(chp, path);
+}
+
+static void cmd_insert(BaseSequentialStream *chp, int argc, char *argv[]) {
+    msdReady(&UMSD, &MMCD1);
+}
+
+static void cmd_eject(BaseSequentialStream *chp, int argc, char *argv[]) {
+    msdEject(&UMSD);
+}
+
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
@@ -205,6 +279,9 @@ static const ShellCommand commands[] = {
   {"temp", cmd_temp},
   {"out", cmd_out},
   {"step", cmd_step},
+  {"sd", cmd_sd},
+  {"insert", cmd_insert},
+  {"eject", cmd_eject},
   {NULL, NULL}
 };
 

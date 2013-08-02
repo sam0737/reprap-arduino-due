@@ -22,7 +22,7 @@ void debug(const char* message) {
   chprintf((BaseSequentialStream *)&SD1, message);
 }
 
-/*
+
 static SerialConfig sd_cfg = {
   {PIOA, 9, PIO_MODE_A},
   {PIOA, 8, PIO_MODE_A},
@@ -36,26 +36,12 @@ uint8_t data[] = "*=A2345678901234567890123456789012345678901234567890B234567890
 static msg_t ThreadUart(void *arg) {
   (void)arg;
   while (TRUE) {
-    uint8_t b = chSequentialStreamGet(&SD1);
-    if (b == 'a')
-    {
-      usbPrepareTransmit(&USBD1, 2, data, 30);
-      debug("PDONE\r\n");
-      chSysLock();
-      usbStartTransmitI(&USBD1, 2);
-      chSysUnlock();
-    } else if (b == 'd') {
-      chprintf((BaseSequentialStream *)&SD1, "es%.8x msk%.8x dc%.8x dms%.8x \r\n",
-          UOTGHS->UOTGHS_DEVEPTISR[2],
-          UOTGHS->UOTGHS_DEVEPTIMR[2],
-          UOTGHS->UOTGHS_DEVDMA[1].UOTGHS_DEVDMACONTROL,
-          UOTGHS->UOTGHS_DEVDMA[1].UOTGHS_DEVDMASTATUS);
+      uint8_t b = chSequentialStreamGet(&SD1);
+      chSequentialStreamPut(&SD1, b);
     }
-    chSequentialStreamPut(&SD1, b);
-  }
   return 0;
 }
-*/
+
 static msg_t ThreadUart1(void *arg) {
   (void)arg;
   chRegSetThreadName("prog uart");
@@ -65,12 +51,14 @@ static msg_t ThreadUart1(void *arg) {
       chThdSleepMilliseconds(50);
     }
     uint8_t b = chSequentialStreamGet(&SDU_DATA);
+    chThdSleepMilliseconds(100);
+    chprintf((BaseSequentialStream *)&SD1, ">>%.2x\r\n", b);
     chSequentialStreamPut(&SDU_DATA, b);
   }
   return 0;
 }
 
-//static WORKING_AREA(waThreadUart, 1024);
+static WORKING_AREA(waThreadUart, 1024);
 static WORKING_AREA(waThreadUart1, 1024);
 
 /*
@@ -86,15 +74,17 @@ int main(void) {
    *   RTOS is active.
    */
   chSysInit();
+
+  sdStart(&SD1, &sd_cfg);
+
   radInit();
 
   palSetPadMode(IOPORT1, 21, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(IOPORT3, 30, PAL_MODE_OUTPUT_PUSHPULL);
 
-  //sdStart(&SD1, &sd_cfg);
+  //chprintf((BaseSequentialStream *)&SD1, "!!! MAIN !!!\r\n");
   //chThdCreateStatic(waThreadUart, sizeof(waThreadUart), NORMALPRIO, ThreadUart, NULL);
 
-  //chprintf((BaseSequentialStream *)&SD1, "!!! MAIN %d !!!\r\n", (RSTC->RSTC_SR & RSTC_SR_RSTTYP_Msk)>>RSTC_SR_RSTTYP_Pos);
   //return 0;
 
   t = chThdCreateStatic(waThreadUart1, sizeof(waThreadUart1), NORMALPRIO, ThreadUart1, NULL);

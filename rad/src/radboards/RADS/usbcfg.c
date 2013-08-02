@@ -79,7 +79,7 @@ const USB_Descriptor_Configuration_t ConfigurationDescriptor =
         .Header                 = {.Size = sizeof(USB_Descriptor_Configuration_Header_t), .Type = DTYPE_Configuration},
 
         .TotalConfigurationSize = sizeof(USB_Descriptor_Configuration_t),
-        .TotalInterfaces        = 4,
+        .TotalInterfaces        = 5,
 
         .ConfigurationNumber    = 1,
         .ConfigurationStrIndex  = NO_DESCRIPTOR,
@@ -289,13 +289,13 @@ const USB_Descriptor_Configuration_t ConfigurationDescriptor =
         .Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
         .EndpointSize           = CDC_TXRX_EPSIZE,
         .PollingIntervalMS      = 0x05
-    }/*,
+    },
 
     .MS_Interface =
     {
         .Header                 = {.Size = sizeof(USB_Descriptor_Interface_t), .Type = DTYPE_Interface},
 
-        .InterfaceNumber        = 2,
+        .InterfaceNumber        = 4,
         .AlternateSetting       = 0,
 
         .TotalEndpoints         = 2,
@@ -325,7 +325,7 @@ const USB_Descriptor_Configuration_t ConfigurationDescriptor =
         .Attributes             = (EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
         .EndpointSize           = MASS_STORAGE_IO_EPSIZE,
         .PollingIntervalMS      = 0x05
-    }*/
+    }
 };
 
 // U.S. English language identifier.
@@ -522,7 +522,7 @@ static const USBEndpointConfig cdc2_ep_out_config = {
 static USBOutEndpointState ms_out_state;
 
 /**
- * @brief   MS initialization structure (RXOUT)
+ * @brief   MS initialization structure (OUT)
  */
 static const USBEndpointConfig ms_ep_out_config = {
   USB_EP_MODE_TYPE_BULK,
@@ -539,7 +539,7 @@ static const USBEndpointConfig ms_ep_out_config = {
 static USBInEndpointState ms_in_state;
 
 /**
- * @brief   MS initialization structure (TXIN).
+ * @brief   MS initialization structure (IN).
  */
 static const USBEndpointConfig ms_ep_in_config = {
   USB_EP_MODE_TYPE_BULK,
@@ -581,20 +581,19 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
       if (ep == CDC2_RX_EPADDR)
         usbInitEndpointI(usbp, CDC2_RX_EPADDR, &cdc2_ep_out_config);
 
-      /*
       if (ep == MASS_STORAGE_IN_EPADDR)
         usbInitEndpointI(usbp, MASS_STORAGE_IN_EPADDR, &ms_ep_in_config);
       if (ep == MASS_STORAGE_OUT_EPADDR)
         usbInitEndpointI(usbp, MASS_STORAGE_OUT_EPADDR, &ms_ep_out_config);
-      */
     }
 
     /* Resetting the state of the CDC subsystem.*/
     sduConfigureHookI(usbp);
-    //msdConfigureHookI(usbp);
+    msdConfigureHookI(usbp);
     chSysUnlockFromIsr();
     return;
   case USB_EVENT_SUSPEND:
+    msdSuspendHookI(usbp);
     return;
   case USB_EVENT_WAKEUP:
     return;
@@ -632,15 +631,27 @@ SerialUSBConfig serusb_shellcfg = {
     .controllinestate_cb = NULL
 };
 
+USBMassStorageConfig ums_cfg = {
+    &USBD1, 4,
+    MASS_STORAGE_OUT_EPADDR, MASS_STORAGE_IN_EPADDR,
+    NULL,
+    "RADS",
+    "RADS",
+    "0.1"
+};
+
 static bool_t usbRequestsHook(USBDriver *usbp)
 {
-  //return (usbp->setup[4] == 4) ?
-  //    msdRequestsHook(usbp) :
-  return sduRequestsHook(usbp);
+  // Composite Interface Number
+  return (usbp->setup[4] == 4) ?
+      msdRequestsHook(usbp) :
+      sduRequestsHook(usbp);
 }
 
-/* Virtual serial port over USB.*/
+/* Device */
 SerialUSBDriver SDU_SHELL;
 SerialUSBDriver SDU_DATA;
+
+USBMassStorageDriver UMSD;
 
 /** @} */

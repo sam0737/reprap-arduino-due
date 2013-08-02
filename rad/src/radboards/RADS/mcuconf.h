@@ -29,6 +29,8 @@
 #ifndef _MCUCONF_H_
 #define _MCUCONF_H_
 
+#define SAM3XA_ADC_USE_ADC1       TRUE
+
 #define SAM3XA_PWM_USE_CH0        TRUE
 #define SAM3XA_PWM_USE_CH1        TRUE
 #define SAM3XA_PWM_USE_CH2        TRUE
@@ -36,7 +38,7 @@
 #define SAM3XA_PWM_USE_CH5        TRUE
 #define SAM3XA_PWM_USE_CH6        TRUE
 
-#define SAM3XA_ADC_USE_ADC1       TRUE
+#define SAM3XA_SPI_USE_SPI1       TRUE
 
 #define SAM3XA_SERIAL_USE_UART    TRUE
 #define SAM3XA_USB_USE_UOTGHS     TRUE

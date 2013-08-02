@@ -30,6 +30,9 @@
 #include "rad.h"
 #include "usbcfg.h"
 
+/**
+ * Emulate Arduino Due erase the chip upon being connected at 1200bps
+ */
 void arduinoEraseConditionCallback(SerialUSBDriver *sdup)
 {
   if (*((uint32_t*)&sdup->line_coding) == 1200) {
@@ -39,6 +42,9 @@ void arduinoEraseConditionCallback(SerialUSBDriver *sdup)
   }
 }
 
+/**
+ * Actual erase code
+ */
 void debugEraseCallback(void)
 {
   chSysLock();
@@ -88,7 +94,7 @@ static const PWMConfig output_cfg[] = { {
 } };
 
 static const ADCConfig adc_cfg = {
-    .clock = 0,
+    .clock = 10 * 1000 * 1000,
     .use_sequence = 1,
     // We want the ADC captures in the sequence of CH7,CH6,CH5,CH15
     // The USCH number is 1-based, while the CH is 0-based.
@@ -97,6 +103,32 @@ static const ADCConfig adc_cfg = {
                  ADC_SEQR1_USCH8(5),  // E1
     .sequence2 = ADC_SEQR2_USCH16(15)
 };
+
+static const SPIConfig spi_lscfg = {
+    .spi_mode = 0,
+    .speed = 300000,
+    .spck_pin = { IOPORT1, 27, PIO_MODE_A },
+    .miso_pin = { IOPORT1, 25, PIO_MODE_A },
+    .mosi_pin = { IOPORT1, 26, PIO_MODE_A },
+    .cs_pin = { IOPORT2, 14, 0 }
+};
+
+static const SPIConfig spi_hscfg = {
+    .spi_mode = 0,
+    .speed = 25000000,
+    .spck_pin = { IOPORT1, 27, PIO_MODE_A },
+    .miso_pin = { IOPORT1, 25, PIO_MODE_A },
+    .mosi_pin = { IOPORT1, 26, PIO_MODE_A },
+    .cs_pin = { IOPORT2, 14, 0 }
+};
+
+static const MMCConfig mmc_cfg = {
+    .spip = &SPID1,
+    .lscfg = &spi_lscfg,
+    .hscfg = &spi_hscfg
+};
+
+MMCDriver MMCD1;
 
 void radboardInit(void)
 {
@@ -121,6 +153,13 @@ void radboardInit(void)
 
   sduObjectInit(&SDU_DATA);
   sduStart(&SDU_DATA, &serusb_datacfg);
+
+  spiObjectInit(&SPID1);
+  mmcObjectInit(&MMCD1);
+  mmcStart(&MMCD1, &mmc_cfg);
+
+  msdObjectInit(&UMSD);
+  msdStart(&UMSD, &ums_cfg);
 
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
@@ -205,4 +244,23 @@ const radboard_t radboard =
     }
 };
 
+/**
+ * @brief   MMC_SPI card detection.
+ */
+bool_t mmc_lld_is_card_inserted(MMCDriver *mmcp) {
+
+  (void)mmcp;
+  /* TODO: Fill the implementation.*/
+  return TRUE;
+}
+
+/**
+ * @brief   MMC_SPI card write protection detection.
+ */
+bool_t mmc_lld_is_write_protected(MMCDriver *mmcp) {
+
+  (void)mmcp;
+  /* TODO: Fill the implementation.*/
+  return FALSE;
+}
 /** @} */

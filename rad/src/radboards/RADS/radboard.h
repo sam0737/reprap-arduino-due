@@ -35,10 +35,13 @@
 #ifndef _RADBOARD_H_
 #define _RADBOARD_H_
 
+#include "usb_msd.h"
 #include "usbcfg.h"
 
-/*
- * Board identifier.
+extern MMCDriver MMCD1;
+
+/**
+ * @brief Board identifier.
  */
 #define RADBOARD_NAME "RADS"
 

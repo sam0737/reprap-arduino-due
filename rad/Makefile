@@ -62,6 +62,7 @@ include $(CHIBIOS)/os/hal/platforms/SAM3X8E/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/SAM3X/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
+include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 
 # RAD Chained Makefile
 include $(RAD)/radboards/RADS/radboard.mk
@@ -78,6 +79,7 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
+       $(FATFSSRC) \
        $(RADBOARDSRC) \
        $(MACHINESRC) \
        $(CHIBIOS)/os/various/syscalls.c \
@@ -117,6 +119,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
          chibios_msd/mass_storage \
+         $(FATFSINC) \
          $(RADBOARDINC) \
          $(MACHINEINC) \
          src \
