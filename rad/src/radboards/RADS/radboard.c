@@ -110,16 +110,22 @@ static const SPIConfig spi_lscfg = {
     .spck_pin = { IOPORT1, 27, PIO_MODE_A },
     .miso_pin = { IOPORT1, 25, PIO_MODE_A },
     .mosi_pin = { IOPORT1, 26, PIO_MODE_A },
-    .cs_pin = { IOPORT2, 14, 0 }
+    .cs_pin = { IOPORT2, 14, 0 },
+    .use_dma = TRUE,
+    .dma_tx_ch = 0,
+    .dma_rx_ch = 1,
 };
 
 static const SPIConfig spi_hscfg = {
     .spi_mode = 0,
-    .speed = 25000000,
+    .speed = 20000000,
     .spck_pin = { IOPORT1, 27, PIO_MODE_A },
     .miso_pin = { IOPORT1, 25, PIO_MODE_A },
     .mosi_pin = { IOPORT1, 26, PIO_MODE_A },
-    .cs_pin = { IOPORT2, 14, 0 }
+    .cs_pin = { IOPORT2, 14, 0 },
+    .use_dma = TRUE,
+    .dma_tx_ch = 0,
+    .dma_rx_ch = 1,
 };
 
 static const MMCConfig mmc_cfg = {
