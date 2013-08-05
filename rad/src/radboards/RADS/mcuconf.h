@@ -38,6 +38,8 @@
 #define SAM3XA_PWM_USE_CH5        TRUE
 #define SAM3XA_PWM_USE_CH6        TRUE
 
+#define SAM3XA_GPT_USE_TC0        TRUE
+
 #define SAM3XA_SPI_USE_SPI1       TRUE
 
 #define SAM3XA_SERIAL_USE_UART    TRUE

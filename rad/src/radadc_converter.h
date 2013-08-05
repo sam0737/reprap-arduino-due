@@ -43,9 +43,10 @@
 #define MAKE_THERMISTOR_CONVERTER(NAME, R2, R0, T0, BETA)                   \
 float (NAME)(const adcsample_t sample, const uint8_t resolution)            \
 {                                                                           \
-  if (sample == 0) return 999;                                              \
+  uint16_t limit = (1 << (resolution - 8));                                 \
+  if (sample <= limit) return 999;                                          \
   adcsample_t inv_sample = (1 << resolution) - 1 - sample;                  \
-  if (inv_sample == 0) return 999;                                          \
+  if (inv_sample <= limit) return 999;                                      \
   return -273.15 +                                                          \
     BETA / log(                                                             \
       sample * (R2) / inv_sample /                                          \

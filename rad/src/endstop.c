@@ -19,10 +19,10 @@
 */
 
 /**
- * @file    beeper.c
- * @brief   Beeper
+ * @file    endstop.c
+ * @brief   Endstop management
  *
- * @addtogroup BEEPER
+ * @addtogroup ENDSTOP
  * @{
  */
 
@@ -30,66 +30,66 @@
 #include "hal.h"
 #include "rad.h"
 
-#include "beeper.h"
+#include "endstop.h"
+
 
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-extern const BeeperTune tuneStartup = { .notes = (BeeperNote[]) {
-  {500, 120}, {0, 50}, {1000, 100}, {0, 0}
-} };
-
-static BeeperNote* volatile note_playing;
-static BinarySemaphore bsemNewNote;
-
-static WORKING_AREA(waBeeper, 128);
+static WORKING_AREA(waEndstop, 128);
 
 /*===========================================================================*/
 /* Local functions.                                                          */
 /*===========================================================================*/
 
-static msg_t threadBeeper(void *arg) {
+static void checkEndstop(void)
+{
+  int8_t i;
+  int8_t j;
+  RadJoint* joint;
+  for (i = 0; i < machine.kinematics.joint_count; i++)
+  {
+    joint = &machine.kinematics.joints[i];
+    j = joint->min_endstop_id;
+    if (j >= 0 &&
+        palReadPin(radboard.endstop.channels[j].pin, machine.endstop_config.configs[j].active_low)) {
+      joint->state.limit_state = LIMIT_MinHit;
+      continue;
+    }
+    j = joint->max_endstop_id;
+    if (j >= 0 &&
+        palReadPin(radboard.endstop.channels[j].pin, machine.endstop_config.configs[j].active_low)) {
+      joint->state.limit_state = LIMIT_MaxHit;
+      continue;
+    }
+    joint->state.limit_state = LIMIT_Normal;
+  }
+}
+
+static msg_t threadEndstop(void *arg) {
   (void)arg;
-  BeeperNote* note;
-  chRegSetThreadName("beeper");
+  chRegSetThreadName("endstop");
 
   while (TRUE) {
-    while (note_playing == NULL || note_playing->len == 0)
-      chBSemWait(&bsemNewNote);
-
-    note = note_playing++;
-    if (note->tone == 0) {
-      chThdSleepMilliseconds(note->len);
-    } else {
-      pwmChangePeriod(radboard.hmi.beeper_pwm,
-          radboard.hmi.beeper_pwm->config->frequency / note->tone);
-      pwmEnableChannel(radboard.hmi.beeper_pwm, 0, PWM_FRACTION_TO_WIDTH(radboard.hmi.beeper_pwm, 2, 1));
-      chThdSleepMilliseconds(note->len);
-      pwmDisableChannel(radboard.hmi.beeper_pwm, 0);
-    }
+    chThdSleepMilliseconds(1);
+    checkEndstop();
   }
   return 0;
 }
 
 /*===========================================================================*/
-/* Exported functions.                                                       */
+/* Driver exported functions.                                                */
 /*===========================================================================*/
 
-void beeperInit()
+void endstopInit(void)
 {
-  if (radboard.hmi.beeper_pwm == NULL)
-    return;
-  chBSemInit(&bsemNewNote, TRUE);
-  chThdCreateStatic(waBeeper, sizeof(waBeeper), NORMALPRIO, threadBeeper, NULL);
-}
+  uint8_t i;
+  for (i = 0; i < radboard.endstop.count; i++) {
+    palSetPinMode(radboard.endstop.channels[i].pin, PAL_MODE_INPUT_PULLUP);
+  }
 
-void beeperPlay(const BeeperTune* tune)
-{
-  if (radboard.hmi.beeper_pwm == NULL)
-    return;
-  note_playing = tune->notes;
-  chBSemSignal(&bsemNewNote);
+  chThdCreateStatic(waEndstop, sizeof(waEndstop), NORMALPRIO + 5, threadEndstop, NULL);
 }
 
 /** @} */

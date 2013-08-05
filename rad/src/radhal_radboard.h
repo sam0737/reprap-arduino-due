@@ -69,6 +69,10 @@ typedef struct {
 } RadStepperChannel;
 
 typedef struct {
+  pin_t           pin;
+} RadEndstopChannel;
+
+typedef struct {
   ADCDriver       *adc;
   uint8_t         resolution;
   ADCConversionGroup  group_base;
@@ -89,15 +93,15 @@ typedef struct {
      * @brief IO pin for ATX PSU On. Omit to disable this feature.
      * @note  Please define pin as active_low to turn the PSU on
      */
-    signal_t        psuOn;
+    signal_t        psu_on;
   } power;
 
   /*******************************************
    * Human machine interface
    */
   struct {
-    PWMDriver       *beeperPwm;
-    pwmchannel_t    beeperChannel;
+    PWMDriver       *beeper_pwm;
+    pwmchannel_t    beeper_channel;
   } hmi;
 
   /*******************************************
@@ -113,10 +117,19 @@ typedef struct {
    */
   struct {
     uint8_t                   count;
-    signal_t                  mainEnable;
+    signal_t                  main_enable;
+    GPTDriver                 *gpt;
+    GPTConfig                 *gpt_config;
     RadStepperChannel         *channels;
   } stepper;
 
+  /*******************************************
+   * @brief Endstop Input
+   */
+  struct {
+    uint8_t                   count;
+    RadEndstopChannel         *channels;
+  } endstop;
 
   /*******************************************
    * @brief ADC Input
@@ -133,7 +146,7 @@ typedef struct {
     /**
      * @brief Heartbeat LED that flashes every half a second
      */
-    pin_t     heartbeatLed;
+    pin_t     heartbeat_led;
     /**
      * @brief Shell channel
      */
@@ -141,7 +154,7 @@ typedef struct {
     /**
      * @brief Callback for chip erase
      */
-    void      (*eraseCallback)(void);
+    void      (*erase_callback)(void);
   } debug;
 } radboard_t;
 
@@ -154,6 +167,10 @@ extern const radboard_t radboard;
 
 #ifndef SYSTEM_CLOCK
 #error "Please define SYSTEM_CLOCK in radboard.h - System clock in Hz"
+#endif
+
+#ifndef RAD_NUMBER_STEPPERS
+#error "Please define RAD_NUMBER_STEPPERS in radboard.h"
 #endif
 
 #endif  /* _RADHAL_RADBOARD_H_ */

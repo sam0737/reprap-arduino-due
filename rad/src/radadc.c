@@ -36,34 +36,34 @@
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-static WORKING_AREA(waAdc, 256);
+static WORKING_AREA(waAdc, 128);
 
-volatile int8_t finishingCount = 0;
-volatile int8_t hasError = 0;
+int8_t finishing_count = 0;
+int8_t has_error = 0;
 Thread* tp;
 
 /*===========================================================================*/
 /* Local functions.                                                          */
 /*===========================================================================*/
 
-void radadcEndCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n)
+void radadc_end_callback(ADCDriver *adcp, adcsample_t *buffer, size_t n)
 {
   (void)adcp;
   (void)buffer;
   (void)n;
-  if (--finishingCount == 0) {
+  if (--finishing_count == 0) {
     chSysLockFromIsr();
     chSchReadyI(tp);
     chSysUnlockFromIsr();
   }
 }
 
-void radadcErrorCallback(ADCDriver *adcp, adcerror_t err)
+void radadc_error_callback(ADCDriver *adcp, adcerror_t err)
 {
   (void)adcp;
   (void)err;
-  hasError++;
-  if (--finishingCount == 0) {
+  has_error++;
+  if (--finishing_count == 0) {
     chSysLockFromIsr();
     chSchReadyI(tp);
     chSysUnlockFromIsr();
@@ -74,7 +74,7 @@ static msg_t threadAdc(void *arg) {
   (void)arg;
   uint8_t i, j, k, c;
   RadAdcChannel *ch;
-  RadTempChannel *cht;
+  RadTemp *cht;
 
   tp = chThdSelf();
   chRegSetThreadName("adc");
@@ -82,8 +82,8 @@ static msg_t threadAdc(void *arg) {
   while (TRUE) {
     chThdSleepMilliseconds(50);
 
-    finishingCount = radboard.adc.count;
-    hasError = 0;
+    finishing_count = radboard.adc.count;
+    has_error = 0;
 
     chSysLock();
     for (i = 0; i < radboard.adc.count; i++) {
@@ -92,29 +92,17 @@ static msg_t threadAdc(void *arg) {
     }
     chSchGoSleepS(THD_STATE_SUSPENDED);
 
-    if (hasError || finishingCount)
+    if (has_error || finishing_count)
       continue;
 
     c = 1;
     for (i = 0; i < radboard.adc.count; i++) {
       ch = &radboard.adc.channels[i];
       for (j = 0; j < ch->group_base.num_channels; j++, c++) {
-        for (k = 0; k < machine.extruders.count; k++) {
-          cht = &machine.extruders.channels[k];
-          if (cht->adcId == c && cht->converter) {
-            cht->pv = cht->converter(ch->samples[j], ch->resolution);
-          }
-        }
-        for (k = 0; k < machine.heatedBeds.count; k++) {
-          cht = &machine.heatedBeds.channels[k];
-          if (cht->adcId == c && cht->converter) {
-            cht->pv = cht->converter(ch->samples[j], ch->resolution);
-          }
-        }
-        for (k = 0; k < machine.tempMonitors.count; k++) {
-          cht = &machine.tempMonitors.channels[k];
-          if (cht->adcId == c && cht->converter) {
-            cht->pv = cht->converter(ch->samples[j], ch->resolution);
+        for (k = 0; k < machine.temperature.count; k++) {
+          cht = &machine.temperature.devices[k];
+          if (cht->adc_id == c && cht->converter) {
+            cht->state.pv = cht->converter(ch->samples[j], ch->resolution);
           }
         }
       }
@@ -134,8 +122,8 @@ void radadcInit()
 
   for (i = 0; i < radboard.adc.count; i++) {
     ch = &radboard.adc.channels[i];
-    ch->group_base.end_cb = radadcEndCallback;
-    ch->group_base.error_cb = radadcErrorCallback;
+    ch->group_base.end_cb = radadc_end_callback;
+    ch->group_base.error_cb = radadc_error_callback;
   }
   chThdCreateStatic(waAdc, sizeof(waAdc), NORMALPRIO, threadAdc, NULL);
 }

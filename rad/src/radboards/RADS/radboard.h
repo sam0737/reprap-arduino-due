@@ -51,13 +51,18 @@ extern MMCDriver MMCD1;
 #define SYSTEM_CLOCK 84000000
 
 /**
+ * @brief Define if PAL pad change is atomic in this architecture
+ */
+#define PAL_PAD_IS_ATOMIC     TRUE
+
+/**
  * @brief Define the R2 value of the thermistor circuit
  */
 #define TEMP_R2 560
 
 /**
- * @brief Define if PAL pad change is atomic in this architecture
+ * @brief Define number of stepper output
  */
-#define PAL_PAD_IS_ATOMIC     TRUE
+#define RAD_NUMBER_STEPPERS 5
 
 #endif /* _RADBOARD_H_ */

@@ -19,28 +19,14 @@
 */
 
 /**
- * @file    src/rad.h
- * @brief   RAD header.
+ * @file    endstop.h
+ * @brief   Endstop management header
  *
- * @addtogroup RAD
+ * @addtogroup ENDSTOP
  * @{
  */
-
-#ifndef _RAD_H_
-#define _RAD_H_
-
-#include "radhal_radboard.h"
-#include "radhal_machine.h"
-
-#include "power.h"
-#include "beeper.h"
-#include "output.h"
-#include "stepper.h"
-#include "endstop.h"
-#include "planner.h"
-#include "radadc.h"
-#include "raddebug.h"
-#include "radpex.h"
+#ifndef _RAD_ENDSTOP_H_
+#define _RAD_ENDSTOP_H_
 
 /*===========================================================================*/
 /* External declarations.                                                    */
@@ -49,11 +35,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void radInit(void);
+  void endstopInit(void);
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* _RAD_H_ */
+#endif  /* _RAD_ENDSTOP_H_ */
 
 /** @} */

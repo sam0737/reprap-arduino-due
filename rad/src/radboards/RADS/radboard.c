@@ -33,7 +33,7 @@
 /**
  * Emulate Arduino Due erase the chip upon being connected at 1200bps
  */
-void arduinoEraseConditionCallback(SerialUSBDriver *sdup)
+void arduino_erase_condition_callback(SerialUSBDriver *sdup)
 {
   if (*((uint32_t*)&sdup->line_coding) == 1200) {
     if (!(sdup->control_line_state & USB_SERIAL_DTR)) {
@@ -45,7 +45,7 @@ void arduinoEraseConditionCallback(SerialUSBDriver *sdup)
 /**
  * Actual erase code
  */
-void debugEraseCallback(void)
+void debug_erase_callback(void)
 {
   chSysLock();
 
@@ -74,26 +74,26 @@ static const PWMConfig beeper_cfg = {
 
 static const PWMConfig output_cfg[] = { {
   .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
-  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 3, PIO_MODE_B} } }
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {IOPORT3, 3, PIO_MODE_B} } }
 },
 {
   .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
-  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 5, PIO_MODE_B} } }
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {IOPORT3, 5, PIO_MODE_B} } }
 },
 {
   .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
-  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 7, PIO_MODE_B} } }
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {IOPORT3, 7, PIO_MODE_B} } }
 },
 {
   .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
-  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 9, PIO_MODE_B} } }
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {IOPORT3, 9, PIO_MODE_B} } }
 },
 {
   .frequency = SYSTEM_CLOCK / 1024, .period = 255 * 2,
-  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {PIOC, 19, PIO_MODE_B} } }
+  .channels = { { .mode = PWM_CHANNEL_POLARITY_HIGH, .h_pin = {IOPORT3, 19, PIO_MODE_B} } }
 } };
 
-static const ADCConfig adc_cfg = {
+static ADCConfig adc_cfg = {
     .clock = 10 * 1000 * 1000,
     .use_sequence = 1,
     // We want the ADC captures in the sequence of CH7,CH6,CH5,CH15
@@ -104,7 +104,11 @@ static const ADCConfig adc_cfg = {
     .sequence2 = ADC_SEQR2_USCH16(15)
 };
 
-static const SPIConfig spi_lscfg = {
+static GPTConfig gpt_stepper_cfg = {
+    .frequency = SYSTEM_CLOCK / 2
+};
+
+static SPIConfig spi_lscfg = {
     .spi_mode = 0,
     .speed = 300000,
     .spck_pin = { IOPORT1, 27, PIO_MODE_A },
@@ -116,7 +120,7 @@ static const SPIConfig spi_lscfg = {
     .dma_rx_ch = 1,
 };
 
-static const SPIConfig spi_hscfg = {
+static SPIConfig spi_hscfg = {
     .spi_mode = 0,
     .speed = 20000000,
     .spck_pin = { IOPORT1, 27, PIO_MODE_A },
@@ -128,7 +132,7 @@ static const SPIConfig spi_hscfg = {
     .dma_rx_ch = 1,
 };
 
-static const MMCConfig mmc_cfg = {
+static MMCConfig mmc_cfg = {
     .spip = &SPID1,
     .lscfg = &spi_lscfg,
     .hscfg = &spi_hscfg
@@ -142,25 +146,21 @@ void radboardInit(void)
   // Disable Watchdog
   WDT->WDT_MR = WDT_MR_WDDIS;
 
-  pwmObjectInit(radboard.hmi.beeperPwm);
-  pwmStart(radboard.hmi.beeperPwm, &beeper_cfg);
+  pwmStart(radboard.hmi.beeper_pwm, &beeper_cfg);
 
   for (i = 0; i < radboard.output.count; i++) {
-    pwmObjectInit(radboard.output.channels[i].pwm);
     pwmStart(radboard.output.channels[i].pwm, &output_cfg[i]);
   }
 
-  adcObjectInit(&ADCD1);
   adcStart(&ADCD1, &adc_cfg);
 
-  serusb_shellcfg.controllinestate_cb = &arduinoEraseConditionCallback;
+  serusb_shellcfg.controllinestate_cb = &arduino_erase_condition_callback;
   sduObjectInit((SerialUSBDriver*) radboard.debug.channel);
   sduStart((SerialUSBDriver*)radboard.debug.channel, &serusb_shellcfg);
 
   sduObjectInit(&SDU_DATA);
   sduStart(&SDU_DATA, &serusb_datacfg);
 
-  spiObjectInit(&SPID1);
   mmcObjectInit(&MMCD1);
   mmcStart(&MMCD1, &mmc_cfg);
 
@@ -182,11 +182,11 @@ const radboard_t radboard =
 {
     .init = &radboardInit,
     .power = {
-        .psuOn = { .pin = { .port = IOPORT2, .pin = 20 }, .active_low = 1 }
+        .psu_on = { .pin = { .port = IOPORT2, .pin = 20 }, .active_low = 1 }
     },
     .hmi = {
-        .beeperPwm = &PWMD7,
-        .beeperChannel = 0
+        .beeper_pwm = &PWMD7,
+        .beeper_channel = 0
     },
     .output = {
         .count = 5,
@@ -194,18 +194,20 @@ const radboard_t radboard =
           { .pwm = &PWMD1, .channel = 0,
             .signal = { .pin = { IOPORT3, 3 }, .active_low = 0 } },
           { .pwm = &PWMD2, .channel = 0,
-              .signal = { .pin = { IOPORT3, 5 }, .active_low = 0 } },
+            .signal = { .pin = { IOPORT3, 5 }, .active_low = 0 } },
           { .pwm = &PWMD3, .channel = 0,
-              .signal = { .pin = { IOPORT3, 7 }, .active_low = 0 } },
+            .signal = { .pin = { IOPORT3, 7 }, .active_low = 0 } },
           { .pwm = &PWMD4, .channel = 0,
-              .signal = { .pin = { IOPORT3, 9 }, .active_low = 0 } },
+            .signal = { .pin = { IOPORT3, 9 }, .active_low = 0 } },
           { .pwm = &PWMD6, .channel = 0,
-              .signal = { .pin = { IOPORT3, 19 }, .active_low = 0 } }
+            .signal = { .pin = { IOPORT3, 19 }, .active_low = 0 } }
         }
     },
     .stepper = {
-        .count = 5,
-        .mainEnable = { .pin = { IOPORT3, 2 }, .active_low = 1 },
+        .count = RAD_NUMBER_STEPPERS,
+        .gpt = &GPTD1,
+        .gpt_config = &gpt_stepper_cfg,
+        .main_enable = { .pin = { IOPORT3, 2 }, .active_low = 1 },
         .channels = (RadStepperChannel[]) {
           {
             .step = { .pin = { IOPORT2, 26 }, .active_low = 0 },
@@ -229,6 +231,14 @@ const radboard_t radboard =
           }
         }
     },
+    .endstop = {
+        .count = 3,
+        .channels = (RadEndstopChannel[]) {
+          { .pin = { IOPORT3, 4 } },
+          { .pin = { IOPORT3, 6 } },
+          { .pin = { IOPORT3, 8 } }
+        }
+    },
     .adc = {
         .count = 1,
         .channels = (RadAdcChannel[]) {
@@ -244,9 +254,9 @@ const radboard_t radboard =
         }
     },
     .debug = {
-        .heartbeatLed= { .port = IOPORT2, .pin = 27 },
+        .heartbeat_led= { .port = IOPORT2, .pin = 27 },
         .channel = (BaseAsynchronousChannel*) &SDU_SHELL,
-        .eraseCallback = &debugEraseCallback
+        .erase_callback = &debug_erase_callback
     }
 };
 

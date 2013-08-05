@@ -44,7 +44,7 @@ typedef struct {
   BeeperNote *notes;
 } BeeperTune;
 
-extern BeeperTune tuneStartup, tuneFinished, tuneOk, tuneWarning;
+extern const BeeperTune tuneStartup, tuneFinished, tuneOk, tuneWarning;
 
 /*===========================================================================*/
 /* External declarations.                                                    */
@@ -54,7 +54,7 @@ extern BeeperTune tuneStartup, tuneFinished, tuneOk, tuneWarning;
 extern "C" {
 #endif
   void beeperInit(void);
-  void beeperPlay(BeeperTune*);
+  void beeperPlay(const BeeperTune*);
 #ifdef __cplusplus
 }
 #endif

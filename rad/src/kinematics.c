@@ -19,10 +19,10 @@
 */
 
 /**
- * @file    power.c
- * @brief   power management
+ * @file    kinematics.c
+ * @brief   Kinematics formula
  *
- * @addtogroup POWER
+ * @addtogroup KINEMATICS
  * @{
  */
 
@@ -30,52 +30,10 @@
 #include "hal.h"
 #include "rad.h"
 
-#include "power.h"
-
-/**
- * State of the power supply
- */
-static uint8_t psu_state;
+#include "kinematics.h"
 
 /*===========================================================================*/
-/* Driver exported functions.                                                */
+/* Exported functions.                                                       */
 /*===========================================================================*/
-
-void powerInit(void)
-{
-  if (!palHasSig(radboard.power.psu_on))
-    return;
-  if (machine.power.always_on) {
-    pexEnableSig(radboard.power.psu_on);
-    psu_state = 1;
-  } else {
-    pexDisableSig(radboard.power.psu_on);
-    psu_state = 0;
-  }
-  palSetSigMode(radboard.power.psu_on, PAL_MODE_OUTPUT_PUSHPULL);
-}
-
-void powerPsuOn(void)
-{
-  if (!palHasSig(radboard.power.psu_on) || machine.power.always_on)
-    return;
-
-  psu_state = 1;
-  pexEnableSig(radboard.power.psu_on);
-}
-
-void powerPsuOff(void)
-{
-  if (!palHasSig(radboard.power.psu_on) || machine.power.always_on)
-    return;
-
-  psu_state = 0;
-  pexDisableSig(radboard.power.psu_on);
-}
-
-uint8_t powerIsPsuOn(void)
-{
-  return psu_state;
-}
 
 /** @} */

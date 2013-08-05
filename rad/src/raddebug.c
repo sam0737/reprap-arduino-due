@@ -141,20 +141,20 @@ static void cmd_beep(BaseSequentialStream *chp, int argc, char *argv[]) {
 static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
     (void)argv;
     uint8_t k;
-    RadTempChannel *cht;
+    RadTemp *cht;
 
     if (argc == 0) {
-      for (k = 0; k < machine.extruders.count; k++) {
-        cht = &machine.extruders.channels[k];
-        chprintf(chp, "Extruder %d: %.2f\r\n", k, cht->pv);
+      for (k = 0; k < machine.extruder.count; k++) {
+        cht = machine.extruder.devices[k].temp;
+        chprintf(chp, "Extruder %d: %.2f\r\n", k, cht->state.pv);
       }
-      for (k = 0; k < machine.heatedBeds.count; k++) {
-        cht = &machine.heatedBeds.channels[k];
-        chprintf(chp, "Bed      %d: %.2f\r\n", k, cht->pv);
+      for (k = 0; k < machine.heated_bed.count; k++) {
+        cht = machine.heated_bed.devices[k].temp;
+        chprintf(chp, "Bed      %d: %.2f\r\n", k, cht->state.pv);
       }
-      for (k = 0; k < machine.tempMonitors.count; k++) {
-        cht = &machine.tempMonitors.channels[k];
-        chprintf(chp, "Monitor  %d: %.2f\r\n", k, cht->pv);
+      for (k = 0; k < machine.temp_monitor.count; k++) {
+        cht = machine.temp_monitor.devices[k];
+        chprintf(chp, "Monitor  %d: %.2f\r\n", k, cht->state.pv);
       }
     }
 }
@@ -255,11 +255,40 @@ static void cmd_sd(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 static void cmd_insert(BaseSequentialStream *chp, int argc, char *argv[]) {
-    msdReady(&UMSD, &MMCD1);
+  (void)chp;
+  (void)argc;
+  (void)argv;
+  msdReady(&UMSD, (BaseBlockDevice *)&MMCD1);
 }
 
 static void cmd_eject(BaseSequentialStream *chp, int argc, char *argv[]) {
-    msdEject(&UMSD);
+  (void)chp;
+  (void)argc;
+  (void)argv;
+  msdEject(&UMSD);
+}
+static void p0(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
+  (void)argc;
+  (void)argv;
+
+  PlannerJointMovement v = {
+    .joints = {1, 100, -2},
+    .extruders = {-5}
+  };
+  plannerSetJointVelocity(&v);
+}
+
+static void p1(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
+  (void)argc;
+  (void)argv;
+
+  PlannerJointMovement v = {
+    .joints = {10, -4, 0},
+    .extruders = {5}
+  };
+  plannerSetJointVelocity(&v);
 }
 
 /*===========================================================================*/
@@ -282,6 +311,8 @@ static const ShellCommand commands[] = {
   {"sd", cmd_sd},
   {"insert", cmd_insert},
   {"eject", cmd_eject},
+  {"p0", p0},
+  {"p1", p1},
   {NULL, NULL}
 };
 
@@ -293,11 +324,11 @@ static msg_t threadHeartbeat(void *arg) {
   (void)arg;
   chRegSetThreadName("heartbeat");
 
-  palSetPinMode(radboard.debug.heartbeatLed, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPinMode(radboard.debug.heartbeat_led, PAL_MODE_OUTPUT_PUSHPULL);
   while (TRUE) {
     systime_t time = USBD1.state == USB_ACTIVE ? 250 : 500;
     chThdSleepMilliseconds(time);
-    palTogglePad(radboard.debug.heartbeatLed.port, radboard.debug.heartbeatLed.pin);
+    palTogglePad(radboard.debug.heartbeat_led.port, radboard.debug.heartbeat_led.pin);
   }
   return 0;
 }
@@ -333,7 +364,7 @@ static msg_t threadShellMonitor(void *arg) {
 
 void debugInit(void)
 {
-  if (palHasPin(radboard.debug.heartbeatLed)) {
+  if (palHasPin(radboard.debug.heartbeat_led)) {
     chThdCreateStatic(waHeartbeat, sizeof(waHeartbeat), NORMALPRIO, threadHeartbeat, NULL);
   }
 
@@ -346,8 +377,8 @@ void debugInit(void)
 
 void debugErase(void)
 {
-  if (radboard.debug.eraseCallback != NULL)
-    radboard.debug.eraseCallback();
+  if (radboard.debug.erase_callback != NULL)
+    radboard.debug.erase_callback();
 }
 
 /** @} */

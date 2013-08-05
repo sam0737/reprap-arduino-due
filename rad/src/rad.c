@@ -42,8 +42,10 @@ void radInit(void)
   beeperInit();
   outputInit();
   stepperInit();
+  endstopInit();
   radadcInit();
   debugInit();
+  plannerInit();
 }
 
 /** @} */

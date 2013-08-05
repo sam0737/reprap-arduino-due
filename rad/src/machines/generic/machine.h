@@ -35,9 +35,13 @@
 #ifndef _MACHINE_H_
 #define _MACHINE_H_
 
-/*
- * Board identifier.
+/**
+ * @brief Board identifier.
  */
 #define MACHINE_NAME "Generic"
+
+#define RAD_NUMBER_JOINTS 3
+#define RAD_NUMBER_AXES 3
+#define RAD_NUMBER_EXTRUDERS 2
 
 #endif /* _MACHINE_H_ */

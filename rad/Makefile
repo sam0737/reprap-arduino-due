@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer
+  USE_OPT = -O2 -ggdb -fomit-frame-pointer -std=gnu99
 endif
 
 # C specific options here (added to USE_OPT).
@@ -206,7 +206,7 @@ UINCDIR =
 ULIBDIR =
 
 # List all user libraries here
-ULIBS =
+ULIBS = -lm
 
 #
 # End of user defines
