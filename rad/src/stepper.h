@@ -40,6 +40,7 @@
 extern "C" {
 #endif
   void stepperInit(void);
+  void stepperSetHome(uint8_t joint, int32_t home_step, float home_pos);
 #ifdef __cplusplus
 }
 #endif

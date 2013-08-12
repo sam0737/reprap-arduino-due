@@ -32,13 +32,14 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-extern volatile uint8_t debug_value[8];
+extern volatile int32_t debug_value[24];
 
 #ifdef __cplusplus
 extern "C" {
 #endif
   void debugInit(void);
   void debugErase(void);
+  void debugPanic(char* message);
 #ifdef __cplusplus
 }
 #endif

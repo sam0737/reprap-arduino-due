@@ -42,7 +42,7 @@ FATFS MMC_FS;
 /* Shell entry points.                                                       */
 /*===========================================================================*/
 
-volatile uint8_t debug_value[8];
+volatile int32_t debug_value[24];
 
 static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
   size_t n, size;
@@ -86,12 +86,13 @@ static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
 static void cmd_dump(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
   (void)argc;
-    uint8_t i;
+  uint8_t i;
 
-    for (i = 0; i < 8; i++) {
-      chprintf(chp, "%.2x ", debug_value[i]);
-    }
-    chprintf(chp, "\r\n");
+  for (i = 0; i < 24; i++) {
+    if (i % 8 == 0 && i > 0) chprintf(chp, "\r\n");
+    chprintf(chp, " %.8x\r\n", debug_value[i]);
+  }
+  chprintf(chp, "\r\n");
 }
 
 static void cmd_erase(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -132,31 +133,43 @@ static void cmd_beep(BaseSequentialStream *chp, int argc, char *argv[]) {
       if (sscanf(argv[0], "%d", &tone) == 1) {
         tuneDebug.notes[0].tone = tone;
         beeperPlay(&tuneDebug);
-        return;
       }
     }
     chprintf(chp, "Usage: beep [freq]\r\n");
 }
 
-static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
-    (void)argv;
-    uint8_t k;
-    RadTemp *cht;
+static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argc;
+  (void)argv;
 
-    if (argc == 0) {
-      for (k = 0; k < machine.extruder.count; k++) {
-        cht = machine.extruder.devices[k].temp;
-        chprintf(chp, "Extruder %d: %.2f\r\n", k, cht->state.pv);
-      }
-      for (k = 0; k < machine.heated_bed.count; k++) {
-        cht = machine.heated_bed.devices[k].temp;
-        chprintf(chp, "Bed      %d: %.2f\r\n", k, cht->state.pv);
-      }
-      for (k = 0; k < machine.temp_monitor.count; k++) {
-        cht = machine.temp_monitor.devices[k];
-        chprintf(chp, "Monitor  %d: %.2f\r\n", k, cht->state.pv);
-      }
-    }
+  chprintf(chp, "Temperatures:\r\n");
+  for (uint8_t i = 0; i < machine.extruder.count; i++) {
+    RadTemp *cht = machine.extruder.devices[i].temp;
+    chprintf(chp, "  Extruder %d: PV %.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+  }
+  for (uint8_t i = 0; i < machine.heated_bed.count; i++) {
+    RadTemp *cht = machine.heated_bed.devices[i].temp;
+    chprintf(chp, "  Bed      %d: PV %.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+  }
+  for (uint8_t i = 0; i < machine.temp_monitor.count; i++) {
+    RadTemp *cht = machine.temp_monitor.devices[i];
+    chprintf(chp, "  Monitor  %d: PV %.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+  }
+
+  chprintf(chp, "Joints:\r\n");
+  for (uint8_t i = 0; i < machine.kinematics.joint_count; i++) {
+    chSysLock();
+    RadJointState s = machine.kinematics.joints[i].state;
+    chSysUnlock();
+    chprintf(chp, "  %d Pos: %-4.2f  Limit: %c%c  Stopped: %d  Homed: %d\r\n",
+        i,
+        s.pos,
+        ((s.limit_state & LIMIT_MinHit) != 0) ? '-' : (s.limit_state == LIMIT_Normal ? '*' : ' '),
+        ((s.limit_state & LIMIT_MaxHit) != 0) ? '+' : ' ',
+        s.stopped, s.homed);
+  }
+
+  chprintf(chp, "E Stopped:\r\n  %s\r\n", printer_estop_message ? printer_estop_message : "None");
 }
 
 static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -173,22 +186,6 @@ static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {
       }
     }
     chprintf(chp, "Usage: out [ch] [0-255]\r\n");
-}
-
-static void cmd_step(BaseSequentialStream *chp, int argc, char *argv[]) {
-    (void)chp;
-    (void)argc;
-    (void)argv;
-    int i;
-
-    palSetPadMode(PIOC, 2, PAL_MODE_OUTPUT_PUSHPULL);
-    pexClearPad(PIOC, 2);
-    palSetPadMode(PIOB, 26, PAL_MODE_OUTPUT_PUSHPULL);
-
-    for (i = 0; i < 5000; i++) {
-      pexTogglePad(PIOB, 26);
-      chThdSleepMilliseconds(1);
-    }
 }
 
 static FRESULT scan_files(BaseSequentialStream *chp, char *path) {
@@ -267,16 +264,29 @@ static void cmd_eject(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
   msdEject(&UMSD);
 }
-static void p0(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+static void cmd_homing(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)chp;
   (void)argc;
   (void)argv;
 
-  PlannerJointMovement v = {
-    .joints = {1, 100, -2},
-    .extruders = {-5}
-  };
-  plannerSetJointVelocity(&v);
+  printerAddLine("G29");
+}
+
+static void cmd_estop(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
+  (void)argc;
+  (void)argv;
+
+  printerEstop("Stopped by shell");
+}
+
+static void cmd_clear(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
+  (void)argc;
+  (void)argv;
+
+  printerEstopClear();
 }
 
 static void p1(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -286,7 +296,8 @@ static void p1(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   PlannerJointMovement v = {
     .joints = {10, -4, 0},
-    .extruders = {5}
+    .extruders = {5, 0},
+    .rapid = 1
   };
   plannerSetJointVelocity(&v);
 }
@@ -305,14 +316,14 @@ static const ShellCommand commands[] = {
   {"dump", cmd_dump},
   {"power", cmd_power},
   {"beep", cmd_beep},
-  {"temp", cmd_temp},
+  {"status", cmd_status},
   {"out", cmd_out},
-  {"step", cmd_step},
   {"sd", cmd_sd},
   {"insert", cmd_insert},
   {"eject", cmd_eject},
-  {"p0", p0},
-  {"p1", p1},
+  {"homing", cmd_homing},
+  {"estop", cmd_estop},
+  {"clear", cmd_clear},
   {NULL, NULL}
 };
 

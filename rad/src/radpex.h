@@ -112,7 +112,7 @@
 
 #define palReadPin(p, active_low) \
   (palReadPad((p).port, (p).pin) ? (!(active_low)) : (active_low))
-#define palReadSig(sig, active_low) \
+#define palReadSig(sig) \
   (palReadPin((sig).pin, (sig).active_low))
 
 #endif  /* _RADPEX_H_ */

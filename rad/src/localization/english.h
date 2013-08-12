@@ -19,34 +19,10 @@
 */
 
 /**
- * @file    rad.c
- * @brief   RAD core
- *
- * @addtogroup RAD
- * @{
+ * @file    localization/neutral.h
+ * @brief   English language definition
  */
 
-#include "ch.h"
-#include "hal.h"
-#include "rad.h"
+/* Nothing needed to be defined, because neutral is in English */
 
-/*===========================================================================*/
-/* Driver exported functions.                                                */
-/*===========================================================================*/
-
-void radInit(void)
-{
-  if (radboard.init != NULL)
-    radboard.init();
-  powerInit();
-  beeperInit();
-  outputInit();
-  stepperInit();
-  endstopInit();
-  radadcInit();
-  debugInit();
-  plannerInit();
-  printerInit();
-}
-
-/** @} */
+#include "localization/neutral.h"

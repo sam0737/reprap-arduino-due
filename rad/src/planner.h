@@ -42,26 +42,35 @@ typedef struct {
 } PlannerAxisMovement;
 
 typedef struct {
-  uint8_t rapid:1;
+  bool_t rapid:1;
+  bool_t stop_on_limit_changes:1;
   float joints[RAD_NUMBER_AXES];
   float extruders[RAD_NUMBER_EXTRUDERS];
 } PlannerJointMovement;
 
+typedef enum {
+  BLOCK_Velocity = 1,
+  BLOCK_Estop = 2,
+  BLOCK_Estop_Clear = 3,
+} PlannerOutputBlockMode;
+
 typedef struct {
   uint32_t era;
-  bool_t velocity_mode:1;
-  union {
-    struct {
-      float joints[RAD_NUMBER_JOINTS];
-      float extruders[RAD_NUMBER_EXTRUDERS];
-    } velocity;
-  } data;
+  PlannerOutputBlockMode mode;
+  bool_t stop_on_limit_changes:1;
   struct {
-    uint32_t joints[RAD_NUMBER_JOINTS];
-    uint32_t extruders[RAD_NUMBER_EXTRUDERS];
-  } acceleration;
+    union {
+      float velocity;
+    } data;
+    float acceleration;
+  } joints[RAD_NUMBER_JOINTS];
+  struct {
+    union {
+      float velocity;
+    } data;
+    float acceleration;
+  } extruders[RAD_NUMBER_EXTRUDERS];
 } PlannerOutputBlock;
-
 
 /*===========================================================================*/
 /* Macros.                                                                   */
@@ -69,7 +78,10 @@ typedef struct {
 
 #define plannerFetchBlockI(blockp) (chMBFetchI(&block_mbox, (msg_t*)&blockp))
 
-#define plannerFreeBlockI(blockp) (chPoolFreeI(&block_pool, &blockp))
+#define plannerFreeBlockI(blockp) do {                                    \
+  chPoolFreeI(&block_pool, blockp);                                       \
+  chSemSignalI(&block_pool_sem);                                             \
+} while(0)
 
 #define plannerPeekBlockI(blockp) do {                                    \
   blockp = chMBGetUsedCountI(&block_mbox) > 0 ?                           \
@@ -80,6 +92,7 @@ typedef struct {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+extern Semaphore block_pool_sem;
 extern MemoryPool block_pool;
 extern Mailbox block_mbox;
 
@@ -89,7 +102,8 @@ extern "C" {
 void plannerInit(void);
 void plannerAddAxisPoint(PlannerAxisMovement *point);
 void plannerSetJointVelocity(PlannerJointMovement *velocity);
-void plannerSetAxisVelocity(PlannerAxisMovement *velocity);
+void plannerEstop(void);
+void plannerEstopClear(void);
 #ifdef __cplusplus
 }
 #endif

@@ -35,6 +35,8 @@
 #ifndef _MACHINE_H_
 #define _MACHINE_H_
 
+#include "localization/english.h"
+
 /**
  * @brief Board identifier.
  */

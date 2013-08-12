@@ -30,7 +30,6 @@
 #include "hal.h"
 #include "rad.h"
 
-#include "math.h"
 #include "planner.h"
 
 /*===========================================================================*/
@@ -40,17 +39,19 @@
 static PlannerOutputBlock block_pool_buffer[BLOCK_BUFFER_SIZE + 3];
 static msg_t block_mbox_buffer[BLOCK_BUFFER_SIZE];
 
+Semaphore block_pool_sem;
 MemoryPool block_pool;
 Mailbox block_mbox;
 
-static int current_era = 0;
+static uint32_t current_era = 0;
 
 /*===========================================================================*/
 /* Local functions.                                                          */
 /*===========================================================================*/
 
-PlannerOutputBlock* planner_new_block(void)
+static PlannerOutputBlock* planner_new_block(void)
 {
+  chSemWait(&block_pool_sem);
   PlannerOutputBlock* block = chPoolAlloc(&block_pool);
   block->era = ++current_era;
   return block;
@@ -64,8 +65,8 @@ void plannerInit(void)
 {
   chPoolInit(&block_pool, sizeof(PlannerOutputBlock), NULL);
   chPoolLoadArray(&block_pool, block_pool_buffer, BLOCK_BUFFER_SIZE + 3);
-
   chMBInit(&block_mbox, block_mbox_buffer, BLOCK_BUFFER_SIZE);
+  chSemInit(&block_pool_sem, BLOCK_BUFFER_SIZE + 3);
 }
 
 void plannerAddAxisPoint(PlannerAxisMovement *point)
@@ -81,31 +82,30 @@ void plannerSetJointVelocity(PlannerJointMovement *velocity)
   float speed_factor = 1;
 
   PlannerOutputBlock* block = planner_new_block();
-  block->velocity_mode = TRUE;
+  block->mode = BLOCK_Velocity;
+  block->stop_on_limit_changes = velocity->stop_on_limit_changes;
 
   // Deduce joints speed and speed limit
   for (i = 0; i < machine.kinematics.joint_count; i++) {
     jt = &machine.kinematics.joints[i];
     if (velocity->rapid) {
-      block->data.velocity.joints[i] =
+      block->joints[i].data.velocity =
           (velocity->joints[i] >= 0 ? 1 : -1) *
             fmin(fabs(velocity->joints[i]), jt->max_velocity);
     } else {
       if (fabs(velocity->joints[i]) > jt->max_velocity) {
         speed_factor = fmin(speed_factor, jt->max_velocity / fabs(velocity->joints[i]));
       }
-      block->data.velocity.joints[i] = velocity->joints[i];
+      block->joints[i].data.velocity = velocity->joints[i];
     }
-    block->acceleration.joints[i] =
-      (velocity->joints[i] >= 0 ? 1 : -1) *
-      jt->max_acceleration;
+    block->joints[i].acceleration = jt->max_acceleration;
   }
 
   // Deduce extruders speed and speed limit
   for (i = 0; i < machine.extruder.count; i++) {
     ex = &machine.extruder.devices[i];
     if (velocity->rapid) {
-      block->data.velocity.extruders[i] =
+      block->extruders[i].data.velocity =
           velocity->extruders[i] >= 0 ?
               fmin(velocity->extruders[i], ex->max_velocity) :
               fmax(velocity->extruders[i], -ex->max_retract_velocity);
@@ -119,21 +119,21 @@ void plannerSetJointVelocity(PlannerJointMovement *velocity)
           speed_factor = fmin(speed_factor, ex->max_retract_velocity / -velocity->extruders[i]);
         }
       }
-      block->data.velocity.extruders[i] = velocity->extruders[i];
+      block->extruders[i].data.velocity = velocity->extruders[i];
     }
-    block->acceleration.extruders[i] =
+    block->extruders[i].acceleration =
       velocity->extruders[i] >= 0 ?
         ex->max_acceleration :
-        -ex->max_retract_acceleration;
+        ex->max_retract_acceleration;
   }
 
   // Scale down if in non-rapid mode
   if (!velocity->rapid) {
     for (i = 0; i < machine.kinematics.joint_count; i++) {
-      block->data.velocity.joints[i] *= speed_factor;
+      block->joints[i].data.velocity *= speed_factor;
     }
     for (i = 0; i < machine.extruder.count; i++) {
-      block->data.velocity.extruders[i] *= speed_factor;
+      block->extruders[i].data.velocity *= speed_factor;
     }
   }
 
@@ -141,10 +141,17 @@ void plannerSetJointVelocity(PlannerJointMovement *velocity)
   chMBPostAhead(&block_mbox, (msg_t) block, TIME_INFINITE);
 }
 
-void plannerSetAxisVelocity(PlannerAxisMovement *velocity)
+void plannerEstop(void)
 {
-  //float joints_v[RAD_NUMBER_JOINTS];
-  //machine.kinematics.inverse_kinematics(velocity->axes, joints_f);
+  PlannerOutputBlock* block = planner_new_block();
+  block->mode = BLOCK_Estop;
+  chMBPostAhead(&block_mbox, (msg_t) block, TIME_INFINITE);
 }
 
+void plannerEstopClear(void)
+{
+  PlannerOutputBlock* block = planner_new_block();
+  block->mode = BLOCK_Estop_Clear;
+  chMBPost(&block_mbox, (msg_t) block, TIME_INFINITE);
+}
 /** @} */

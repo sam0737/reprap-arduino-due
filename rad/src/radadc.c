@@ -95,6 +95,7 @@ static msg_t threadAdc(void *arg) {
     if (has_error || finishing_count)
       continue;
 
+    /* adc_id in RadTemp is 1-based */
     c = 1;
     for (i = 0; i < radboard.adc.count; i++) {
       ch = &radboard.adc.channels[i];
@@ -102,6 +103,7 @@ static msg_t threadAdc(void *arg) {
         for (k = 0; k < machine.temperature.count; k++) {
           cht = &machine.temperature.devices[k];
           if (cht->adc_id == c && cht->converter) {
+            cht->state.raw = ch->samples[j];
             cht->state.pv = cht->converter(ch->samples[j], ch->resolution);
           }
         }

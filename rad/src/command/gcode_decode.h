@@ -18,35 +18,15 @@
 
 */
 
-/**
- * @file    rad.c
- * @brief   RAD core
- *
- * @addtogroup RAD
- * @{
- */
+static char* codep;
 
-#include "ch.h"
-#include "hal.h"
-#include "rad.h"
-
-/*===========================================================================*/
-/* Driver exported functions.                                                */
-/*===========================================================================*/
-
-void radInit(void)
+static bool_t code_seen(char code)
 {
-  if (radboard.init != NULL)
-    radboard.init();
-  powerInit();
-  beeperInit();
-  outputInit();
-  stepperInit();
-  endstopInit();
-  radadcInit();
-  debugInit();
-  plannerInit();
-  printerInit();
+  codep = strchr(curr_command->payload, code);
+  return (codep != NULL);
 }
 
-/** @} */
+static float code_value(void)
+{
+  return strtod(codep + 1, NULL);
+}

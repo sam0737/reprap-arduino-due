@@ -19,44 +19,32 @@
 */
 
 /**
- * @file    src/rad.h
- * @brief   RAD header.
+ * @file    printer.h
+ * @brief   Printer control logic header
  *
- * @addtogroup RAD
+ * @addtogroup PRINTER
  * @{
  */
-
-#ifndef _RAD_H_
-#define _RAD_H_
-
-#include "math.h"
-
-#include "radhal_radboard.h"
-#include "radhal_machine.h"
-
-#include "power.h"
-#include "beeper.h"
-#include "output.h"
-#include "stepper.h"
-#include "endstop.h"
-#include "planner.h"
-#include "radadc.h"
-#include "raddebug.h"
-#include "radpex.h"
-#include "printer.h"
+#ifndef _RAD_PRINTER_H_
+#define _RAD_PRINTER_H_
 
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+extern char* printer_estop_message;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void radInit(void);
+  void printerInit(void);
+  void printerAddLine(char* line);
+  void printerEstop(char* message);
+  void printerEstopClear(void);
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* _RAD_H_ */
+#endif  /* _RAD_PRINTER_H_ */
 
 /** @} */

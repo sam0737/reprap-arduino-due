@@ -40,8 +40,8 @@
 /*===========================================================================*/
 
 typedef enum {
-  AXIS_None,
-  AXIS_X, AXIS_Y, AXIS_Z,
+  AXIS_None = 0,
+  AXIS_X = 1, AXIS_Y = 2, AXIS_Z = 3,
   /* TODO: Support for angular axis
     AXIS_U, AXIS_V, AXIS_W,
     AXIS_A, AXIS_B, AXIS_C
@@ -68,17 +68,24 @@ typedef void (*forward_kinematics_t)(float *joints, float *axes);
 typedef void (*inverse_kinematics_t)(float *axes, float *joints);
 
 typedef enum {
-  LIMIT_Normal, LIMIT_MaxHit, LIMIT_MinHit
+  LIMIT_Normal = 0,
+  LIMIT_MinHit = 1,
+  LIMIT_MaxHit = 2
 } RadLimitState;
 
 typedef struct {
+  bool_t              stopped:1;
+  bool_t              homed:1;
   RadLimitState       limit_state;
+  RadLimitState       old_limit_state;
+  int32_t             limit_step;
+  float               pos;
 } RadJointState;
 
 typedef struct {
   uint8_t             stepper_id;
-  int8_t             min_endstop_id;
-  int8_t             max_endstop_id;
+  int8_t              min_endstop_id;
+  int8_t              max_endstop_id;
 
   float               min_limit;
   float               max_limit;
@@ -89,12 +96,9 @@ typedef struct {
 
   float               home_search_vel;
   float               home_latch_vel;
-  float               home_final_vel;
-  float               home_offset;
-  float               home;
   uint8_t             home_sequence;
 
-  volatile RadJointState state;
+  RadJointState       state;
 } RadJoint;
 
 typedef struct {
@@ -104,6 +108,7 @@ typedef struct {
 typedef struct {
   float               sv;
   float               pv;
+  adcsample_t         raw;
 } RadTempState;
 
 typedef struct {
@@ -123,6 +128,9 @@ typedef struct {
   float               max_retract_velocity;
   float               max_retract_acceleration;
   float               scale;
+  volatile struct {
+    float             pos;
+  } state;
 } RadExtruder;
 
 typedef struct {
@@ -176,6 +184,10 @@ typedef struct {
     uint8_t           count;
     RadFan            *devices;
   } fan;
+  volatile struct {
+    uint32_t          last_era;
+    uint32_t          last_gcode_line;
+  } state;
 } machine_t;
 
 /**

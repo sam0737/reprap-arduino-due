@@ -19,34 +19,17 @@
 */
 
 /**
- * @file    rad.c
- * @brief   RAD core
+ * @file    localization/neutral.h
+ * @brief   Neutral language definition
  *
- * @addtogroup RAD
- * @{
  */
 
-#include "ch.h"
-#include "hal.h"
-#include "rad.h"
+#ifndef L_HOMING_TRAVEL_LIMIT
+#define L_HOMING_TRAVEL_LIMIT \
+  "Joint travelled too long without changing limit switch state"
+#endif
 
-/*===========================================================================*/
-/* Driver exported functions.                                                */
-/*===========================================================================*/
-
-void radInit(void)
-{
-  if (radboard.init != NULL)
-    radboard.init();
-  powerInit();
-  beeperInit();
-  outputInit();
-  stepperInit();
-  endstopInit();
-  radadcInit();
-  debugInit();
-  plannerInit();
-  printerInit();
-}
-
-/** @} */
+#ifndef L_HOMING_INCORRECT_LIMIT_HIT
+#define L_HOMING_INCORRECT_LIMIT_HIT \
+  "Incorrect limit switch is hit during homing"
+#endif

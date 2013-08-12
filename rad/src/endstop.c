@@ -45,26 +45,25 @@ static WORKING_AREA(waEndstop, 128);
 
 static void checkEndstop(void)
 {
-  int8_t i;
-  int8_t j;
-  RadJoint* joint;
-  for (i = 0; i < machine.kinematics.joint_count; i++)
+  chSysLock();
+  for (uint8_t i = 0; i < machine.kinematics.joint_count; i++)
   {
-    joint = &machine.kinematics.joints[i];
-    j = joint->min_endstop_id;
-    if (j >= 0 &&
-        palReadPin(radboard.endstop.channels[j].pin, machine.endstop_config.configs[j].active_low)) {
-      joint->state.limit_state = LIMIT_MinHit;
-      continue;
+    int8_t id;
+    uint8_t state = LIMIT_Normal;
+    RadJoint *joint = &machine.kinematics.joints[i];
+    id = joint->min_endstop_id;
+    if (id >= 0 &&
+        palReadPin(radboard.endstop.channels[id].pin, machine.endstop_config.configs[id].active_low)) {
+      state |= LIMIT_MinHit;
     }
-    j = joint->max_endstop_id;
-    if (j >= 0 &&
-        palReadPin(radboard.endstop.channels[j].pin, machine.endstop_config.configs[j].active_low)) {
-      joint->state.limit_state = LIMIT_MaxHit;
-      continue;
+    id = joint->max_endstop_id;
+    if (id >= 0 &&
+        palReadPin(radboard.endstop.channels[id].pin, machine.endstop_config.configs[id].active_low)) {
+      state |= LIMIT_MaxHit;
     }
-    joint->state.limit_state = LIMIT_Normal;
+    joint->state.limit_state |= state;
   }
+  chSysUnlock();
 }
 
 static msg_t threadEndstop(void *arg) {
@@ -72,7 +71,7 @@ static msg_t threadEndstop(void *arg) {
   chRegSetThreadName("endstop");
 
   while (TRUE) {
-    chThdSleepMilliseconds(1);
+    chThdSleepMicroseconds(100);
     checkEndstop();
   }
   return 0;
@@ -89,7 +88,7 @@ void endstopInit(void)
     palSetPinMode(radboard.endstop.channels[i].pin, PAL_MODE_INPUT_PULLUP);
   }
 
-  chThdCreateStatic(waEndstop, sizeof(waEndstop), NORMALPRIO + 5, threadEndstop, NULL);
+  chThdCreateStatic(waEndstop, sizeof(waEndstop), NORMALPRIO + 24, threadEndstop, NULL);
 }
 
 /** @} */

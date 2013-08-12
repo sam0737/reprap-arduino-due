@@ -66,6 +66,7 @@ typedef struct {
   signal_t        enable;
   signal_t        step;
   signal_t        dir;
+  int32_t         pos;
 } RadStepperChannel;
 
 typedef struct {
@@ -102,6 +103,11 @@ typedef struct {
   struct {
     PWMDriver       *beeper_pwm;
     pwmchannel_t    beeper_channel;
+
+    /**
+     * @brief Host communication channel
+     */
+    BaseAsynchronousChannel  *comm_channel;
   } hmi;
 
   /*******************************************

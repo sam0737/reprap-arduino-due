@@ -61,21 +61,21 @@ const machine_t machine =
           {
             .stepper_id = 0, .min_endstop_id = 0, .max_endstop_id = -1,
             .min_limit = -15, .max_limit = 175,
-            .max_velocity = 400, .max_acceleration = 800, .scale = 1000, //45.7142,
+            .max_velocity = 400, .max_acceleration = 800, .scale = 100, //45.7142,
             .home_search_vel = -75, .home_latch_vel = 2,
             .home_sequence = 0
           },
           {
             .stepper_id = 1, .min_endstop_id = 1, .max_endstop_id = -1,
             .min_limit = 0, .max_limit = 255,
-            .max_velocity = 400, .max_acceleration = 2500, .scale = 1000, //45.7142,
+            .max_velocity = 400, .max_acceleration = 2500, .scale = 100, //45.7142,
             .home_search_vel = -75, .home_latch_vel = 2,
             .home_sequence = 0
           },
           {
             .stepper_id = 2, .min_endstop_id = -1, .max_endstop_id = 2,
             .min_limit = 0, .max_limit = 103.5,
-            .max_velocity = 20, .max_acceleration = 100, .scale = 1000, //45.7142,
+            .max_velocity = 20, .max_acceleration = 100, .scale = 100, //45.7142,
             .home_search_vel = 20, .home_latch_vel = 2,
             .home_sequence = 1
           }
@@ -102,7 +102,8 @@ const machine_t machine =
             .max_velocity = 50,
             .max_acceleration = 1000,
             .max_retract_velocity = 50,
-            .max_retract_acceleration = 1000
+            .max_retract_acceleration = 1000,
+            .scale = 215
           },
           {
             .temp = &temps[1],
@@ -110,7 +111,8 @@ const machine_t machine =
             .max_velocity = 50,
             .max_acceleration = 1000,
             .max_retract_velocity = 50,
-            .max_retract_acceleration = 1000
+            .max_retract_acceleration = 1000,
+            .scale = 215
           },
         }
     },

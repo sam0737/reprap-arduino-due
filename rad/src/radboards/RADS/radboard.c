@@ -186,7 +186,8 @@ const radboard_t radboard =
     },
     .hmi = {
         .beeper_pwm = &PWMD7,
-        .beeper_channel = 0
+        .beeper_channel = 0,
+        .comm_channel = &SDU_DATA,
     },
     .output = {
         .count = 5,
