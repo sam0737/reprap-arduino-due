@@ -95,8 +95,7 @@ static msg_t threadAdc(void *arg) {
     if (has_error || finishing_count)
       continue;
 
-    /* adc_id in RadTemp is 1-based */
-    c = 1;
+    c = 0;
     for (i = 0; i < radboard.adc.count; i++) {
       ch = &radboard.adc.channels[i];
       for (j = 0; j < ch->group_base.num_channels; j++, c++) {

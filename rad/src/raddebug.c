@@ -89,8 +89,9 @@ static void cmd_dump(BaseSequentialStream *chp, int argc, char *argv[]) {
   uint8_t i;
 
   for (i = 0; i < 24; i++) {
+    if (i % 4 == 0 && i > 0) chprintf(chp, "\r\n");
     if (i % 8 == 0 && i > 0) chprintf(chp, "\r\n");
-    chprintf(chp, " %.8x\r\n", debug_value[i]);
+    chprintf(chp, "  %.8x", debug_value[i]);
   }
   chprintf(chp, "\r\n");
 }

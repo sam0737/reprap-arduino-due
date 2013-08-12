@@ -31,10 +31,10 @@
 MAKE_THERMISTOR_CONVERTER(adccBedConverter, TEMP_R2, 4013, 101, 4675);
 
 static RadTemp temps[] = {
-  { .adc_id = 2, .heating_pwm_id = 2, .converter = adccType1 },
-  { .adc_id = 3, .heating_pwm_id = 3, .converter = adccType1 },
-  { .adc_id = 1, .heating_pwm_id = 1, .converter = adccBedConverter },
-  { .adc_id = 4, .cooling_pwm_id = 4, .converter = adccSAM3XATempSensor }
+  { .adc_id = 1, .heating_pwm_id = 2, .converter = adccType1 },
+  { .adc_id = 2, .heating_pwm_id = 3, .converter = adccType1 },
+  { .adc_id = 0, .heating_pwm_id = 1, .converter = adccBedConverter },
+  { .adc_id = 3, .cooling_pwm_id = 4, .converter = adccSAM3XATempSensor }
 };
 
 MAKE_LINEAR_FORWARD_KINEMATICS(kForward);
