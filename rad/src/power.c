@@ -43,8 +43,10 @@ static uint8_t psu_state;
 
 void powerInit(void)
 {
-  if (!palHasSig(radboard.power.psu_on))
+  if (!palHasSig(radboard.power.psu_on)) {
+    psu_state = 1;
     return;
+  }
   if (machine.power.always_on) {
     pexEnableSig(radboard.power.psu_on);
     psu_state = 1;

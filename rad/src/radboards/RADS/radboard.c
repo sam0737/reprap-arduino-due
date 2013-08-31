@@ -98,10 +98,10 @@ static ADCConfig adc_cfg = {
     .use_sequence = 1,
     // We want the ADC captures in the sequence of CH7,CH6,CH5,CH15
     // The USCH number is 1-based, while the CH is 0-based.
-    .sequence1 = ADC_SEQR1_USCH6(2) | // PA23/E1
-                 ADC_SEQR1_USCH7(1) | // PA24/E0
-                 ADC_SEQR1_USCH8(0),  // PA16/HBP
-    .sequence2 = ADC_SEQR2_USCH16(3)
+    .sequence1 = ADC_SEQR1_USCH6(7) | // PA23/E1
+                 ADC_SEQR1_USCH7(6) | // PA24/E0
+                 ADC_SEQR1_USCH8(5),  // PA16/HBP
+    .sequence2 = ADC_SEQR2_USCH16(15)
 };
 
 static GPTConfig gpt_stepper_cfg = {
@@ -187,7 +187,7 @@ const radboard_t radboard =
     .hmi = {
         .beeper_pwm = &PWMD7,
         .beeper_channel = 0,
-        .comm_channel = &SDU_DATA,
+        .comm_channel = (BaseAsynchronousChannel*) &SDU_DATA,
     },
     .output = {
         .count = 5,

@@ -46,7 +46,7 @@ typedef struct {
 static PrinterCommand command_pool_buffer[COMMAND_BUFFER_SIZE];
 static msg_t command_mbox_buffer[COMMAND_BUFFER_SIZE];
 
-static char axis_code[] = {' ', 'X', 'Y', 'Z'};
+// static char axis_code[] = {' ', 'X', 'Y', 'Z'};
 
 Semaphore command_pool_sem;
 MemoryPool command_pool;
@@ -84,6 +84,7 @@ static void printer_dispatch(void)
   {
     switch ((int)code_value()){
     case 29:
+      printerEstopClear();
       commandHoming(0xFFFF);
       break;
     }
@@ -99,7 +100,7 @@ static void printer_dispatch(void)
 
 static msg_t threadPrinterFetchSerial(void *arg) {
   (void)arg;
-  chRegSetThreadName("printer-ser");
+  chRegSetThreadName("fetch-ser");
 
   static char* ptr;
   static char buf[COMMAND_LENGTH];
@@ -119,7 +120,7 @@ static msg_t threadPrinterFetchSerial(void *arg) {
       buf[COMMAND_LENGTH - 1] = 0;
       PrinterCommand* cmd = printer_new_command();
       strcpy(cmd->payload, buf);
-      chMBPost(&command_pool, (msg_t) cmd, TIME_INFINITE);
+      chMBPost(&command_mbox, (msg_t) cmd, TIME_INFINITE);
       ptr = buf;
 
       /*
@@ -142,6 +143,8 @@ static msg_t threadPrinterFetchSerial(void *arg) {
 static msg_t threadPrinter(void *arg) {
   (void)arg;
   chRegSetThreadName("printer");
+
+  beeperPlay(&tuneStartup);
 
   while (1)
   {
@@ -183,9 +186,15 @@ void printerAddLine(char* line)
   chMBPost(&command_mbox, (msg_t) cmd, TIME_INFINITE);
 }
 
+bool_t printerIsEstopped(void)
+{
+  return (printer_estop_message != NULL);
+}
+
 void printerEstop(char *message)
 {
   printer_estop_message = message;
+  beeperPlay(&tuneWarning);
   plannerEstop();
 }
 

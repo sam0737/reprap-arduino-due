@@ -42,31 +42,41 @@ typedef struct {
 } PlannerAxisMovement;
 
 typedef struct {
-  bool_t rapid:1;
-  bool_t stop_on_limit_changes:1;
+  bool_t rapid;
+  bool_t stop_on_limit_changes;
   float joints[RAD_NUMBER_AXES];
   float extruders[RAD_NUMBER_EXTRUDERS];
 } PlannerJointMovement;
 
 typedef enum {
-  BLOCK_Velocity = 1,
-  BLOCK_Estop = 2,
-  BLOCK_Estop_Clear = 3,
+  BLOCK_Preemptive_Mask = 0x10,
+
+  BLOCK_Velocity = 1 | 0x10,
+  BLOCK_Planned = 2,
+  BLOCK_Stop = 3 | 0x10,
+
+  BLOCK_Estop = 4 | 0x10,
+  BLOCK_Estop_Clear = 5,
 } PlannerOutputBlockMode;
 
 typedef struct {
   uint32_t era;
   PlannerOutputBlockMode mode;
-  bool_t stop_on_limit_changes:1;
+  bool_t stop_on_limit_changes;
   struct {
     union {
-      float velocity;
+      struct {
+        float sv;
+        bool_t is_stop_signalled;
+      } velocity;
     } data;
     float acceleration;
   } joints[RAD_NUMBER_JOINTS];
   struct {
     union {
-      float velocity;
+      struct {
+        float sv;
+      } velocity;
     } data;
     float acceleration;
   } extruders[RAD_NUMBER_EXTRUDERS];
@@ -100,8 +110,8 @@ extern Mailbox block_mbox;
 extern "C" {
 #endif
 void plannerInit(void);
-void plannerAddAxisPoint(PlannerAxisMovement *point);
-void plannerSetJointVelocity(PlannerJointMovement *velocity);
+void plannerAddAxisPoint(const PlannerAxisMovement *point);
+void plannerSetJointVelocity(const PlannerJointMovement *velocity);
 void plannerEstop(void);
 void plannerEstopClear(void);
 #ifdef __cplusplus

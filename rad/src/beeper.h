@@ -44,7 +44,7 @@ typedef struct {
   BeeperNote *notes;
 } BeeperTune;
 
-extern const BeeperTune tuneStartup, tuneFinished, tuneOk, tuneWarning;
+extern const BeeperTune tuneStartup, tuneFinished, tuneOk, tuneScroll, tuneWarning;
 
 /*===========================================================================*/
 /* External declarations.                                                    */

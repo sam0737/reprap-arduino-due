@@ -61,7 +61,7 @@ static void checkEndstop(void)
         palReadPin(radboard.endstop.channels[id].pin, machine.endstop_config.configs[id].active_low)) {
       state |= LIMIT_MaxHit;
     }
-    joint->state.limit_state |= state;
+    joint->state.limit_state = state;
   }
   chSysUnlock();
 }

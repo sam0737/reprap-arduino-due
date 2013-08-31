@@ -36,8 +36,26 @@
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-extern const BeeperTune tuneStartup = { .notes = (BeeperNote[]) {
-  {500, 120}, {0, 50}, {1000, 100}, {0, 0}
+extern const BeeperTune tuneStartup, tuneFinished, tuneOk, tuneWarning;
+
+const BeeperTune tuneStartup = { .notes = (BeeperNote[]) {
+  {500, 60}, {0, 50}, {1000, 50}, {0, 0}
+} };
+
+const BeeperTune tuneFinished = { .notes = (BeeperNote[]) {
+  {523, 150}, {0, 20}, {520, 150}, {0, 20}, {659, 150}, {0, 10}, {1046, 100}, {0, 10}, {0, 0}
+} };
+
+const BeeperTune tuneOk = { .notes = (BeeperNote[]) {
+  {440, 80}, {0, 10}, {0, 0}
+} };
+
+const BeeperTune tuneScroll = { .notes = (BeeperNote[]) {
+  {50, 10}, {0, 0}
+} };
+
+const BeeperTune tuneWarning = { .notes = (BeeperNote[]) {
+  {1000, 150}, {0, 10}, {1000, 80}, {0, 10}, {0, 0}
 } };
 
 static BeeperNote* volatile note_playing;

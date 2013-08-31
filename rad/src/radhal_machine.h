@@ -74,8 +74,8 @@ typedef enum {
 } RadLimitState;
 
 typedef struct {
-  bool_t              stopped:1;
-  bool_t              homed:1;
+  bool_t              stopped;
+  bool_t              homed;
   RadLimitState       limit_state;
   RadLimitState       old_limit_state;
   int32_t             limit_step;
@@ -98,7 +98,7 @@ typedef struct {
   float               home_latch_vel;
   uint8_t             home_sequence;
 
-  RadJointState       state;
+  volatile RadJointState state;
 } RadJoint;
 
 typedef struct {

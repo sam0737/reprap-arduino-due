@@ -18,6 +18,8 @@
 
 */
 
+#include <stdlib.h>
+
 static char* codep;
 
 static bool_t code_seen(char code)
@@ -28,5 +30,6 @@ static bool_t code_seen(char code)
 
 static float code_value(void)
 {
-  return strtod(codep + 1, NULL);
+  if (codep == NULL) return 0;
+  return strtof(codep + 1, NULL);
 }

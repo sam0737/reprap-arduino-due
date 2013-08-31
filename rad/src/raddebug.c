@@ -30,11 +30,11 @@
 #include "hal.h"
 #include "rad.h"
 #include "ff.h"
-
 #include "chprintf.h"
 #include "shell.h"
 
 #include "raddebug.h"
+#include <stdlib.h>
 
 FATFS MMC_FS;
 
@@ -129,14 +129,23 @@ static void cmd_beep(BaseSequentialStream *chp, int argc, char *argv[]) {
     int tone;
     if (argc == 0) {
       beeperPlay(&tuneStartup);
+      chThdSleepMilliseconds(750);
+      beeperPlay(&tuneFinished);
+      chThdSleepMilliseconds(750);
+      beeperPlay(&tuneOk);
+      chThdSleepMilliseconds(750);
+      beeperPlay(&tuneScroll);
+      chThdSleepMilliseconds(750);
+      beeperPlay(&tuneWarning);
       return;
     } else if (argc == 1) {
       if (sscanf(argv[0], "%d", &tone) == 1) {
         tuneDebug.notes[0].tone = tone;
         beeperPlay(&tuneDebug);
       }
+    } else {
+      chprintf(chp, "Usage: beep [freq]\r\n");
     }
-    chprintf(chp, "Usage: beep [freq]\r\n");
 }
 
 static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -274,6 +283,35 @@ static void cmd_homing(BaseSequentialStream *chp, int argc, char *argv[]) {
   printerAddLine("G29");
 }
 
+static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
+  (void)argc;
+  (void)argv;
+
+  PlannerJointMovement m;
+  memset(&m, 0, sizeof(PlannerJointMovement));
+  plannerSetJointVelocity(&m);
+}
+
+static void cmd_vel(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
+  (void)argc;
+  (void)argv;
+
+  PlannerJointMovement m;
+  memset(&m, 0, sizeof(PlannerJointMovement));
+  uint8_t k = 0;
+  m.stop_on_limit_changes = TRUE;
+  m.rapid = TRUE;
+  for (uint8_t i = 0; k < argc && i < machine.kinematics.joint_count; i++, k++) {
+    m.joints[i] = strtof(argv[k], NULL);
+  }
+  for (uint8_t i = 0; k < argc && i < machine.extruder.count; i++, k++) {
+    m.extruders[i] = strtof(argv[k], NULL);
+  }
+  plannerSetJointVelocity(&m);
+}
+
 static void cmd_estop(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)chp;
   (void)argc;
@@ -290,17 +328,11 @@ static void cmd_clear(BaseSequentialStream *chp, int argc, char *argv[]) {
   printerEstopClear();
 }
 
-static void p1(BaseSequentialStream *chp, int argc, char *argv[]) {
-  (void)chp;
+static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  PlannerJointMovement v = {
-    .joints = {10, -4, 0},
-    .extruders = {5, 0},
-    .rapid = 1
-  };
-  plannerSetJointVelocity(&v);
+  chprintf(chp, "Test: %f\r\n", (float)strtof("12.34", NULL));
 }
 
 /*===========================================================================*/
@@ -308,7 +340,7 @@ static void p1(BaseSequentialStream *chp, int argc, char *argv[]) {
 /*===========================================================================*/
 
 static WORKING_AREA(waHeartbeat, 128);
-static WORKING_AREA(waShellMonitor, 128);
+static WORKING_AREA(waShellMonitor, 256);
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -323,8 +355,11 @@ static const ShellCommand commands[] = {
   {"insert", cmd_insert},
   {"eject", cmd_eject},
   {"homing", cmd_homing},
+  {"stop", cmd_stop},
+  {"vel", cmd_vel},
   {"estop", cmd_estop},
   {"clear", cmd_clear},
+  {"temp", cmd_temp},
   {NULL, NULL}
 };
 

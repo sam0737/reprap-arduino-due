@@ -24,6 +24,11 @@
  *
  */
 
+#ifndef L_HOMING_INCORRECT_INIT_STATE
+#define L_HOMING_INCORRECT_INIT_STATE \
+  "Incorrect initial limit switch for homing"
+#endif
+
 #ifndef L_HOMING_TRAVEL_LIMIT
 #define L_HOMING_TRAVEL_LIMIT \
   "Joint travelled too long without changing limit switch state"

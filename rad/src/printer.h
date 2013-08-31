@@ -39,6 +39,7 @@ extern "C" {
 #endif
   void printerInit(void);
   void printerAddLine(char* line);
+  bool_t printerIsEstopped(void);
   void printerEstop(char* message);
   void printerEstopClear(void);
 #ifdef __cplusplus
