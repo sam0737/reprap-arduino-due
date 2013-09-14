@@ -19,10 +19,10 @@
 */
 
 /**
- * @file    endstop.c
- * @brief   Endstop management
+ * @file    hmi.c
+ * @brief   Human Machine Interface
  *
- * @addtogroup ENDSTOP
+ * @addtogroup HMI
  * @{
  */
 
@@ -30,65 +30,61 @@
 #include "hal.h"
 #include "rad.h"
 
-#include "endstop.h"
-
+#include "display.h"
 
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-static WORKING_AREA(waEndstop, 128);
+static WORKING_AREA(waDisplay, 2048);
 
 /*===========================================================================*/
 /* Local functions.                                                          */
 /*===========================================================================*/
 
-static void checkEndstop(void)
-{
-  chSysLock();
-  for (uint8_t i = 0; i < machine.kinematics.joint_count; i++)
-  {
-    int8_t id;
-    uint8_t state = LIMIT_Normal;
-    RadJoint *joint = &machine.kinematics.joints[i];
-    id = joint->min_endstop_id;
-    if (id >= 0 &&
-        palReadPin(radboard.endstop.channels[id].pin, machine.endstop_config.configs[id].active_low)) {
-      state |= LIMIT_MinHit;
-    }
-    id = joint->max_endstop_id;
-    if (id >= 0 &&
-        palReadPin(radboard.endstop.channels[id].pin, machine.endstop_config.configs[id].active_low)) {
-      state |= LIMIT_MaxHit;
-    }
-    joint->state.limit_state = state;
-  }
-  chSysUnlock();
+#define HAS_DISPLAY  (GFX_USE_TDISP || GFX_USE_GDISP)
+
+#if GFX_USE_TDISP
+#endif
+#if GFX_USE_GDISP
+#endif
+#include "hmi/display_gdisp.h"
+
+#if HAS_DISPLAY
+
+inline static void displayUpdate(void) {
+  display_test();
 }
 
-static msg_t threadEndstop(void *arg) {
+static msg_t threadDisplay(void *arg) {
   (void)arg;
-  chRegSetThreadName("endstop");
+  systime_t next;
+  systime_t now;
+
+  chRegSetThreadName("display");
+  display_init();
 
   while (TRUE) {
-    chThdSleepMicroseconds(500);
-    checkEndstop();
+    next = chTimeNow() + MS2ST(33); // 30 fps
+    displayUpdate();
+    now = chTimeNow();
+    chThdSleep(now + MS2ST(1) > next ? MS2ST(1) : next - now);
+
   }
   return 0;
 }
+#endif
 
 /*===========================================================================*/
-/* Driver exported functions.                                                */
+/* Exported functions.                                                       */
 /*===========================================================================*/
 
-void endstopInit(void)
+void displayInit(void)
 {
-  uint8_t i;
-  for (i = 0; i < radboard.endstop.count; i++) {
-    palSetPinMode(radboard.endstop.channels[i].pin, PAL_MODE_INPUT_PULLUP);
-  }
-
-  chThdCreateStatic(waEndstop, sizeof(waEndstop), NORMALPRIO + 24, threadEndstop, NULL);
+#if HAS_DISPLAY
+  gfxInit();
+  chThdCreateStatic(waDisplay, sizeof(waDisplay), NORMALPRIO - 2, threadDisplay, NULL);
+#endif
 }
 
 /** @} */

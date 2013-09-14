@@ -141,6 +141,20 @@ typedef struct {
   uint8_t             pwm_id;
 } RadFan;
 
+typedef enum {
+  STORAGE_None = 0,
+  STORAGE_Usb = 1,
+  STORAGE_Local = 2
+} RadStorageHost;
+
+typedef struct {
+  RadStorageHost   host;
+} RadStorageState;
+
+typedef struct {
+  volatile RadStorageState state;
+} RadStorage;
+
 typedef struct {
   struct {
     /**
@@ -184,16 +198,13 @@ typedef struct {
     uint8_t           count;
     RadFan            *devices;
   } fan;
-  volatile struct {
-    uint32_t          last_era;
-    uint32_t          last_gcode_line;
-  } state;
+  RadStorage          storage;
 } machine_t;
 
 /**
  * @brief Machine configuration
  */
-extern const machine_t machine;
+extern machine_t machine;
 
 #include "machine.h"
 

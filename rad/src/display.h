@@ -19,32 +19,27 @@
 */
 
 /**
- * @file    raddebug.h
- * @brief   debug utilities header
+ * @file    display.h
+ * @brief   Display header
  *
- * @addtogroup RADDEBUG
+ * @addtogroup DISPLAY
  * @{
  */
-#ifndef _RAD_DEBUG_H_
-#define _RAD_DEBUG_H_
+#ifndef _RAD_DISPLAY_H
+#define _RAD_DISPLAY_H
 
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-extern volatile int32_t debug_value[24];
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void debugInit(void);
-  void debugErase(void);
-  void debugReset(void);
-  void debugPanic(char* message);
+  void displayInit(void);
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* _RAD_DEBUG_H_ */
+#endif  /* _RAD_DISPLAY_H */
 
 /** @} */

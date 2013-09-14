@@ -5,3 +5,6 @@
 [submodule "rad/chibios_msd"]
 	path = rad/chibios_msd
 	url = https://github.com/sam0737/chibios-rt-usb-msd
+[submodule "rad/ugfx"]
+	path = rad/ugfx
+	url = E:/Sam/Documents/Projects/ugfx

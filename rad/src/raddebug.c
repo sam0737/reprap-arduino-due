@@ -28,6 +28,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "gfx.h"
 #include "rad.h"
 #include "ff.h"
 #include "chprintf.h"
@@ -46,12 +47,8 @@ volatile int32_t debug_value[24];
 
 static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
   size_t n, size;
-
+  (void)argc;
   (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: mem\r\n");
-    return;
-  }
   n = chHeapStatus(NULL, &size);
   chprintf(chp, "core free memory : %u bytes\r\n", chCoreStatus());
   chprintf(chp, "heap fragments   : %u\r\n", n);
@@ -59,14 +56,11 @@ static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argc;
+  (void)argv;
   static const char *states[] = {THD_STATE_NAMES};
   Thread *tp;
 
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: threads\r\n");
-    return;
-  }
   chprintf(chp, "      name     addr    stack prio refs     state time\r\n");
   tp = chRegFirstThread();
   do {
@@ -97,17 +91,15 @@ static void cmd_dump(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 static void cmd_erase(BaseSequentialStream *chp, int argc, char *argv[]) {
-    (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: erase\r\n");
-    return;
-  }
+  (void)argc;
+  (void)argv;
+
   debugErase();
   chprintf(chp, "Erase is not supported on " RADBOARD_NAME "\r\n");
 }
 
 static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
-    (void)argv;
+  (void)argv;
   if (argc != 1) {
     chprintf(chp, "Usage: power [on|off]\r\n");
     return;
@@ -125,27 +117,27 @@ static BeeperTune tuneDebug = { .notes = (BeeperNote[]) {
 } };
 
 static void cmd_beep(BaseSequentialStream *chp, int argc, char *argv[]) {
-    (void)argv;
-    int tone;
-    if (argc == 0) {
-      beeperPlay(&tuneStartup);
-      chThdSleepMilliseconds(750);
-      beeperPlay(&tuneFinished);
-      chThdSleepMilliseconds(750);
-      beeperPlay(&tuneOk);
-      chThdSleepMilliseconds(750);
-      beeperPlay(&tuneScroll);
-      chThdSleepMilliseconds(750);
-      beeperPlay(&tuneWarning);
-      return;
-    } else if (argc == 1) {
-      if (sscanf(argv[0], "%d", &tone) == 1) {
-        tuneDebug.notes[0].tone = tone;
-        beeperPlay(&tuneDebug);
-      }
-    } else {
-      chprintf(chp, "Usage: beep [freq]\r\n");
+  (void)argv;
+  int tone;
+  if (argc == 0) {
+    beeperPlay(&tuneStartup);
+    chThdSleepMilliseconds(750);
+    beeperPlay(&tuneFinished);
+    chThdSleepMilliseconds(750);
+    beeperPlay(&tuneOk);
+    chThdSleepMilliseconds(750);
+    beeperPlay(&tuneScroll);
+    chThdSleepMilliseconds(750);
+    beeperPlay(&tuneWarning);
+    return;
+  } else if (argc == 1) {
+    if (sscanf(argv[0], "%d", &tone) == 1) {
+      tuneDebug.notes[0].tone = tone;
+      beeperPlay(&tuneDebug);
     }
+  } else {
+    chprintf(chp, "Usage: beep [freq]\r\n");
+  }
 }
 
 static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -179,6 +171,7 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
         s.stopped, s.homed);
   }
 
+  chprintf(chp, "Storage: %d\r\n", storageGetState().host);
   chprintf(chp, "E Stopped:\r\n  %s\r\n", printer_estop_message ? printer_estop_message : "None");
 }
 
@@ -242,15 +235,16 @@ static void cmd_sd(BaseSequentialStream *chp, int argc, char *argv[]) {
     (void)argc;
     FRESULT err;
 
+    /*
     if (mmcConnect(&MMCD1)) {
       chprintf(chp, "Connection failed\r\n");
       return;
-    }
+    }*/
 
     chprintf(chp, "Mounting...\r\n");
     err = f_mount(0, &MMC_FS);
     if (err != FR_OK) {
-      mmcDisconnect(&MMCD1);
+      //mmcDisconnect(&MMCD1);
       chprintf(chp, "Mount failed\r\n");
       return;
     }
@@ -261,18 +255,18 @@ static void cmd_sd(BaseSequentialStream *chp, int argc, char *argv[]) {
     scan_files(chp, path);
 }
 
-static void cmd_insert(BaseSequentialStream *chp, int argc, char *argv[]) {
+static void cmd_mount(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)chp;
   (void)argc;
   (void)argv;
-  msdReady(&UMSD, (BaseBlockDevice *)&MMCD1);
+  storageUsbMount();
 }
 
-static void cmd_eject(BaseSequentialStream *chp, int argc, char *argv[]) {
+static void cmd_unmount(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)chp;
   (void)argc;
   (void)argv;
-  msdEject(&UMSD);
+  storageUsbUnmount();
 }
 
 static void cmd_homing(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -328,11 +322,64 @@ static void cmd_clear(BaseSequentialStream *chp, int argc, char *argv[]) {
   printerEstopClear();
 }
 
-static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
+static void cmd_reset(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
   (void)argc;
   (void)argv;
 
-  chprintf(chp, "Test: %f\r\n", (float)strtof("12.34", NULL));
+  radboard.debug.software_reset();
+}
+
+static void cmd_lcd_contrast(BaseSequentialStream *chp, int argc, char *argv[]) {
+  int contrast;
+
+  if (radboard.hmi.set_tdisp_contrast == NULL || argc < 1) {
+    chprintf(chp, "Usage: lcd_contrast <0-100>\r\n");
+    return;
+  }
+
+  if (sscanf(argv[0], "%d", &contrast) == 1) {
+    if (contrast > 100) contrast = 100;
+    if (contrast < 0) contrast = 0;
+    radboard.hmi.set_tdisp_contrast(contrast / 100.0);
+    chprintf(chp, "LCD Contrast set: %d\r\n", contrast);
+  }
+}
+
+static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
+  (void)argc;
+  (void)argv;
+
+  // Get the screen size
+  coord_t width = gdispGetWidth();
+  coord_t height = gdispGetHeight();
+
+  gdispDrawBox(10, 10, width/2, height/2, White);
+  gdispFillArea(width/2, height/2, width/2-10, height/2-10, White);
+  gdispControl(GDISP_CONTROL_LLD_FLUSH, NULL);
+  chprintf(chp, "G: %d %d", width, height);
+  /*
+  tdispHome();
+  tdispClear();
+  tdispSetCursor(0, 0);
+  tdispDrawChar('H');
+  tdispDrawChar('E');
+  tdispDrawChar('L');
+  tdispDrawChar(0x55);
+  */
+}
+
+static void cmd_con(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  int contrast;
+  if (argc == 1) {
+    if (sscanf(argv[0], "%d", &contrast) == 1) {
+      gdispControl(GDISP_CONTROL_CONTRAST, (void*)contrast);
+    }
+  } else {
+    chprintf(chp, "Usage: tune [contrast in 0-100]\r\n");
+  }
 }
 
 /*===========================================================================*/
@@ -352,14 +399,17 @@ static const ShellCommand commands[] = {
   {"status", cmd_status},
   {"out", cmd_out},
   {"sd", cmd_sd},
-  {"insert", cmd_insert},
-  {"eject", cmd_eject},
+  {"mount", cmd_mount},
+  {"unmount", cmd_unmount},
   {"homing", cmd_homing},
   {"stop", cmd_stop},
   {"vel", cmd_vel},
   {"estop", cmd_estop},
   {"clear", cmd_clear},
+  {"reset", cmd_reset},
+  {"lcd_contrast", cmd_lcd_contrast},
   {"temp", cmd_temp},
+  {"con", cmd_con},
   {NULL, NULL}
 };
 
@@ -412,20 +462,26 @@ static msg_t threadShellMonitor(void *arg) {
 void debugInit(void)
 {
   if (palHasPin(radboard.debug.heartbeat_led)) {
-    chThdCreateStatic(waHeartbeat, sizeof(waHeartbeat), NORMALPRIO, threadHeartbeat, NULL);
+    chThdCreateStatic(waHeartbeat, sizeof(waHeartbeat), LOWPRIO + 10, threadHeartbeat, NULL);
   }
 
   if (radboard.debug.channel != NULL)
   {
     shellInit();
-    chThdCreateStatic(waShellMonitor, sizeof(waShellMonitor), NORMALPRIO, threadShellMonitor, NULL);
+    chThdCreateStatic(waShellMonitor, sizeof(waShellMonitor), LOWPRIO, threadShellMonitor, NULL);
   }
 }
 
 void debugErase(void)
 {
-  if (radboard.debug.erase_callback != NULL)
-    radboard.debug.erase_callback();
+  if (radboard.debug.erase != NULL)
+    radboard.debug.erase();
+}
+
+void debugReset(void)
+{
+  if (radboard.debug.software_reset != NULL)
+    radboard.debug.software_reset();
 }
 
 /** @} */

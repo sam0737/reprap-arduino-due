@@ -43,6 +43,8 @@
 #include "radadc.h"
 #include "raddebug.h"
 #include "radpex.h"
+#include "display.h"
+#include "storage.h"
 #include "printer.h"
 
 /*===========================================================================*/

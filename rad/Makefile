@@ -1,43 +1,4 @@
 ##############################################################################
-# Build global options
-# NOTE: Can be overridden externally.
-#
-
-# Compiler options here.
-ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -std=gnu99 -Werror
-endif
-
-# C specific options here (added to USE_OPT).
-ifeq ($(USE_COPT),)
-  USE_COPT = 
-endif
-
-# C++ specific options here (added to USE_OPT).
-ifeq ($(USE_CPPOPT),)
-  USE_CPPOPT = -fno-rtti
-endif
-
-# Enable this if you want the linker to remove unused code and data
-ifeq ($(USE_LINK_GC),)
-  USE_LINK_GC = yes
-endif
-
-# If enabled, this option allows to compile the application in THUMB mode.
-ifeq ($(USE_THUMB),)
-  USE_THUMB = yes
-endif
-
-# Enable this if you want to see the full log while compiling.
-ifeq ($(USE_VERBOSE_COMPILE),)
-  USE_VERBOSE_COMPILE = yes
-endif
-
-#
-# Build global options
-##############################################################################
-
-##############################################################################
 # Architecture or project specific options
 #
 
@@ -54,22 +15,16 @@ PROJECT = rad
 
 # Imported source files and paths
 CHIBIOS = chibios
+GFXLIB = ugfx
 RAD = src
 
 # Chibios/RT Chained Makefile
-include $(CHIBIOS)/boards/ARDUINO_DUE/board.mk
-include $(CHIBIOS)/os/hal/platforms/SAM3X8E/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/os/ports/GCC/ARMCMx/SAM3X/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 
 # RAD Chained Makefile
-include $(RAD)/radboards/RADS/radboard.mk
-include $(RAD)/machines/generic/machine.mk
-
-# Define linker script file here
-LDSCRIPT= $(PORTLD)/sam3x8e_flash.ld
+include rad_hardware.mk
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -80,8 +35,10 @@ CSRC = $(PORTSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(FATFSSRC) \
+       $(GFXSRC) \
        $(RADBOARDSRC) \
        $(MACHINESRC) \
+       $(DISPLAYSRC) \
        $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
@@ -120,8 +77,10 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(CHIBIOS)/os/various \
          chibios_msd/mass_storage \
          $(FATFSINC) \
+         $(GFXINC) \
          $(RADBOARDINC) \
          $(MACHINEINC) \
+         $(DISPLAYINC) \
          src \
 
 #

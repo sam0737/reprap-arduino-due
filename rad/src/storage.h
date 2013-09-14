@@ -19,32 +19,30 @@
 */
 
 /**
- * @file    raddebug.h
- * @brief   debug utilities header
+ * @file    storage.h
+ * @brief   Storage header
  *
- * @addtogroup RADDEBUG
+ * @addtogroup STORAGE
  * @{
  */
-#ifndef _RAD_DEBUG_H_
-#define _RAD_DEBUG_H_
+#ifndef _RAD_STORAGE_H
+#define _RAD_STORAGE_H
 
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-extern volatile int32_t debug_value[24];
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void debugInit(void);
-  void debugErase(void);
-  void debugReset(void);
-  void debugPanic(char* message);
+  void storageInit(void);
+  void storageUsbMount(void);
+  void storageUsbUnmount(void);
+  RadStorageState storageGetState(void);
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* _RAD_DEBUG_H_ */
+#endif  /* _RAD_HMI_H */
 
 /** @} */

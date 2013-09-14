@@ -45,7 +45,7 @@ void arduino_erase_condition_callback(SerialUSBDriver *sdup)
 /**
  * Actual erase code
  */
-void debug_erase_callback(void)
+void debug_erase(void)
 {
   chSysLock();
 
@@ -64,6 +64,32 @@ void debug_erase_callback(void)
   RSTC->RSTC_CR = RSTC_CR_KEY(RSTC_KEY) | RSTC_CR_PROCRST | RSTC_CR_PERRST;
 
   while (1);
+}
+
+void debug_software_reset(void)
+{
+  RSTC->RSTC_CR = RSTC_CR_KEY(0xA5) | RSTC_CR_PROCRST | RSTC_CR_PERRST;
+  while (1);
+}
+
+static void hmi_tdisp_set_contrast_init(void)
+{
+  palSetGroupMode(IOPORT2, (1<<15) | (1<<16), 0, PAL_MODE_INPUT_ANALOG);
+  pmc_enable_peripheral_clock(ID_DACC);
+  DACC->DACC_CR = DACC_CR_SWRST;
+  DACC->DACC_MR =
+      DACC_MR_TRGEN_DIS | DACC_MR_WORD_HALF | DACC_MR_USER_SEL_CHANNEL0 | //DACC_MR_TAG_EN |
+      DACC_MR_STARTUP_1984 | DACC_MR_REFRESH(4);
+  DACC->DACC_ACR = DACC_ACR_IBCTLCH0(0x02) | DACC_ACR_IBCTLCH1(0x02) | DACC_ACR_IBCTLDACCORE(0x01);
+  DACC->DACC_CHER = DACC_CHER_CH0 | DACC_CHER_CH1;
+}
+
+static void hmi_set_tdisp_contrast(float contrast)
+{
+  (void) contrast;
+  DACC->DACC_CDR =
+      0xFFF &
+      ((uint32_t) (contrast > 1 ? 1 : contrast < 0 ? 0 : contrast * 0xFFF));
 }
 
 static const PWMConfig beeper_cfg = {
@@ -94,7 +120,7 @@ static const PWMConfig output_cfg[] = { {
 } };
 
 static ADCConfig adc_cfg = {
-    .clock = 10 * 1000 * 1000,
+    .frequency = 1 * 1000 * 1000,
     .use_sequence = 1,
     // We want the ADC captures in the sequence of CH7,CH6,CH5,CH15
     // The USCH number is 1-based, while the CH is 0-based.
@@ -167,6 +193,9 @@ void radboardInit(void)
   msdObjectInit(&UMSD);
   msdStart(&UMSD, &ums_cfg);
 
+  hmi_tdisp_set_contrast_init();
+  hmi_set_tdisp_contrast(0.5);
+
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
    * Note, a delay is inserted in order to not have to disconnect the cable
@@ -187,7 +216,10 @@ const radboard_t radboard =
     .hmi = {
         .beeper_pwm = &PWMD7,
         .beeper_channel = 0,
+        .set_tdisp_contrast = hmi_set_tdisp_contrast,
         .comm_channel = (BaseAsynchronousChannel*) &SDU_DATA,
+        .storage_device = (BaseBlockDevice*) &MMCD1,
+        .usb_msd = &UMSD,
     },
     .output = {
         .count = 5,
@@ -257,7 +289,8 @@ const radboard_t radboard =
     .debug = {
         .heartbeat_led= { .port = IOPORT2, .pin = 27 },
         .channel = (BaseAsynchronousChannel*) &SDU_SHELL,
-        .erase_callback = &debug_erase_callback
+        .software_reset = &debug_software_reset,
+        .erase = &debug_erase
     }
 };
 
@@ -265,10 +298,17 @@ const radboard_t radboard =
  * @brief   MMC_SPI card detection.
  */
 bool_t mmc_lld_is_card_inserted(MMCDriver *mmcp) {
+  if (mmcp->state == BLK_STOP || mmcp->state == BLK_UNINIT)
+    return FALSE;
 
-  (void)mmcp;
-  /* TODO: Fill the implementation.*/
-  return TRUE;
+  if (blkIsTransferring(mmcp))
+    return TRUE;
+
+  if (mmcp->state == BLK_READY &&
+      blkRead(mmcp, 0, NULL, 0) == CH_SUCCESS)
+    return TRUE;
+
+  return blkConnect(mmcp) == CH_SUCCESS;
 }
 
 /**

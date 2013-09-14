@@ -30,6 +30,7 @@
 #define _RADHAL_RADBOARD_H_
 
 #include "hal.h"
+#include "usb_msd.h"
 #include "chevents.h"
 
 /*===========================================================================*/
@@ -105,9 +106,17 @@ typedef struct {
     pwmchannel_t    beeper_channel;
 
     /**
+     * @brief Handler for setting Text LCD contrast
+     */
+    void (*set_tdisp_contrast)(float contrast);
+
+    /**
      * @brief Host communication channel
      */
     BaseAsynchronousChannel  *comm_channel;
+
+    BaseBlockDevice          *storage_device;
+    USBMassStorageDriver     *usb_msd;
   } hmi;
 
   /*******************************************
@@ -158,9 +167,13 @@ typedef struct {
      */
     BaseAsynchronousChannel  *channel;
     /**
-     * @brief Callback for chip erase
+     * @brief Handler for reset
      */
-    void      (*erase_callback)(void);
+    void      (*software_reset)(void);
+    /**
+     * @brief Handler for chip erase
+     */
+    void      (*erase)(void);
   } debug;
 } radboard_t;
 

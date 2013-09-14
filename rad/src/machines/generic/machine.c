@@ -40,7 +40,7 @@ static RadTemp temps[] = {
 MAKE_LINEAR_FORWARD_KINEMATICS(kForward);
 MAKE_LINEAR_INVERSE_KINEMATICS(kInverse);
 
-const machine_t machine =
+machine_t machine =
 {
     .power = {
         .always_on = 0

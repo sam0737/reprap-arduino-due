@@ -28,6 +28,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "gfx.h"
 #include "rad.h"
 
 /*===========================================================================*/
@@ -46,6 +47,8 @@ void radInit(void)
   radadcInit();
   debugInit();
   plannerInit();
+  displayInit();
+  storageInit();
   printerInit();
 }
 
