@@ -65,4 +65,14 @@ extern MMCDriver MMCD1;
  */
 #define RAD_NUMBER_STEPPERS 5
 
+/**
+ * @brief Define board support software display contrast control
+ *        Implementation might need to determine based on display model
+ */
+#ifndef RAD_DISPLAY_CONTRAST_SUPPORT
+  #if GFX_USE_TDISP
+    #define RAD_DISPLAY_CONTRAST_SUPPORT TRUE
+  #endif
+#endif
+
 #endif /* _RADBOARD_H_ */

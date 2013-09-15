@@ -42,14 +42,19 @@ static void display_init(void) {
   gdispClear(Black);
 }
 
-char buf[20];
 static void display_test(void) {
-  //sprintf(buf, "cfp.Tesg %d", (int) chTimeNow());
-  gdispFillStringBox(0,0,128,16, "|X012 3.45|",font1,Black,White,justifyCenter);
-  gdispFillStringBox(0,16,128,16,"|Y-67890+_|",font2,White,Black,justifyCenter);
-  gdispFillStringBox(0,32,128,16,"|Z012 3.45|",font3,Black,White,justifyCenter);
-  gdispFillStringBox(0,48,128,16,"|X-67890+_|",font4,White,Black,justifyCenter);
+  char buf[20];
+  snprintf(buf, 20, "cfp.Tesg %d", (int) chTimeNow());
+  gdispFillStringBox(0,0,128,16, buf,font1,Black,White,justifyCenter);
+  gdispFillStringBox(0,16,128,16,buf,font2,White,Black,justifyCenter);
+  gdispFillStringBox(0,32,128,16,buf,font3,Black,White,justifyCenter);
+  gdispFillStringBox(0,48,128,16,buf,font4,White,Black,justifyCenter);
   gdispControl(GDISP_CONTROL_LLD_FLUSH, NULL);
+}
+
+static void display_lld_set_contrast(float contrast)
+{
+  gdispControl(GDISP_CONTROL_CONTRAST, (void*)(size_t)(contrast * 100));
 }
 
 /** @} */

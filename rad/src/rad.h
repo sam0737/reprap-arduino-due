@@ -30,6 +30,7 @@
 #define _RAD_H_
 
 #include "math.h"
+#include "mini_printf.h"
 
 #include "radhal_radboard.h"
 #include "radhal_machine.h"

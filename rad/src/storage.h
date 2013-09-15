@@ -32,13 +32,20 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+typedef enum {
+  STORAGE_None = 0,
+  STORAGE_Usb = 1,
+  STORAGE_Local = 2
+} RadStorageHost;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
   void storageInit(void);
   void storageUsbMount(void);
   void storageUsbUnmount(void);
-  RadStorageState storageGetState(void);
+  RadStorageHost storageGetHostState(void);
+  bool_t storageDumpConfig(void);
 #ifdef __cplusplus
 }
 #endif

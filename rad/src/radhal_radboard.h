@@ -106,11 +106,6 @@ typedef struct {
     pwmchannel_t    beeper_channel;
 
     /**
-     * @brief Handler for setting Text LCD contrast
-     */
-    void (*set_tdisp_contrast)(float contrast);
-
-    /**
      * @brief Host communication channel
      */
     BaseAsynchronousChannel  *comm_channel;

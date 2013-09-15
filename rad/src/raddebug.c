@@ -37,8 +37,6 @@
 #include "raddebug.h"
 #include <stdlib.h>
 
-FATFS MMC_FS;
-
 /*===========================================================================*/
 /* Shell entry points.                                                       */
 /*===========================================================================*/
@@ -78,16 +76,11 @@ static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 static void cmd_dump(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)chp;
   (void)argv;
   (void)argc;
-  uint8_t i;
 
-  for (i = 0; i < 24; i++) {
-    if (i % 4 == 0 && i > 0) chprintf(chp, "\r\n");
-    if (i % 8 == 0 && i > 0) chprintf(chp, "\r\n");
-    chprintf(chp, "  %.8x", debug_value[i]);
-  }
-  chprintf(chp, "\r\n");
+  storageDumpConfig();
 }
 
 static void cmd_erase(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -131,10 +124,9 @@ static void cmd_beep(BaseSequentialStream *chp, int argc, char *argv[]) {
     beeperPlay(&tuneWarning);
     return;
   } else if (argc == 1) {
-    if (sscanf(argv[0], "%d", &tone) == 1) {
-      tuneDebug.notes[0].tone = tone;
-      beeperPlay(&tuneDebug);
-    }
+    tone = atoi(argv[0]);
+    tuneDebug.notes[0].tone = tone;
+    beeperPlay(&tuneDebug);
   } else {
     chprintf(chp, "Usage: beep [freq]\r\n");
   }
@@ -143,6 +135,13 @@ static void cmd_beep(BaseSequentialStream *chp, int argc, char *argv[]) {
 static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   (void)argv;
+
+  for (uint8_t i = 0; i < 24; i++) {
+    if (i % 4 == 0 && i > 0) chprintf(chp, "\r\n");
+    if (i % 8 == 0 && i > 0) chprintf(chp, "\r\n");
+    chprintf(chp, "  %.8x", debug_value[i]);
+  }
+  chprintf(chp, "\r\n");
 
   chprintf(chp, "Temperatures:\r\n");
   for (uint8_t i = 0; i < machine.extruder.count; i++) {
@@ -171,26 +170,33 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
         s.stopped, s.homed);
   }
 
-  chprintf(chp, "Storage: %d\r\n", storageGetState().host);
+  chprintf(chp, "Storage: %d\r\n", storageGetHostState());
   chprintf(chp, "E Stopped:\r\n  %s\r\n", printer_estop_message ? printer_estop_message : "None");
 }
 
 static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {
-    (void)argv;
     int ch;
     int duty;
+    char* end;
 
+    (void)argv;
+    (void)ch;
+    (void)duty;
     if (argc == 2) {
-      if (sscanf(argv[0], "%d", &ch) == 1 && sscanf(argv[1], "%d", &duty) == 1) {
-        if (ch >= 0 && ch < radboard.output.count) {
+      do {
+        ch = strtol(argv[0], &end, 10);
+        if (argv[0] == end) break;
+        duty = strtol(argv[1], &end, 10);
+        if (argv[1] == end) break;
+
+        if (ch >= 0 && ch < radboard.output.count)
           outputSet(&radboard.output.channels[ch], (uint8_t) duty);
-          return;
-        }
-      }
+      } while(0);
     }
     chprintf(chp, "Usage: out [ch] [0-255]\r\n");
 }
 
+/*
 static FRESULT scan_files(BaseSequentialStream *chp, char *path) {
   FRESULT res;
   FILINFO fno;
@@ -227,13 +233,13 @@ static FRESULT scan_files(BaseSequentialStream *chp, char *path) {
   }
   return res;
 }
+*/
 
-PARTITION VolToPart[] = { {0, 0} };
-char path[1024];
-static void cmd_sd(BaseSequentialStream *chp, int argc, char *argv[]) {
-    (void)argv;
-    (void)argc;
-    FRESULT err;
+//char path[1024];
+//static void cmd_sd(BaseSequentialStream *chp, int argc, char *argv[]) {
+  //(void)argv;
+    //(void)argc;
+    //FRESULT err;
 
     /*
     if (mmcConnect(&MMCD1)) {
@@ -241,6 +247,7 @@ static void cmd_sd(BaseSequentialStream *chp, int argc, char *argv[]) {
       return;
     }*/
 
+    /*
     chprintf(chp, "Mounting...\r\n");
     err = f_mount(0, &MMC_FS);
     if (err != FR_OK) {
@@ -253,7 +260,8 @@ static void cmd_sd(BaseSequentialStream *chp, int argc, char *argv[]) {
 
     path[0] = 0;
     scan_files(chp, path);
-}
+    */
+//}
 
 static void cmd_mount(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)chp;
@@ -330,20 +338,18 @@ static void cmd_reset(BaseSequentialStream *chp, int argc, char *argv[]) {
   radboard.debug.software_reset();
 }
 
-static void cmd_lcd_contrast(BaseSequentialStream *chp, int argc, char *argv[]) {
+static void cmd_contrast(BaseSequentialStream *chp, int argc, char *argv[]) {
   int contrast;
 
-  if (radboard.hmi.set_tdisp_contrast == NULL || argc < 1) {
-    chprintf(chp, "Usage: lcd_contrast <0-100>\r\n");
+  if (argc < 1) {
+    chprintf(chp, "Usage: contrast <0-100>\r\n");
     return;
   }
 
-  if (sscanf(argv[0], "%d", &contrast) == 1) {
-    if (contrast > 100) contrast = 100;
-    if (contrast < 0) contrast = 0;
-    radboard.hmi.set_tdisp_contrast(contrast / 100.0);
-    chprintf(chp, "LCD Contrast set: %d\r\n", contrast);
-  }
+  contrast = atoi(argv[0]);
+  if (contrast > 100) contrast = 100;
+  if (contrast < 0) contrast = 0;
+  displaySetContrast(contrast / 100.0);
 }
 
 static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -370,18 +376,6 @@ static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
   */
 }
 
-static void cmd_con(BaseSequentialStream *chp, int argc, char *argv[]) {
-  (void)argv;
-  int contrast;
-  if (argc == 1) {
-    if (sscanf(argv[0], "%d", &contrast) == 1) {
-      gdispControl(GDISP_CONTROL_CONTRAST, (void*)contrast);
-    }
-  } else {
-    chprintf(chp, "Usage: tune [contrast in 0-100]\r\n");
-  }
-}
-
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
@@ -398,7 +392,6 @@ static const ShellCommand commands[] = {
   {"beep", cmd_beep},
   {"status", cmd_status},
   {"out", cmd_out},
-  {"sd", cmd_sd},
   {"mount", cmd_mount},
   {"unmount", cmd_unmount},
   {"homing", cmd_homing},
@@ -407,9 +400,8 @@ static const ShellCommand commands[] = {
   {"estop", cmd_estop},
   {"clear", cmd_clear},
   {"reset", cmd_reset},
-  {"lcd_contrast", cmd_lcd_contrast},
+  {"contrast", cmd_contrast},
   {"temp", cmd_temp},
-  {"con", cmd_con},
   {NULL, NULL}
 };
 

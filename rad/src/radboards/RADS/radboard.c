@@ -72,26 +72,6 @@ void debug_software_reset(void)
   while (1);
 }
 
-static void hmi_tdisp_set_contrast_init(void)
-{
-  palSetGroupMode(IOPORT2, (1<<15) | (1<<16), 0, PAL_MODE_INPUT_ANALOG);
-  pmc_enable_peripheral_clock(ID_DACC);
-  DACC->DACC_CR = DACC_CR_SWRST;
-  DACC->DACC_MR =
-      DACC_MR_TRGEN_DIS | DACC_MR_WORD_HALF | DACC_MR_USER_SEL_CHANNEL0 | //DACC_MR_TAG_EN |
-      DACC_MR_STARTUP_1984 | DACC_MR_REFRESH(4);
-  DACC->DACC_ACR = DACC_ACR_IBCTLCH0(0x02) | DACC_ACR_IBCTLCH1(0x02) | DACC_ACR_IBCTLDACCORE(0x01);
-  DACC->DACC_CHER = DACC_CHER_CH0 | DACC_CHER_CH1;
-}
-
-static void hmi_set_tdisp_contrast(float contrast)
-{
-  (void) contrast;
-  DACC->DACC_CDR =
-      0xFFF &
-      ((uint32_t) (contrast > 1 ? 1 : contrast < 0 ? 0 : contrast * 0xFFF));
-}
-
 static const PWMConfig beeper_cfg = {
   .frequency = SYSTEM_CLOCK / 128,
   .period = (SYSTEM_CLOCK / 128) / 1000,
@@ -193,9 +173,6 @@ void radboardInit(void)
   msdObjectInit(&UMSD);
   msdStart(&UMSD, &ums_cfg);
 
-  hmi_tdisp_set_contrast_init();
-  hmi_set_tdisp_contrast(0.5);
-
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
    * Note, a delay is inserted in order to not have to disconnect the cable
@@ -216,7 +193,6 @@ const radboard_t radboard =
     .hmi = {
         .beeper_pwm = &PWMD7,
         .beeper_channel = 0,
-        .set_tdisp_contrast = hmi_set_tdisp_contrast,
         .comm_channel = (BaseAsynchronousChannel*) &SDU_DATA,
         .storage_device = (BaseBlockDevice*) &MMCD1,
         .usb_msd = &UMSD,

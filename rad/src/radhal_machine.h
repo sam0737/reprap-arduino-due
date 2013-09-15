@@ -141,19 +141,10 @@ typedef struct {
   uint8_t             pwm_id;
 } RadFan;
 
-typedef enum {
-  STORAGE_None = 0,
-  STORAGE_Usb = 1,
-  STORAGE_Local = 2
-} RadStorageHost;
 
 typedef struct {
-  RadStorageHost   host;
-} RadStorageState;
-
-typedef struct {
-  volatile RadStorageState state;
-} RadStorage;
+  float               contrast;
+} RadHmiSettings;
 
 typedef struct {
   struct {
@@ -162,7 +153,7 @@ typedef struct {
      * @details If the hardware support software controlled PSU, should the
      *          machine be always on and disable all related features.
      */
-    uint8_t           always_on:1;
+    bool_t           always_on:1;
   } power;
   struct {
     RadKinematicsType type;
@@ -198,7 +189,7 @@ typedef struct {
     uint8_t           count;
     RadFan            *devices;
   } fan;
-  RadStorage          storage;
+  RadHmiSettings      hmi;
 } machine_t;
 
 /**

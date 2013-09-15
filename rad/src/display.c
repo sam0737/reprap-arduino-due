@@ -28,6 +28,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "gfx.h"
 #include "rad.h"
 
 #include "display.h"
@@ -36,19 +37,22 @@
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
+#define HAS_DISPLAY  (GFX_USE_TDISP || GFX_USE_GDISP)
+
+#if HAS_DISPLAY
 static WORKING_AREA(waDisplay, 2048);
+#endif
 
 /*===========================================================================*/
 /* Local functions.                                                          */
 /*===========================================================================*/
 
-#define HAS_DISPLAY  (GFX_USE_TDISP || GFX_USE_GDISP)
-
 #if GFX_USE_TDISP
+#include "tdisp_lld_control.h"
 #endif
 #if GFX_USE_GDISP
-#endif
 #include "hmi/display_gdisp.h"
+#endif
 
 #if HAS_DISPLAY
 
@@ -69,7 +73,6 @@ static msg_t threadDisplay(void *arg) {
     displayUpdate();
     now = chTimeNow();
     chThdSleep(now + MS2ST(1) > next ? MS2ST(1) : next - now);
-
   }
   return 0;
 }
@@ -83,7 +86,17 @@ void displayInit(void)
 {
 #if HAS_DISPLAY
   gfxInit();
+  displaySetContrast(machine.hmi.contrast);
   chThdCreateStatic(waDisplay, sizeof(waDisplay), NORMALPRIO - 2, threadDisplay, NULL);
+#endif
+}
+
+void displaySetContrast(float contrast)
+{
+#if !HAS_DISPLAY
+  (void) contrast;
+#else
+  display_lld_set_contrast(contrast);
 #endif
 }
 

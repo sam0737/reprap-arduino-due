@@ -133,6 +133,9 @@ machine_t machine =
         .devices = (RadFan[]) {
           { .pwm_id = 5 }
         }
+    },
+    .hmi = {
+        .contrast = 0.5
     }
 };
 

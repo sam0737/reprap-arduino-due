@@ -23,6 +23,9 @@ include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 
+# Additional library
+include format/format.mk
+
 # RAD Chained Makefile
 include rad_hardware.mk
 
@@ -36,6 +39,7 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(FATFSSRC) \
        $(GFXSRC) \
+       $(FORMATSRC) \
        $(RADBOARDSRC) \
        $(MACHINESRC) \
        $(DISPLAYSRC) \
@@ -78,6 +82,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          chibios_msd/mass_storage \
          $(FATFSINC) \
          $(GFXINC) \
+         $(FORMATINC) \
          $(RADBOARDINC) \
          $(MACHINEINC) \
          $(DISPLAYINC) \

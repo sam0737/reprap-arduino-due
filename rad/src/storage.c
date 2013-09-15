@@ -29,6 +29,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "rad.h"
+#include "ff.h"
 
 #include "storage.h"
 
@@ -36,8 +37,14 @@
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-static WORKING_AREA(waStorage, 256);
-Mutex mutex;
+#include "storage_config.h"
+static WORKING_AREA(waStorage, 512);
+static Mutex mutex;
+
+static RadStorageHost host;
+
+#define SETTINGS_FILENAME "rad.cfg"
+FATFS fsWorkArea;
 
 /*===========================================================================*/
 /* Local functions.                                                          */
@@ -49,40 +56,22 @@ static void storageCheck(void) {
     chMtxUnlock();
     return;
   }
-  if (machine.storage.state.host == STORAGE_None) {
+  if (host == STORAGE_None) {
     if (blkIsInserted(radboard.hmi.storage_device)) {
-      machine.storage.state.host = STORAGE_Local;
+      host = STORAGE_Local;
+      f_mount(0, &fsWorkArea);
     }
-  } else if (machine.storage.state.host == STORAGE_Usb) {
+  } else if (host == STORAGE_Usb) {
     if (radboard.hmi.usb_msd->bbdp == NULL) {
-      machine.storage.state.host = STORAGE_None;
+      host = STORAGE_None;
     }
-  } else if (machine.storage.state.host == STORAGE_Local) {
+  } else if (host == STORAGE_Local) {
     if (!blkIsInserted(radboard.hmi.storage_device)) {
-      machine.storage.state.host = STORAGE_None;
+      host = STORAGE_None;
+      f_mount(0, NULL);
     }
   }
   chMtxUnlock();
-}
-
-void storageUsbMount(void) {
-  chMtxLock(&mutex);
-  msdReady(radboard.hmi.usb_msd, radboard.hmi.storage_device);
-  machine.storage.state.host = STORAGE_Usb;
-  chMtxUnlock();
-}
-
-void storageUsbUnmount(void) {
-  chMtxLock(&mutex);
-  msdEject(radboard.hmi.usb_msd);
-  chMtxUnlock();
-}
-
-RadStorageState storageGetState(void) {
-  chMtxLock(&mutex);
-  RadStorageState state = machine.storage.state;
-  chMtxUnlock();
-  return state;
 }
 
 static msg_t threadStorage(void *arg) {
@@ -106,6 +95,44 @@ void storageInit(void)
   if (radboard.hmi.storage_device == NULL)
     return;
   chThdCreateStatic(waStorage, sizeof(waStorage), NORMALPRIO - 2, threadStorage, NULL);
+}
+
+void storageUsbMount(void) {
+  chMtxLock(&mutex);
+  msdReady(radboard.hmi.usb_msd, radboard.hmi.storage_device);
+  host = STORAGE_Usb;
+  chMtxUnlock();
+}
+
+void storageUsbUnmount(void) {
+  chMtxLock(&mutex);
+  msdEject(radboard.hmi.usb_msd);
+  chMtxUnlock();
+}
+
+RadStorageHost storageGetHostState(void) {
+  chMtxLock(&mutex);
+  RadStorageHost _host = host;
+  chMtxUnlock();
+  return _host;
+}
+
+bool_t storageDumpConfig(void) {
+  FIL f;
+
+  chMtxLock(&mutex);
+  if (host != STORAGE_Local)
+    goto failed;
+  if (f_open(&f, SETTINGS_FILENAME, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+    goto failed;
+  storageDumpConfigCore(&f);
+  if (f_close(&f) != FR_OK)
+    goto failed;
+  chMtxUnlock();
+  return TRUE;
+failed:
+  chMtxUnlock();
+  return FALSE;
 }
 
 /** @} */

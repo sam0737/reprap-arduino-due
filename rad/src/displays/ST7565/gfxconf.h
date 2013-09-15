@@ -1,7 +1,9 @@
 #ifndef _GFXCONF_H
 #define _GFXCONF_H
 
-#define RAD_DISPLAY_ST7565          TRUE
+#define RAD_DISPLAY_ST7565            TRUE
+/* Builtin contrast support */
+#define RAD_DISPLAY_CONTRAST_SUPPORT  TRUE
 
 /* The operating system to use - one of these must be defined */
 #define GFX_USE_OS_CHIBIOS          TRUE

@@ -19,28 +19,29 @@
 */
 
 /**
- * @file    display.h
- * @brief   Display header
+ * @file    storage_config.h
+ * @brief   Storgae Config related
  *
- * @addtogroup DISPLAY
+ * @addtogroup STORAGE
  * @{
  */
-#ifndef _RAD_DISPLAY_H
-#define _RAD_DISPLAY_H
 
 /*===========================================================================*/
-/* External declarations.                                                    */
+/* Local variables and types.                                                */
 /*===========================================================================*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-void displayInit(void);
-void displaySetContrast(float contrast);
-#ifdef __cplusplus
+#define STRLEN(s) (sizeof(s)/sizeof(s[0]) - 1)
+
+#define FILE_HEADER   "# RAD Config\r\n"
+
+/*===========================================================================*/
+/* Local functions.                                                          */
+/*===========================================================================*/
+
+static void storageDumpConfigCore(FIL *fp) {
+  UINT bw;
+
+  f_write(fp, FILE_HEADER, STRLEN(FILE_HEADER), &bw);
+  /* TODO */
 }
-#endif
-
-#endif  /* _RAD_DISPLAY_H */
-
 /** @} */

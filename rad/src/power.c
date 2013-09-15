@@ -32,10 +32,15 @@
 
 #include "power.h"
 
+/*===========================================================================*/
+/* Local variables and types.                                                */
+/*===========================================================================*/
+static Mutex mutex;
+
 /**
  * State of the power supply
  */
-static uint8_t psu_state;
+static bool_t psu_state;
 
 /*===========================================================================*/
 /* Driver exported functions.                                                */
@@ -43,16 +48,17 @@ static uint8_t psu_state;
 
 void powerInit(void)
 {
+  chMtxInit(&mutex);
   if (!palHasSig(radboard.power.psu_on)) {
-    psu_state = 1;
+    psu_state = TRUE;
     return;
   }
   if (machine.power.always_on) {
     pexEnableSig(radboard.power.psu_on);
-    psu_state = 1;
+    psu_state = TRUE;
   } else {
     pexDisableSig(radboard.power.psu_on);
-    psu_state = 0;
+    psu_state = FALSE;
   }
   palSetSigMode(radboard.power.psu_on, PAL_MODE_OUTPUT_PUSHPULL);
 }
@@ -62,8 +68,16 @@ void powerPsuOn(void)
   if (!palHasSig(radboard.power.psu_on) || machine.power.always_on)
     return;
 
-  psu_state = 1;
-  pexEnableSig(radboard.power.psu_on);
+  chMtxLock(&mutex);
+  if (!psu_state)
+  {
+    psu_state = TRUE;
+    pexEnableSig(radboard.power.psu_on);
+
+    // Wait for power to stable
+    chThdSleepMilliseconds(200);
+  }
+  chMtxUnlock();
 }
 
 void powerPsuOff(void)
@@ -71,13 +85,21 @@ void powerPsuOff(void)
   if (!palHasSig(radboard.power.psu_on) || machine.power.always_on)
     return;
 
-  psu_state = 0;
-  pexDisableSig(radboard.power.psu_on);
+  chMtxLock(&mutex);
+  if (psu_state)
+  {
+    psu_state = FALSE;
+    pexDisableSig(radboard.power.psu_on);
+  }
+  chMtxUnlock();
 }
 
 uint8_t powerIsPsuOn(void)
 {
-  return psu_state;
+  chMtxLock(&mutex);
+  bool_t state = psu_state;
+  chMtxUnlock();
+  return state;
 }
 
 /** @} */

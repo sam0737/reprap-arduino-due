@@ -1,8 +1,6 @@
 #include "ch.h"
 #include "hal.h"
 
-//#include <stdio.h>
-
 #include "chprintf.h"
 #include "rad.h"
 
