@@ -32,12 +32,16 @@
 extern const USBConfig usbcfg;
 extern SerialUSBConfig serusb_datacfg;
 extern SerialUSBConfig serusb_shellcfg;
+#if HAL_USE_MSD
 extern USBMassStorageConfig ums_cfg;
+#endif
 
 // USB Device
 extern SerialUSBDriver SDU_SHELL;
 extern SerialUSBDriver SDU_DATA;
+#if HAL_USE_MSD
 extern USBMassStorageDriver UMSD;
+#endif
 
 #include "LUFA/drivers/USB/USB.h"
 /* Macros: */

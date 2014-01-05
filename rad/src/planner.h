@@ -22,7 +22,7 @@
  * @file    planner.h
  * @brief   Trajectory planner header
  *
- * @addtogroup ENDSTOP
+ * @addtogroup PLANNER
  * @{
  */
 
@@ -34,86 +34,53 @@
 /*===========================================================================*/
 
 #define BLOCK_BUFFER_SIZE 256
+#define DELTA_SEGMENTS_PER_SECOND 256
+#define DELTA_SEGMENTS_PER_MM 2
 
 typedef struct {
   float axes[RAD_NUMBER_AXES];
   float extruders[RAD_NUMBER_EXTRUDERS];
-  float linear_feedrate;
-} PlannerAxisMovement;
+} PlannerVirtualPosition;
+
+typedef struct {
+  float joints[RAD_NUMBER_JOINTS];
+  float extruders[RAD_NUMBER_EXTRUDERS];
+} PlannerPhysicalPosition;
 
 typedef struct {
   bool_t rapid;
   bool_t stop_on_limit_changes;
-  float joints[RAD_NUMBER_AXES];
+  float joints[RAD_NUMBER_JOINTS];
   float extruders[RAD_NUMBER_EXTRUDERS];
 } PlannerJointMovement;
-
-typedef enum {
-  BLOCK_Preemptive_Mask = 0x10,
-
-  BLOCK_Velocity = 1 | 0x10,
-  BLOCK_Planned = 2,
-  BLOCK_Stop = 3 | 0x10,
-
-  BLOCK_Estop = 4 | 0x10,
-  BLOCK_Estop_Clear = 5,
-} PlannerOutputBlockMode;
-
-typedef struct {
-  uint32_t era;
-  PlannerOutputBlockMode mode;
-  bool_t stop_on_limit_changes;
-  struct {
-    union {
-      struct {
-        float sv;
-        bool_t is_stop_signalled;
-      } velocity;
-    } data;
-    float acceleration;
-  } joints[RAD_NUMBER_JOINTS];
-  struct {
-    union {
-      struct {
-        float sv;
-      } velocity;
-    } data;
-    float acceleration;
-  } extruders[RAD_NUMBER_EXTRUDERS];
-} PlannerOutputBlock;
 
 /*===========================================================================*/
 /* Macros.                                                                   */
 /*===========================================================================*/
 
-#define plannerFetchBlockI(blockp) (chMBFetchI(&block_mbox, (msg_t*)&blockp))
-
-#define plannerFreeBlockI(blockp) do {                                    \
-  chPoolFreeI(&block_pool, blockp);                                       \
-  chSemSignalI(&block_pool_sem);                                             \
-} while(0)
-
-#define plannerPeekBlockI(blockp) do {                                    \
-  blockp = chMBGetUsedCountI(&block_mbox) > 0 ?                           \
-    (PlannerOutputBlock*)chMBPeekI(&block_mbox) : NULL;                   \
-} while (0)
+#define plannerMainQueueFetchBlockI(block_p) plannerQueueFetchBlockI(&queueMain, block_p)
+#define plannerMainQueueReserveBlock() plannerQueueReserveBlock(&queueMain)
+#define plannerMainQueueAddBlock() plannerQueueAddBlock(&queueMain)
+#define plannerMainQueueCommit() plannerQueueCommit(&queueMain)
+#define plannerMainQueueRecalculate() plannerQueueRecalculate(&queueMain)
 
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-extern Semaphore block_pool_sem;
-extern MemoryPool block_pool;
-extern Mailbox block_mbox;
+#include "planner_queue.h"
+extern PlannerQueue queueMain;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-void plannerInit(void);
-void plannerAddAxisPoint(const PlannerAxisMovement *point);
-void plannerSetJointVelocity(const PlannerJointMovement *velocity);
-void plannerEstop(void);
-void plannerEstopClear(void);
+  void plannerInit(void);
+  PlannerVirtualPosition plannerSyncCurrentPosition(void);
+  void plannerAddAxisPoint(const PlannerVirtualPosition *target, float feedrate);
+  void plannerSetJointVelocity(const PlannerJointMovement *velocity);
+  void plannerSetPosition(const PlannerVirtualPosition *virtual);
+  void plannerEstop(void);
+  void plannerEstopClear(void);
 #ifdef __cplusplus
 }
 #endif

@@ -29,10 +29,12 @@
 #include "ch.h"
 #include "hal.h"
 #include "rad.h"
-#include "ff.h"
 
 #include "storage.h"
 
+#if RAD_STORAGE
+
+#include "ff.h"
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
@@ -62,9 +64,11 @@ static void storageCheck(void) {
       f_mount(0, &fsWorkArea);
     }
   } else if (host == STORAGE_Usb) {
+#if HAL_USE_MSD
     if (radboard.hmi.usb_msd->bbdp == NULL) {
       host = STORAGE_None;
     }
+#endif
   } else if (host == STORAGE_Local) {
     if (!blkIsInserted(radboard.hmi.storage_device)) {
       host = STORAGE_None;
@@ -98,16 +102,20 @@ void storageInit(void)
 }
 
 void storageUsbMount(void) {
+#if HAL_USE_MSD
   chMtxLock(&mutex);
   msdReady(radboard.hmi.usb_msd, radboard.hmi.storage_device);
   host = STORAGE_Usb;
   chMtxUnlock();
+#endif
 }
 
 void storageUsbUnmount(void) {
+#if HAL_USE_MSD
   chMtxLock(&mutex);
   msdEject(radboard.hmi.usb_msd);
   chMtxUnlock();
+#endif
 }
 
 RadStorageHost storageGetHostState(void) {
@@ -134,5 +142,13 @@ failed:
   chMtxUnlock();
   return FALSE;
 }
+
+#else
+void storageInit(void) {}
+void storageUsbMount(void) {}
+void storageUsbUnmount(void) {}
+RadStorageHost storageGetHostState(void){ return STORAGE_None; }
+bool_t storageDumpConfig(void){ return TRUE; }
+#endif
 
 /** @} */

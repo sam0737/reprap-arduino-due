@@ -4,29 +4,11 @@
 #include "chprintf.h"
 #include "rad.h"
 
-void toggle_tx(void) {
-  pexTogglePad(IOPORT1, 21);
-}
-
-void toggle_rx(void) {
-  pexTogglePad(IOPORT3, 30);
-}
-
-void toggle_L(void) {
-  pexTogglePad(IOPORT2, 27);
-}
-
-void debug(const char* message) {
-  (void) message;
-  //chprintf((BaseSequentialStream *)&SD1, message);
-}
-
 /*
  * Application entry point.
  */
 int main(void) {
   //Thread* t;
-
 	halInit();
   /*
    * System initializations.
@@ -37,8 +19,8 @@ int main(void) {
 
   radInit();
 
-  palSetPadMode(IOPORT1, 21, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(IOPORT3, 30, PAL_MODE_OUTPUT_PUSHPULL);
+  //palSetPadMode(IOPORT1, 21, PAL_MODE_OUTPUT_PUSHPULL);
+  //palSetPadMode(IOPORT3, 30, PAL_MODE_OUTPUT_PUSHPULL);
 
   //chprintf((BaseSequentialStream *)&SD1, "!!! MAIN !!!\r\n");
   //chThdCreateStatic(waThreadUart, sizeof(waThreadUart), NORMALPRIO, ThreadUart, NULL);

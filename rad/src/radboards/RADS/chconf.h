@@ -47,7 +47,7 @@
  */
 /*===========================================================================*/
 
-/**
+   /**
  * @brief   System tick frequency.
  * @details Frequency of the system timer that drives the system ticks. This
  *          setting also defines the system tick time unit.

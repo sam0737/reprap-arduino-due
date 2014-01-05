@@ -1,0 +1,6 @@
+; test_planner script2.txt
+G92 X0 Y0
+G1 X500 Y0 F6000
+G1 Y500
+G1 X0
+G1 Y0

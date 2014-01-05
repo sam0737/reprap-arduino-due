@@ -58,6 +58,8 @@ const BeeperTune tuneWarning = { .notes = (BeeperNote[]) {
   {1000, 150}, {0, 10}, {1000, 80}, {0, 10}, {0, 0}
 } };
 
+
+#if HAL_USE_PWM
 static BeeperNote* volatile note_playing;
 static BinarySemaphore bsemNewNote;
 
@@ -109,5 +111,10 @@ void beeperPlay(const BeeperTune* tune)
   note_playing = tune->notes;
   chBSemSignal(&bsemNewNote);
 }
+
+#else
+void beeperInit(){}
+void beeperPlay(const BeeperTune* tune){}
+#endif
 
 /** @} */

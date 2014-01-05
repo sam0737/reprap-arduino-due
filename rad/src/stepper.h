@@ -32,6 +32,19 @@
 /* Data structures and types.                                                */
 /*===========================================================================*/
 
+typedef struct {
+  bool_t              stopped;
+  bool_t              homed;
+  RadLimitState       limit_state;
+  RadLimitState       old_limit_state;
+  int32_t             limit_step;
+  float               pos;
+} RadJointState;
+
+typedef struct {
+  RadJointState joints[RAD_NUMBER_AXES];
+} RadJointsState;
+
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
@@ -40,7 +53,12 @@
 extern "C" {
 #endif
   void stepperInit(void);
-  void stepperSetHome(uint8_t joint, int32_t home_step, float home_pos);
+  void stepperSetHome(uint8_t joint_id, int32_t home_step, float home_pos);
+  RadJointsState stepperGetJointsState(void);
+  void stepperSetLimitState(uint8_t joint_id, RadLimitState limit);
+  void stepperResetOldLimitState(uint8_t joint_id);
+  void stepperClearStopped(uint8_t joint_id);
+  void stepperSetHomed(uint8_t joint_id);
 #ifdef __cplusplus
 }
 #endif

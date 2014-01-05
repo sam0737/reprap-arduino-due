@@ -36,22 +36,26 @@
 
 /**
  * @brief Generate forward kinematics for simple linear motion
+ *        (joint coordinate to axis coordinate)
  * @param[in] name    The name of the function generated
  */
 #define MAKE_LINEAR_FORWARD_KINEMATICS(NAME)                              \
-void (NAME)(float *joints, float *axes)                                   \
+void (NAME)(const PlannerPhysicalPosition *p, PlannerVirtualPosition *v)  \
 {                                                                         \
-  memcpy(axes, joints, sizeof(float) * RAD_NUMBER_AXES);                  \
+  uint8_t i;                                                              \
+  for (i = 0; i < RAD_NUMBER_AXES; i++) v->axes[i] = p->joints[i];        \
 }                                                                         \
 
 /**
  * @brief Generate inverse kinematics for simple linear motion
+ *        (axis coordinate to joint coordinate)
  * @param[in] name    The name of the function generated
  */
 #define MAKE_LINEAR_INVERSE_KINEMATICS(NAME)                              \
-void (NAME)(float *axes, float *joints)                                   \
+void (NAME)(const PlannerVirtualPosition *v, PlannerPhysicalPosition *p)  \
 {                                                                         \
-  memcpy(joints, axes, sizeof(float) * RAD_NUMBER_AXES);                  \
+  uint8_t i;                                                              \
+  for (i = 0; i < RAD_NUMBER_AXES; i++) p->joints[i] = v->axes[i];        \
 }                                                                         \
 
 /*===========================================================================*/

@@ -28,11 +28,16 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "gfx.h"
 #include "rad.h"
-#include "ff.h"
 #include "chprintf.h"
 #include "shell.h"
+
+#if HAL_USE_GFX
+#include "gfx.h"
+#endif
+#if RAD_STORAGE
+#include "ff.h"
+#endif
 
 #include "raddebug.h"
 #include <stdlib.h>
@@ -40,6 +45,8 @@
 /*===========================================================================*/
 /* Shell entry points.                                                       */
 /*===========================================================================*/
+
+#include "debug/test_planner.h"
 
 volatile int32_t debug_value[24];
 
@@ -59,16 +66,16 @@ static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
   static const char *states[] = {THD_STATE_NAMES};
   Thread *tp;
 
-  chprintf(chp, "      name     addr    stack prio refs     state time\r\n");
+  chprintf(chp, "      name     addr prio refs     state time\r\n");
   tp = chRegFirstThread();
   do {
-    chprintf(chp, "%10s %.8lx %.8lx %4lu %4lu %9s %lu\r\n",
+    chprintf(chp, "%10s %.8lx %4lu %4lu %9s %lu\r\n",
 #if CH_USE_REGISTRY
             tp->p_name,
 #else
             "",
 #endif
-            (uint32_t)tp, (uint32_t)tp->p_ctx.r13,
+            (uint32_t)tp,
             (uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
             states[tp->p_state], (uint32_t)tp->p_time);
     tp = chRegNextThread(tp);
@@ -144,34 +151,41 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
   chprintf(chp, "\r\n");
 
   chprintf(chp, "Temperatures:\r\n");
-  for (uint8_t i = 0; i < machine.extruder.count; i++) {
+  for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
     RadTemp *cht = machine.extruder.devices[i].temp;
-    chprintf(chp, "  Extruder %d: PV %.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+    chprintf(chp, "  Extruder %d: PV %6.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
   }
   for (uint8_t i = 0; i < machine.heated_bed.count; i++) {
     RadTemp *cht = machine.heated_bed.devices[i].temp;
-    chprintf(chp, "  Bed      %d: PV %.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+    chprintf(chp, "  Bed      %d: PV %6.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
   }
   for (uint8_t i = 0; i < machine.temp_monitor.count; i++) {
     RadTemp *cht = machine.temp_monitor.devices[i];
-    chprintf(chp, "  Monitor  %d: PV %.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+    chprintf(chp, "  Monitor  %d: PV %6.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
   }
 
+  RadJointsState joints_state = stepperGetJointsState();
   chprintf(chp, "Joints:\r\n");
-  for (uint8_t i = 0; i < machine.kinematics.joint_count; i++) {
-    chSysLock();
-    RadJointState s = machine.kinematics.joints[i].state;
-    chSysUnlock();
-    chprintf(chp, "  %d Pos: %-4.2f  Limit: %c%c  Stopped: %d  Homed: %d\r\n",
+  for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
+    RadJointState* js = &joints_state.joints[i];
+    chprintf(chp, "  %d Pos: %8.2f  Limit: %c%c  Stopped: %d  Homed: %d\r\n",
         i,
-        s.pos,
-        ((s.limit_state & LIMIT_MinHit) != 0) ? '-' : (s.limit_state == LIMIT_Normal ? '*' : ' '),
-        ((s.limit_state & LIMIT_MaxHit) != 0) ? '+' : ' ',
-        s.stopped, s.homed);
+        js->pos,
+        ((js->limit_state & LIMIT_MinHit) != 0) ? '-' : (js->limit_state == LIMIT_Normal ? '*' : ' '),
+        ((js->limit_state & LIMIT_MaxHit) != 0) ? '+' : ' ',
+        js->stopped, js->homed);
   }
 
-  chprintf(chp, "Storage: %d\r\n", storageGetHostState());
-  chprintf(chp, "E Stopped:\r\n  %s\r\n", printer_estop_message ? printer_estop_message : "None");
+  PlannerVirtualPosition virtual = plannerSyncCurrentPosition();
+  chprintf(chp, "Position:\r\n");
+  for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++) {
+    chprintf(chp, "  %c: %-4.2f ",
+        (char)machine.kinematics.axes[i].name,
+        virtual.axes[i]);
+  }
+
+  chprintf(chp, "\r\nStorage: %d\r\n", storageGetHostState());
+  chprintf(chp, "E Stopped: %s\r\n", printer_estop_message ? printer_estop_message : "None");
 }
 
 static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -305,10 +319,10 @@ static void cmd_vel(BaseSequentialStream *chp, int argc, char *argv[]) {
   uint8_t k = 0;
   m.stop_on_limit_changes = TRUE;
   m.rapid = TRUE;
-  for (uint8_t i = 0; k < argc && i < machine.kinematics.joint_count; i++, k++) {
+  for (uint8_t i = 0; k < argc && i < RAD_NUMBER_JOINTS; i++, k++) {
     m.joints[i] = strtof(argv[k], NULL);
   }
-  for (uint8_t i = 0; k < argc && i < machine.extruder.count; i++, k++) {
+  for (uint8_t i = 0; k < argc && i < RAD_NUMBER_EXTRUDERS; i++, k++) {
     m.extruders[i] = strtof(argv[k], NULL);
   }
   plannerSetJointVelocity(&m);
@@ -335,7 +349,7 @@ static void cmd_reset(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  radboard.debug.software_reset();
+  debugReset();
 }
 
 static void cmd_contrast(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -357,6 +371,7 @@ static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
+#if HAL_USE_GFX
   // Get the screen size
   coord_t width = gdispGetWidth();
   coord_t height = gdispGetHeight();
@@ -365,6 +380,7 @@ static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
   gdispFillArea(width/2, height/2, width/2-10, height/2-10, White);
   gdispControl(GDISP_CONTROL_LLD_FLUSH, NULL);
   chprintf(chp, "G: %d %d", width, height);
+#endif
   /*
   tdispHome();
   tdispClear();
@@ -402,6 +418,9 @@ static const ShellCommand commands[] = {
   {"reset", cmd_reset},
   {"contrast", cmd_contrast},
   {"temp", cmd_temp},
+#if RAD_TEST
+  {"test_planner", cmd_test_planner},
+#endif
   {NULL, NULL}
 };
 
@@ -413,12 +432,14 @@ static msg_t threadHeartbeat(void *arg) {
   (void)arg;
   chRegSetThreadName("heartbeat");
 
+#if HAL_USE_USB
   palSetPinMode(radboard.debug.heartbeat_led, PAL_MODE_OUTPUT_PUSHPULL);
   while (TRUE) {
     systime_t time = USBD1.state == USB_ACTIVE ? 250 : 500;
     chThdSleepMilliseconds(time);
     palTogglePad(radboard.debug.heartbeat_led.port, radboard.debug.heartbeat_led.pin);
   }
+#endif
   return 0;
 }
 

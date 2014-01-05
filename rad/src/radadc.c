@@ -32,6 +32,7 @@
 
 #include "radadc.h"
 
+#if HAL_USE_ADC
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
@@ -128,5 +129,7 @@ void radadcInit()
   }
   chThdCreateStatic(waAdc, sizeof(waAdc), NORMALPRIO, threadAdc, NULL);
 }
-
+#else
+void radadcInit(void) {}
+#endif
 /** @} */

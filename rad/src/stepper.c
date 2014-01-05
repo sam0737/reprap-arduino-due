@@ -32,6 +32,7 @@
 
 #include "output.h"
 
+#if HAL_USE_GPT
 /*===========================================================================*/
 /* Local definition.                                                         */
 /*===========================================================================*/
@@ -39,7 +40,6 @@
 #define STEPPER_VELOCITY_STEP_FREQ     32768
 #define STEPPER_VELOCITY_PROFILE_FREQ  256
 
-Semaphore stepper_sem;
 /*===========================================================================*/
 /* Local type.                                                               */
 /*===========================================================================*/
@@ -50,10 +50,15 @@ typedef struct {
 } StepperKinematicsState;
 
 typedef struct {
+  /* @brief Direction (-1 or 1) */
   int8_t dir;
   uint8_t limit_hit:1;
+  /* @brief Output PWM: step value */
   int32_t step;
+  /* @brief Output PWM: current value */
   int32_t current;
+  /* @brief Absolute position of the channel */
+  int32_t pos;
 } StepperStepStateChannel;
 
 typedef struct {
@@ -68,13 +73,17 @@ typedef struct {
 
 static WORKING_AREA(waStepper, 256);
 
+static BinarySemaphore bsemStepperLoop;
+static Mutex mtxState;
+
 static uint8_t phase = 0;
 static bool_t estop = 0;
-static int32_t last_era = 0;
-static PlannerOutputBlock *curr_block = NULL;
-
-static StepperKinematicsState last_velocity;
+static PlannerOutputBlock active_block;
+static RadJointsState joints_state;
 static StepperStepState step_state;
+
+/* Velocity mode state variables */
+static StepperKinematicsState last_velocity;
 static uint32_t running_counter;
 
 static void stepper_enable_all(void)
@@ -86,12 +95,12 @@ static void stepper_enable_all(void)
   if (palHasSig(radboard.stepper.main_enable))
     palEnableSig(radboard.stepper.main_enable);
 
-  for (i = 0; i < machine.kinematics.joint_count; i++) {
+  for (i = 0; i < RAD_NUMBER_JOINTS; i++) {
     ch = &radboard.stepper.channels[machine.kinematics.joints[i].stepper_id];
     if (palHasSig(ch->enable))
       palEnableSig(ch->enable);
   }
-  for (i = 0; i < machine.extruder.count; i++) {
+  for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
     ch = &radboard.stepper.channels[machine.extruder.devices[i].stepper_id];
     if (palHasSig(ch->enable))
       palEnableSig(ch->enable);
@@ -108,7 +117,7 @@ static void stepper_disable_all(void)
   if (palHasSig(radboard.stepper.main_enable))
     palDisableSig(radboard.stepper.main_enable);
 
-  for (i = 0; i < machine.kinematics.joint_count; i++) {
+  for (i = 0; i < RAD_NUMBER_JOINTS; i++) {
     uint8_t ch_id = machine.kinematics.joints[i].stepper_id;
     last_velocity.joints[i] = 0;
     ch = &radboard.stepper.channels[ch_id];
@@ -116,7 +125,7 @@ static void stepper_disable_all(void)
       palDisableSig(ch->enable);
     step_state.channels[ch_id].step = 0;
   }
-  for (i = 0; i < machine.extruder.count; i++) {
+  for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
     uint8_t ch_id = machine.extruder.devices[i].stepper_id;
     last_velocity.extruders[i] = 0;
     ch = &radboard.stepper.channels[ch_id];
@@ -131,58 +140,35 @@ static void stepper_event(GPTDriver *gptp)
 {
   (void) gptp;
   chSysLockFromIsr();
-  chSemSignalI(&stepper_sem);
+  chBSemSignalI(&bsemStepperLoop);
   chSysUnlockFromIsr();
 }
 
-static void stepper_free_current_block(void)
+static void stepper_idle(void)
 {
   chSysLock();
   gptStopTimerI(radboard.stepper.gpt);
-  plannerFreeBlockI(curr_block);
-  curr_block = NULL;
+  active_block.mode = BLOCK_Idle;
   chSysUnlock();
 }
 
 static void stepper_fetch_new_block(void)
 {
-  if (curr_block == NULL) {
-    while (curr_block == NULL) {
-      /* Something is wrong if plannerFetchBlock is used. Thread locks up. */
-      chSysLock();
-      plannerFetchBlockI(curr_block);
-      chSysUnlock();
-      if (curr_block == NULL)
-        chThdSleepMilliseconds(10);
-    }
-  } else
-  {
-    PlannerOutputBlock *new_block = NULL;    chSysLock();
-    plannerPeekBlockI(new_block);
-    while (new_block != NULL && new_block->era - last_era <= 0) {
-      plannerFetchBlockI(new_block);
-      plannerFreeBlockI(new_block);
-      plannerPeekBlockI(new_block);
-    }
-
-    if (new_block == NULL || !(new_block->mode & BLOCK_Preemptive_Mask))
-    {
-      chSysUnlock();
-      return;
-    }
-
-    if (curr_block != NULL) {
-      gptStopTimerI(radboard.stepper.gpt);
-      plannerFreeBlockI(curr_block);
-    }
-    plannerFetchBlockI(curr_block);
+  bool_t new_block = FALSE;
+  while (1)
+  {    chSysLock();
+    new_block = plannerMainQueueFetchBlockI(&active_block);
+    if (active_block.mode != BLOCK_Idle)
+      break;
     chSysUnlock();
+    chThdSleepMilliseconds(10);
   }
+  chSysUnlock();
+  if (!new_block)
+    return;
 
   running_counter = 0;
-  last_era = curr_block->era;
-
-  if (curr_block->mode == BLOCK_Velocity) {
+  if (active_block.mode == BLOCK_Velocity) {
     stepper_enable_all();
     step_state.interval = radboard.stepper.gpt_config->frequency / STEPPER_VELOCITY_STEP_FREQ;
     step_state.step_max = STEPPER_VELOCITY_STEP_FREQ;
@@ -197,46 +183,47 @@ static void stepper_fetch_new_block(void)
 
 static void stepper_velocity_profile(void)
 {
+  chMtxLock(&mtxState);
   bool_t all_stopped = TRUE;
 
-  for (uint8_t i = 0; i < machine.kinematics.joint_count; i++) {
+  for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
     RadJoint *j = &machine.kinematics.joints[i];
+    RadJointState *js = &joints_state.joints[i];
     float *pv = &last_velocity.joints[i];
-    float *sv = &curr_block->joints[i].data.velocity.sv;
+    float *sv = &active_block.v.joints[i].sv;
 
     uint8_t ch_id = j->stepper_id;
     RadStepperChannel *ch = &radboard.stepper.channels[ch_id];
     StepperStepStateChannel *ss = &step_state.channels[ch_id];
 
     if (!ss->limit_hit && (
-        (curr_block->stop_on_limit_changes &&
-            j->state.limit_state != j->state.old_limit_state) ||
-        (!curr_block->stop_on_limit_changes &&
-            j->state.limit_state != LIMIT_Normal)
+        (active_block.stop_on_limit_changes &&
+            js->limit_state != js->old_limit_state) ||
+        (!active_block.stop_on_limit_changes &&
+            js->limit_state != LIMIT_Normal)
       )) {
       *sv = 0;
       ss->limit_hit = 1;
-      j->state.old_limit_state = j->state.limit_state;
-      j->state.limit_step = ch->pos;
+      js->old_limit_state = js->limit_state;
+      js->limit_step = ss->pos;
     }
 
-    if (!curr_block->joints[i].data.velocity.is_stop_signalled) {
+    if (!active_block.v.joints[i].is_stop_signalled) {
       if (*pv == 0 && *sv == 0) {
-        j->state.stopped = TRUE;
-        curr_block->joints[i].data.velocity.is_stop_signalled = TRUE;
+        js->stopped = TRUE;
+        active_block.v.joints[i].is_stop_signalled = TRUE;
       } else {
         all_stopped = FALSE;
       }
     }
 
-    j->state.pos = ch->pos / j->scale;
     if (*pv == *sv) continue;
 
     if (*pv < *sv) {
-      *pv += curr_block->joints[i].acceleration / STEPPER_VELOCITY_PROFILE_FREQ;
+      *pv += active_block.v.joints[i].acc / STEPPER_VELOCITY_PROFILE_FREQ;
       if (*pv > *sv) *pv = *sv;
     } else {
-      *pv -= curr_block->joints[i].acceleration / STEPPER_VELOCITY_PROFILE_FREQ;
+      *pv -= active_block.v.joints[i].acc / STEPPER_VELOCITY_PROFILE_FREQ;
       if (*pv < *sv) *pv = *sv;
     }
 
@@ -253,19 +240,19 @@ static void stepper_velocity_profile(void)
     }
   }
 
-  for (uint8_t i = 0; i < machine.extruder.count; i++) {
+  for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
     float *pv = &last_velocity.extruders[i];
-    float *sv = &curr_block->extruders[i].data.velocity.sv;
+    float *sv = &active_block.v.extruders[i].sv;
 
     if (*sv != 0) all_stopped = FALSE;
     if (*pv == *sv) continue;
 
     all_stopped = FALSE;
     if (*pv < *sv) {
-      *pv += curr_block->joints[i].acceleration / STEPPER_VELOCITY_PROFILE_FREQ;
+      *pv += active_block.v.joints[i].acc / STEPPER_VELOCITY_PROFILE_FREQ;
       if (*pv > *sv) *pv = *sv;
     } else {
-      *pv -= curr_block->joints[i].acceleration / STEPPER_VELOCITY_PROFILE_FREQ;
+      *pv -= active_block.v.joints[i].acc / STEPPER_VELOCITY_PROFILE_FREQ;
       if (*pv < *sv) *pv = *sv;
     }
 
@@ -286,8 +273,9 @@ static void stepper_velocity_profile(void)
   }
 
   if (all_stopped) {
-    stepper_free_current_block();
+    stepper_idle();
   }
+  chMtxUnlock();
 }
 
 static msg_t threadStepper(void *arg) {
@@ -311,44 +299,45 @@ static msg_t threadStepper(void *arg) {
       {
         stepper_fetch_new_block();
 
-        if (curr_block->mode == BLOCK_Estop_Clear) {
+        if (active_block.mode == BLOCK_Estop_Clear) {
           estop = 0;
-          stepper_free_current_block();
+          stepper_idle();
           continue;
         }
 
-        if (curr_block->mode == BLOCK_Estop || estop) {
+        if (active_block.mode == BLOCK_Estop || estop) {
           estop = 1;
           stepper_disable_all();
-          stepper_free_current_block();
+          stepper_idle();
           continue;
         }
 
         pexSysLock();
-        if (curr_block->mode == BLOCK_Velocity) {
+        if (active_block.mode == BLOCK_Velocity) {
           if (running_counter % (STEPPER_VELOCITY_STEP_FREQ / STEPPER_VELOCITY_PROFILE_FREQ) == 0) {
             stepper_velocity_profile();
           }
         }
         running_counter = (running_counter + 1) % step_state.step_max;
         pexSysUnlock();
-      } while (curr_block == NULL);
+      } while (active_block.mode == BLOCK_Idle);
     } else
     {
       // Phase Execute
+      chMtxLock(&mtxState);
       for (uint8_t i = 0; i < radboard.stepper.count; i++) {
-        int32_t *c = &step_state.channels[i].current;
-        *c += step_state.channels[i].step;
-        if (*c > 0) {
-          *c -= step_state.step_max;
+        StepperStepStateChannel *ss = &step_state.channels[i];
+        ss->current += ss->step;
+        if (ss->current > 0) {
+          ss->current -= step_state.step_max;
           palEnableSig(radboard.stepper.channels[i].step);
-          radboard.stepper.channels[i].pos +=
-              step_state.channels[i].dir;
+          ss->pos += ss->dir;
         }
       }
+      chMtxUnlock();
     }
     phase = 1 - phase;
-    chSemWait(&stepper_sem);
+    chBSemWait(&bsemStepperLoop);
   }
   return 0;
 }
@@ -380,20 +369,76 @@ void stepperInit(void)
   }
 
   // Start stepper loop
-  chSemInit(&stepper_sem, 0);
+  chBSemInit(&bsemStepperLoop, 0);
+  chMtxInit(&mtxState);
   chThdCreateStatic(waStepper, sizeof(waStepper), NORMALPRIO + 32, threadStepper, NULL);
 
   radboard.stepper.gpt_config->callback = stepper_event;
   gptStart(radboard.stepper.gpt, radboard.stepper.gpt_config);
 }
 
-void stepperSetHome(uint8_t joint, int32_t home_step, float home_pos)
+void stepperSetHome(uint8_t joint_id, int32_t home_step, float home_pos)
 {
-  RadJoint* j = &machine.kinematics.joints[joint];
-  RadStepperChannel* ch = &radboard.stepper.channels[j->stepper_id];
-  chSysLock();
-  ch->pos = (ch->pos - home_step) + home_pos * j->scale;
-  chSysUnlock();
+  RadJoint* j = &machine.kinematics.joints[joint_id];
+  uint8_t ch_id = j->stepper_id;
+  StepperStepStateChannel *ss = &step_state.channels[ch_id];
+  ss->pos = (ss->pos - home_step) + home_pos * j->scale;
 }
+
+RadJointsState stepperGetJointsState()
+{
+  chMtxLock(&mtxState);
+  for (uint8_t i = 0; i <RAD_NUMBER_JOINTS; i++) {
+    RadJoint *j = &machine.kinematics.joints[i];
+    RadJointState *js = &joints_state.joints[i];
+    uint8_t ch_id = j->stepper_id;
+    StepperStepStateChannel *ss = &step_state.channels[ch_id];
+    js->pos = ss->pos / j->scale;
+  }
+  RadJointsState s = joints_state;
+  chMtxUnlock();
+  return s;
+}
+
+void stepperSetLimitState(uint8_t joint_id, RadLimitState state)
+{
+  chMtxLock(&mtxState);
+  joints_state.joints[joint_id].limit_state = state;
+  chMtxUnlock();
+}
+
+void stepperResetOldLimitState(uint8_t joint_id)
+{
+  chMtxLock(&mtxState);
+  joints_state.joints[joint_id].old_limit_state = LIMIT_Normal;
+  chMtxUnlock();
+}
+
+void stepperClearStopped(uint8_t joint_id)
+{
+  chMtxLock(&mtxState);
+  joints_state.joints[joint_id].stopped = FALSE;
+  chMtxUnlock();
+}
+
+void stepperSetHomed(uint8_t joint_id)
+{
+  chMtxLock(&mtxState);
+  joints_state.joints[joint_id].homed = TRUE;
+  chMtxUnlock();
+}
+#else
+
+void stepperInit(void){}
+void stepperSetHome(uint8_t joint_id, int32_t home_step, float home_pos){}
+RadJointsState stepperGetJointsState(void)
+{
+  RadJointsState s ; return s;
+}
+void stepperSetLimitState(uint8_t joint_id, RadLimitState limit){}
+void stepperResetOldLimitState(uint8_t joint_id){}
+void stepperClearStopped(uint8_t joint_id){}
+void stepperSetHomed(uint8_t joint_id){}
+#endif
 
 /** @} */

@@ -5,11 +5,16 @@
  *              http://ugfx.org/license.html
  */
 
-static volatile bool_t tx_idle = TRUE;
+#include "hal.h"
+#include "ch.h"
+
+static Semaphore sem;
 
 static void txend_cb(UARTDriver *uartp) {
   (void) uartp;
-  tx_idle = TRUE;
+  chSysLockFromIsr();
+  chSemSignalI(&sem);
+  chSysUnlockFromIsr();
 }
 
 static UARTConfig lcd_uart_cfg = {
@@ -47,6 +52,8 @@ static inline void init_board(void) {
   palSetPad(PORT_CS, PIN_CS);
   palSetPad(PORT_RST, PIN_RST);
   palClearPad(PORT_A0, PIN_A0);
+
+  chSemInit(&sem, 1);
 }
 
 /**
@@ -96,8 +103,7 @@ static uint8_t cmd_budfer;
 static inline void write_cmd(uint8_t cmd) {
   (void) cmd;
 
-  while (!tx_idle) chThdSleepMicroseconds(10);
-  tx_idle = FALSE;
+  chSemWait(&sem);
 
   cmd_budfer = cmd;
   palClearPad(PORT_A0, PIN_A0);
@@ -113,8 +119,7 @@ static inline void write_data(uint8_t* data, uint16_t length) {
   (void) data;
   (void) length;
 
-  while (!tx_idle) chThdSleepMicroseconds(10);
-  tx_idle = FALSE;
+  chSemWait(&sem);
 
   palSetPad(PORT_A0, PIN_A0);
   uartStartSend(&PORT, length, data);

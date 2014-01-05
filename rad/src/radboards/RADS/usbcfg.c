@@ -29,7 +29,9 @@
 #include "ch.h"
 #include "hal.h"
 #include "usb_cdc.h"
+#if HAL_USE_MSD
 #include "usb_msd.h"
+#endif
 #include "usbcfg.h"
 
 #include "mcuconf.h"
@@ -79,7 +81,12 @@ const USB_Descriptor_Configuration_t ConfigurationDescriptor =
         .Header                 = {.Size = sizeof(USB_Descriptor_Configuration_Header_t), .Type = DTYPE_Configuration},
 
         .TotalConfigurationSize = sizeof(USB_Descriptor_Configuration_t),
-        .TotalInterfaces        = 5,
+        .TotalInterfaces        =
+            4
+#if HAL_USE_MSD
+            + 1
+#endif
+            ,
 
         .ConfigurationNumber    = 1,
         .ConfigurationStrIndex  = NO_DESCRIPTOR,
@@ -291,6 +298,7 @@ const USB_Descriptor_Configuration_t ConfigurationDescriptor =
         .PollingIntervalMS      = 0x05
     },
 
+#if HAL_USE_MSD
     .MS_Interface =
     {
         .Header                 = {.Size = sizeof(USB_Descriptor_Interface_t), .Type = DTYPE_Interface},
@@ -326,6 +334,7 @@ const USB_Descriptor_Configuration_t ConfigurationDescriptor =
         .EndpointSize           = MASS_STORAGE_IO_EPSIZE,
         .PollingIntervalMS      = 0x05
     }
+#endif
 };
 
 // U.S. English language identifier.
@@ -514,6 +523,7 @@ static const USBEndpointConfig cdc2_ep_out_config = {
   0
 };
 
+#if HAL_USE_MSD
 // -- MS --
 
 /**
@@ -549,6 +559,7 @@ static const USBEndpointConfig ms_ep_in_config = {
   // Bank
   1
 };
+#endif
 
 /*
  * Handles the USB driver global events.
@@ -581,19 +592,25 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
       if (ep == CDC2_RX_EPADDR)
         usbInitEndpointI(usbp, CDC2_RX_EPADDR, &cdc2_ep_out_config);
 
+#if HAL_USE_MSD
       if (ep == MASS_STORAGE_IN_EPADDR)
         usbInitEndpointI(usbp, MASS_STORAGE_IN_EPADDR, &ms_ep_in_config);
       if (ep == MASS_STORAGE_OUT_EPADDR)
         usbInitEndpointI(usbp, MASS_STORAGE_OUT_EPADDR, &ms_ep_out_config);
+#endif
     }
 
     /* Resetting the state of the CDC subsystem.*/
     sduConfigureHookI(usbp);
+#if HAL_USE_MSD
     msdConfigureHookI(usbp);
+#endif
     chSysUnlockFromIsr();
     return;
   case USB_EVENT_SUSPEND:
+#if HAL_USE_MSD
     msdSuspendHookI(usbp);
+#endif
     return;
   case USB_EVENT_WAKEUP:
     return;
@@ -631,6 +648,7 @@ SerialUSBConfig serusb_shellcfg = {
     .controllinestate_cb = NULL
 };
 
+#if HAL_USE_MSD
 USBMassStorageConfig ums_cfg = {
     &USBD1, 4,
     MASS_STORAGE_OUT_EPADDR, MASS_STORAGE_IN_EPADDR,
@@ -639,19 +657,24 @@ USBMassStorageConfig ums_cfg = {
     "RADS",
     "0.1"
 };
+#endif
 
 static bool_t usbRequestsHook(USBDriver *usbp)
 {
   // Composite Interface Number
-  return (usbp->setup[4] == 4) ?
-      msdRequestsHook(usbp) :
-      sduRequestsHook(usbp);
+#if HAL_USE_MSD
+  if (usbp->setup[4] == 4)
+    return msdRequestsHook(usbp);
+#endif
+  return sduRequestsHook(usbp);
 }
 
 /* Device */
 SerialUSBDriver SDU_SHELL;
 SerialUSBDriver SDU_DATA;
 
+#if HAL_USE_MSD
 USBMassStorageDriver UMSD;
+#endif
 
 /** @} */

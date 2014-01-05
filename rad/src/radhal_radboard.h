@@ -30,8 +30,9 @@
 #define _RADHAL_RADBOARD_H_
 
 #include "hal.h"
-#include "usb_msd.h"
 #include "chevents.h"
+
+#include "radboard.h"
 
 /*===========================================================================*/
 /* External declarations.                                                    */
@@ -44,7 +45,7 @@ typedef struct {
   /**
    * @brief   The PIO port
    */
-  Pio         *port;
+  ioportid_t  port;
 
   /**
    * @brief   The pin number
@@ -58,8 +59,10 @@ typedef struct {
 } signal_t;
 
 typedef struct {
+#if HAL_USE_PWM
   PWMDriver       *pwm;
   pwmchannel_t    channel;
+#endif
   signal_t        signal;
 } RadOutputChannel;
 
@@ -74,12 +77,14 @@ typedef struct {
   pin_t           pin;
 } RadEndstopChannel;
 
+#if HAL_USE_ADC
 typedef struct {
   ADCDriver       *adc;
   uint8_t         resolution;
   ADCConversionGroup  group_base;
   adcsample_t     *samples;
 } RadAdcChannel;
+#endif
 
 typedef struct {
   /**
@@ -102,8 +107,10 @@ typedef struct {
    * Human machine interface
    */
   struct {
+#if HAL_USE_PWM
     PWMDriver       *beeper_pwm;
     pwmchannel_t    beeper_channel;
+#endif
 
     /**
      * @brief Host communication channel
@@ -111,7 +118,9 @@ typedef struct {
     BaseAsynchronousChannel  *comm_channel;
 
     BaseBlockDevice          *storage_device;
+#if HAL_USE_MSD
     USBMassStorageDriver     *usb_msd;
+#endif
   } hmi;
 
   /*******************************************
@@ -128,8 +137,10 @@ typedef struct {
   struct {
     uint8_t                   count;
     signal_t                  main_enable;
+#if HAL_USE_GPT
     GPTDriver                 *gpt;
     GPTConfig                 *gpt_config;
+#endif
     RadStepperChannel         *channels;
   } stepper;
 
@@ -141,6 +152,7 @@ typedef struct {
     RadEndstopChannel         *channels;
   } endstop;
 
+#if HAL_USE_ADC
   /*******************************************
    * @brief ADC Input
    */
@@ -148,6 +160,7 @@ typedef struct {
     uint8_t                   count;
     RadAdcChannel             *channels;
   } adc;
+#endif
 
   /*******************************************
    * @brief Debug
@@ -176,8 +189,6 @@ typedef struct {
  * @brief Board configuration
  */
 extern const radboard_t radboard;
-
-#include "radboard.h"
 
 #ifndef SYSTEM_CLOCK
 #error "Please define SYSTEM_CLOCK in radboard.h - System clock in Hz"

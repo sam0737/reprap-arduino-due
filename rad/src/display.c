@@ -28,10 +28,13 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "gfx.h"
 #include "rad.h"
 
 #include "display.h"
+
+#if HAL_USE_GFX
+#include "gfx.h"
+#endif
 
 /*===========================================================================*/
 /* Local variables and types.                                                */

@@ -1,32 +1,25 @@
 /*
-    RAD - Copyright (C) 2013 Sam Wong
+    ChibiOS/RT - Copyright (C) 2006-2013 Giovanni Di Sirio
 
-    This file is part of RAD project.
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-    RAD is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
+        http://www.apache.org/licenses/LICENSE-2.0
 
-    RAD is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-                                      ---
-
-    A special exception to the GPL can be applied should you wish to distribute
-    a combined work that includes RAD, without being obliged to provide
-    the source code for any proprietary components. See the file exception.txt
-    for full details of how and when the exception can be applied.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 */
 
 /**
- * @file    RADS/halconf.h
+ * @file    templates/halconf.h
  * @brief   HAL configuration header.
+ * @details HAL configuration file, this file allows to enable or disable the
+ *          various device drivers from your application. You may also use
+ *          this file in order to override the device drivers default settings.
  *
  * @addtogroup HAL_CONF
  * @{
@@ -35,9 +28,7 @@
 #ifndef _HALCONF_H_
 #define _HALCONF_H_
 
-#include "mcuconf.h"
-
-#define HAL_USE_USB                 TRUE
+/*#include "mcuconf.h"*/
 
 /**
  * @brief   Enables the TM subsystem.
@@ -57,7 +48,7 @@
  * @brief   Enables the ADC subsystem.
  */
 #if !defined(HAL_USE_ADC) || defined(__DOXYGEN__)
-#define HAL_USE_ADC                 TRUE
+#define HAL_USE_ADC                 FALSE
 #endif
 
 /**
@@ -78,7 +69,7 @@
  * @brief   Enables the GPT subsystem.
  */
 #if !defined(HAL_USE_GPT) || defined(__DOXYGEN__)
-#define HAL_USE_GPT                 TRUE
+#define HAL_USE_GPT                 FALSE
 #endif
 
 /**
@@ -106,14 +97,14 @@
  * @brief   Enables the MMC_SPI subsystem.
  */
 #if !defined(HAL_USE_MMC_SPI) || defined(__DOXYGEN__)
-#define HAL_USE_MMC_SPI             TRUE
+#define HAL_USE_MMC_SPI             FALSE
 #endif
 
 /**
  * @brief   Enables the PWM subsystem.
  */
 #if !defined(HAL_USE_PWM) || defined(__DOXYGEN__)
-#define HAL_USE_PWM                 TRUE
+#define HAL_USE_PWM                 FALSE
 #endif
 
 /**
@@ -136,40 +127,35 @@
 #if !defined(HAL_USE_SERIAL) || defined(__DOXYGEN__)
 #define HAL_USE_SERIAL              TRUE
 #endif
+#define USE_WIN32_SERIAL1           TRUE
+#define USE_WIN32_SERIAL2           TRUE
 
 /**
  * @brief   Enables the SERIAL over USB subsystem.
  */
 #if !defined(HAL_USE_SERIAL_USB) || defined(__DOXYGEN__)
-#define HAL_USE_SERIAL_USB          TRUE
-#endif
-
-/**
- * @brief   Enables the SERIAL over USB subsystem.
- */
-#if !defined(HAL_USE_MASS_STORAGE_USB) || defined(__DOXYGEN__)
-#define HAL_USE_MASS_STORAGE_USB    TRUE
+#define HAL_USE_SERIAL_USB          FALSE
 #endif
 
 /**
  * @brief   Enables the SPI subsystem.
  */
 #if !defined(HAL_USE_SPI) || defined(__DOXYGEN__)
-#define HAL_USE_SPI                 TRUE
+#define HAL_USE_SPI                 FALSE
 #endif
 
 /**
  * @brief   Enables the UART subsystem.
  */
 #if !defined(HAL_USE_UART) || defined(__DOXYGEN__)
-#define HAL_USE_UART                TRUE
+#define HAL_USE_UART                FALSE
 #endif
 
 /**
  * @brief   Enables the USB subsystem.
  */
 #if !defined(HAL_USE_USB) || defined(__DOXYGEN__)
-#define HAL_USE_USB                 TRUE
+#define HAL_USE_USB                 FALSE
 #endif
 
 /*===========================================================================*/
@@ -181,7 +167,7 @@
  * @note    Disabling this option saves both code and data space.
  */
 #if !defined(ADC_USE_WAIT) || defined(__DOXYGEN__)
-#define ADC_USE_WAIT                FALSE
+#define ADC_USE_WAIT                TRUE
 #endif
 
 /**
@@ -189,7 +175,7 @@
  * @note    Disabling this option saves both code and data space.
  */
 #if !defined(ADC_USE_MUTUAL_EXCLUSION) || defined(__DOXYGEN__)
-#define ADC_USE_MUTUAL_EXCLUSION    FALSE
+#define ADC_USE_MUTUAL_EXCLUSION    TRUE
 #endif
 
 /*===========================================================================*/
@@ -200,7 +186,7 @@
  * @brief   Sleep mode related APIs inclusion switch.
  */
 #if !defined(CAN_USE_SLEEP_MODE) || defined(__DOXYGEN__)
-#define CAN_USE_SLEEP_MODE          FALSE
+#define CAN_USE_SLEEP_MODE          TRUE
 #endif
 
 /*===========================================================================*/
@@ -211,7 +197,7 @@
  * @brief   Enables the mutual exclusion APIs on the I2C bus.
  */
 #if !defined(I2C_USE_MUTUAL_EXCLUSION) || defined(__DOXYGEN__)
-#define I2C_USE_MUTUAL_EXCLUSION    FALSE
+#define I2C_USE_MUTUAL_EXCLUSION    TRUE
 #endif
 
 /*===========================================================================*/
@@ -221,20 +207,20 @@
 /**
  * @brief   Enables an event sources for incoming packets.
  */
+#if !defined(MAC_USE_ZERO_COPY) || defined(__DOXYGEN__)
+#define MAC_USE_ZERO_COPY           FALSE
+#endif
+
+/**
+ * @brief   Enables an event sources for incoming packets.
+ */
 #if !defined(MAC_USE_EVENTS) || defined(__DOXYGEN__)
-#define MAC_USE_EVENTS              FALSE
+#define MAC_USE_EVENTS              TRUE
 #endif
 
 /*===========================================================================*/
 /* MMC_SPI driver related settings.                                          */
 /*===========================================================================*/
-
-/**
- * @brief   Block size for MMC transfers.
- */
-#if !defined(MMC_SECTOR_SIZE) || defined(__DOXYGEN__)
-#define MMC_SECTOR_SIZE             512
-#endif
 
 /**
  * @brief   Delays insertions.
@@ -245,33 +231,7 @@
  *          use a DMA channel and heavily loads the CPU.
  */
 #if !defined(MMC_NICE_WAITING) || defined(__DOXYGEN__)
-#define MMC_NICE_WAITING            FALSE
-#endif
-
-/**
- * @brief   Number of positive insertion queries before generating the
- *          insertion event.
- */
-#if !defined(MMC_POLLING_INTERVAL) || defined(__DOXYGEN__)
-#define MMC_POLLING_INTERVAL        10
-#endif
-
-/**
- * @brief   Interval, in milliseconds, between insertion queries.
- */
-#if !defined(MMC_POLLING_DELAY) || defined(__DOXYGEN__)
-#define MMC_POLLING_DELAY           10
-#endif
-
-/**
- * @brief   Uses the SPI polled API for small data transfers.
- * @details Polled transfers usually improve performance because it
- *          saves two context switches and interrupt servicing. Note
- *          that this option has no effect on large transfers which
- *          are always performed using DMAs/IRQs.
- */
-#if !defined(MMC_USE_SPI_POLLING) || defined(__DOXYGEN__)
-#define MMC_USE_SPI_POLLING         TRUE
+#define MMC_NICE_WAITING            TRUE
 #endif
 
 /*===========================================================================*/
@@ -315,7 +275,7 @@
  *          default configuration.
  */
 #if !defined(SERIAL_DEFAULT_BITRATE) || defined(__DOXYGEN__)
-#define SERIAL_DEFAULT_BITRATE      256000
+#define SERIAL_DEFAULT_BITRATE      38400
 #endif
 
 /**
@@ -328,25 +288,6 @@
 #if !defined(SERIAL_BUFFERS_SIZE) || defined(__DOXYGEN__)
 #define SERIAL_BUFFERS_SIZE         4096
 #endif
-
-/*===========================================================================*/
-/**
- * @name SERIAL_USB driver related setting
- * @{
- */
-/*===========================================================================*/
-
-/**
- * @brief   Serial over USB buffers size.
- * @details Configuration parameter, the buffer size must be a multiple of
- *          the USB data endpoint maximum packet size.
- * @note    The default is 64 bytes for both the transmission and receive
- *          buffers.
- */
-#if !defined(SERIAL_USB_BUFFERS_SIZE) || defined(__DOXYGEN__)
-#define SERIAL_USB_BUFFERS_SIZE     1024
-#endif
-/** @} */
 
 /*===========================================================================*/
 /* SPI driver related settings.                                              */

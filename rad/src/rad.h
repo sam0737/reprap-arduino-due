@@ -41,6 +41,7 @@
 #include "stepper.h"
 #include "endstop.h"
 #include "planner.h"
+#include "planner_queue.h"
 #include "radadc.h"
 #include "raddebug.h"
 #include "radpex.h"

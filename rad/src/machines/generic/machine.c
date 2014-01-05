@@ -50,34 +50,34 @@ machine_t machine =
         .forward_kinematics = kForward,
         .inverse_kinematics = kInverse,
         .max_traj_acceleration = 3000,
-        .axis_count = RAD_NUMBER_AXES,
         .axes = (RadAxis[]) {
           { .name = AXIS_X, .type = AXIS_TYPE_Linear, .min_limit = -15, .max_limit = 175 },
           { .name = AXIS_Y, .type = AXIS_TYPE_Linear, .min_limit = 0, .max_limit = 255 },
           { .name = AXIS_Z, .type = AXIS_TYPE_Linear, .min_limit = 0, .max_limit = 103.5 },
         },
-        .joint_count = RAD_NUMBER_JOINTS,
         .joints = (RadJoint[]) {
           {
             .stepper_id = 0, .min_endstop_id = 0, .max_endstop_id = -1,
             .min_limit = -15, .max_limit = 175,
-            .max_velocity = 400, .max_acceleration = 800, .scale = 100, //45.7142,
+            .max_speed = 100, .max_acceleration = 100, .scale = 100, //45.7142,
+            // .max_speed = 400, .max_acceleration = 800, .scale = 100, //45.7142,
             .home_search_vel = -75, .home_latch_vel = 2,
-            .home_sequence = 1
+            .home_sequence = 1, .home_axis_name = AXIS_X
           },
           {
             .stepper_id = 1, .min_endstop_id = 1, .max_endstop_id = -1,
             .min_limit = 0, .max_limit = 255,
-            .max_velocity = 400, .max_acceleration = 2500, .scale = 100, //45.7142,
+            .max_speed = 100, .max_acceleration = 100, .scale = 100, //45.7142,
+            // .max_speed = 400, .max_acceleration = 2500, .scale = 100, //45.7142,
             .home_search_vel = -75, .home_latch_vel = 2,
-            .home_sequence = 1
+            .home_sequence = 1, .home_axis_name = AXIS_Y
           },
           {
             .stepper_id = 2, .min_endstop_id = -1, .max_endstop_id = 2,
             .min_limit = 0, .max_limit = 103.5,
-            .max_velocity = 20, .max_acceleration = 100, .scale = 100, //45.7142,
+            .max_speed = 20, .max_acceleration = 100, .scale = 100, //45.7142,
             .home_search_vel = 20, .home_latch_vel = 2,
-            .home_sequence = 0
+            .home_sequence = 0, .home_axis_name = AXIS_Z
           }
         },
     },
@@ -94,23 +94,22 @@ machine_t machine =
         .devices = temps,
     },
     .extruder = {
-        .count = RAD_NUMBER_EXTRUDERS,
         .devices = (RadExtruder[]) {
           {
             .temp = &temps[0],
             .stepper_id = 3,
-            .max_velocity = 50,
+            .max_speed = 50,
             .max_acceleration = 1000,
-            .max_retract_velocity = 50,
+            .max_retract_speed = 50,
             .max_retract_acceleration = 1000,
             .scale = 100
           },
           {
             .temp = &temps[1],
             .stepper_id = 4,
-            .max_velocity = 50,
+            .max_speed = 50,
             .max_acceleration = 1000,
-            .max_retract_velocity = 50,
+            .max_retract_speed = 50,
             .max_retract_acceleration = 1000,
             .scale = 215
           },

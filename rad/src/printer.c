@@ -62,7 +62,10 @@ static WORKING_AREA(waPrinter, 256);
 /* Local functions.                                                          */
 /*===========================================================================*/
 
+static void printerSyncCommanded(void);
+
 #include "command/gcode_decode.h"
+#include "command/move.h"
 #include "command/homing.h"
 
 static PrinterCommand* printer_new_command(void)
@@ -78,19 +81,62 @@ static void printer_free_current_command(void)
   chSemSignalI(&command_pool_sem);
 }
 
+static void printer_normalize_command(void)
+{
+  bool_t in_comment = FALSE;
+  for (uint8_t i = 0; i < COMMAND_LENGTH; i++)
+  {
+    char c = curr_command->payload[i];
+    if (c == '\0') return;
+    if (!in_comment)
+    {
+      if (c == '(') {
+          curr_command->payload[i] = ' ';
+          in_comment = TRUE;
+      } else if (c == ';') {
+        curr_command->payload[i] = '\0';
+        return;
+      }
+    } else if (c == ')') {
+      curr_command->payload[i] = ' ';
+      in_comment = FALSE;
+    }
+  }
+}
+
 static void printer_dispatch(void)
 {
   if (code_seen('G'))
   {
     switch ((int)code_value()){
-    case 29:
-      printerEstopClear();
-      commandHoming(0xFFFF);
+    case 0:
+    case 1:
+      if (printerIsEstopped()) break;
+      commandMove();
       break;
+    /* Dwell */
+    case 4:
+      if (code_seen('P'))
+        chThdSleepMilliseconds((int)code_value());
+      break;
+    /* Move to origin */
+    case 28:
+      printerEstopClear();
+      commandHoming();
+      break;
+    /* Set Position */
+    case 92:
+      commandSetPosition();
     }
   } else if (code_seen('M'))
   {
     switch ((int)code_value()){
+    case 80:
+      powerPsuOn();
+      break;
+    case 81:
+      powerPsuOff();
+      break;
     case 999:
       printerEstopClear();
       break;
@@ -124,7 +170,7 @@ static msg_t threadPrinterFetchSerial(void *arg) {
       ptr = buf;
 
       /*
-       * Checksum, Send ok
+       * TODO Checksum, line number, Send ok
        */
     }
 
@@ -156,7 +202,7 @@ static msg_t threadPrinter(void *arg) {
       chThdSleepMilliseconds(100);
       continue;
     }
-
+    printer_normalize_command();
     printer_dispatch();
     printer_free_current_command();
   }

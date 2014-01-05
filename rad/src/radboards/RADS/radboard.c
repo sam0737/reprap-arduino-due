@@ -170,8 +170,10 @@ void radboardInit(void)
   mmcObjectInit(&MMCD1);
   mmcStart(&MMCD1, &mmc_cfg);
 
+#if HAL_USE_MSD
   msdObjectInit(&UMSD);
   msdStart(&UMSD, &ums_cfg);
+#endif
 
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
@@ -195,7 +197,9 @@ const radboard_t radboard =
         .beeper_channel = 0,
         .comm_channel = (BaseAsynchronousChannel*) &SDU_DATA,
         .storage_device = (BaseBlockDevice*) &MMCD1,
+#if HAL_USE_MSD
         .usb_msd = &UMSD,
+#endif
     },
     .output = {
         .count = 5,

@@ -35,17 +35,15 @@
 #ifndef _RADBOARD_H_
 #define _RADBOARD_H_
 
-#if HAL_USE_MSD
-#include "usb_msd.h"
-#endif
-#include "usbcfg.h"
-
-extern MMCDriver MMCD1;
-
 /**
  * @brief Board identifier.
  */
-#define RADBOARD_NAME "RADS"
+#define RADBOARD_NAME "Test"
+
+/**
+ * @brief Simulation test mode
+ */
+#define RAD_TEST     TRUE
 
 /**
  * @brief System clock in Hz
@@ -65,7 +63,7 @@ extern MMCDriver MMCD1;
 /**
  * @brief Define number of stepper output
  */
-#define RAD_NUMBER_STEPPERS 5
+#define RAD_NUMBER_STEPPERS   5
 
 /**
  * @brief Define board support software display contrast control
@@ -80,6 +78,6 @@ extern MMCDriver MMCD1;
 /**
  * @brief Define a macro for printf-style debug suitable on this platform
  */
-#define RAD_DEBUG_PRINTF(...) do {} while (0)
+#define RAD_DEBUG_PRINTF(...) printf(__VA_ARGS__)
 
 #endif /* _RADBOARD_H_ */

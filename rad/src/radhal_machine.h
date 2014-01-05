@@ -32,16 +32,18 @@
 #include "hal.h"
 #include "chevents.h"
 
+#include "machine.h"
 #include "radadc_converter.h"
 #include "kinematics.h"
+#include "planner.h"
 
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
 
 typedef enum {
-  AXIS_None = 0,
-  AXIS_X = 1, AXIS_Y = 2, AXIS_Z = 3,
+  AXIS_None = '_',
+  AXIS_X = 'X', AXIS_Y = 'Y', AXIS_Z = 'Z',
   /* TODO: Support for angular axis
     AXIS_U, AXIS_V, AXIS_W,
     AXIS_A, AXIS_B, AXIS_C
@@ -64,23 +66,14 @@ typedef enum {
   KINEMATICS_Linear, KINEMATICS_Custom
 } RadKinematicsType;
 
-typedef void (*forward_kinematics_t)(float *joints, float *axes);
-typedef void (*inverse_kinematics_t)(float *axes, float *joints);
+typedef void (*forward_kinematics_t)(const PlannerPhysicalPosition*, PlannerVirtualPosition*);
+typedef void (*inverse_kinematics_t)(const PlannerVirtualPosition*, PlannerPhysicalPosition*);
 
 typedef enum {
   LIMIT_Normal = 0,
   LIMIT_MinHit = 1,
   LIMIT_MaxHit = 2
 } RadLimitState;
-
-typedef struct {
-  bool_t              stopped;
-  bool_t              homed;
-  RadLimitState       limit_state;
-  RadLimitState       old_limit_state;
-  int32_t             limit_step;
-  float               pos;
-} RadJointState;
 
 typedef struct {
   uint8_t             stepper_id;
@@ -90,15 +83,22 @@ typedef struct {
   float               min_limit;
   float               max_limit;
 
-  float               max_velocity;
+  float               max_speed;
   float               max_acceleration;
   float               scale;
 
   float               home_search_vel;
   float               home_latch_vel;
-  uint8_t             home_sequence;
-
-  volatile RadJointState state;
+  /*
+   * @brief Homing sequence. Starts with 0, must be < number of joints
+   *        If this is -1, the joint is always home when commended
+   *        even if user has not specified so - useful in Delta.
+   */
+  int8_t              home_sequence;
+  /*
+   * @brief The G28 homing axis code that this joints represents.
+   */
+  RadAxisName         home_axis_name;
 } RadJoint;
 
 typedef struct {
@@ -121,11 +121,10 @@ typedef struct {
 
 typedef struct {
   RadTemp             *temp;
-
   uint8_t             stepper_id;
-  float               max_velocity;
+  float               max_speed;
   float               max_acceleration;
-  float               max_retract_velocity;
+  float               max_retract_speed;
   float               max_retract_acceleration;
   float               scale;
   volatile struct {
@@ -160,9 +159,7 @@ typedef struct {
     forward_kinematics_t  forward_kinematics;
     inverse_kinematics_t  inverse_kinematics;
     float             max_traj_acceleration;
-    uint8_t           axis_count;
     RadAxis           *axes;
-    uint8_t           joint_count;
     RadJoint          *joints;
   } kinematics;
   struct {
@@ -174,7 +171,6 @@ typedef struct {
     RadTemp           *devices;
   } temperature;
   struct {
-    uint8_t           count;
     RadExtruder       *devices;
   } extruder;
   struct {
@@ -197,8 +193,6 @@ typedef struct {
  */
 extern machine_t machine;
 
-#include "machine.h"
-
 #ifndef RAD_NUMBER_AXES
 #error "Please define RAD_NUMBER_AXES in machine.h"
 #endif
@@ -209,6 +203,14 @@ extern machine_t machine;
 
 #ifndef RAD_NUMBER_EXTRUDERS
 #error "Please define RAD_NUMBER_EXTRUDERS in machine.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+  char machineGetAxisName(RadAxisName name);
+#ifdef __cplusplus
+}
 #endif
 
 #endif  /* _RADHAL_MACHINE_H_ */

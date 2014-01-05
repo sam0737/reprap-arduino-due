@@ -31,7 +31,7 @@
 
 #ifndef L_HOMING_TRAVEL_LIMIT
 #define L_HOMING_TRAVEL_LIMIT \
-  "Joint travelled too long without changing limit switch state"
+  "Joint traveled too long without changing limit switch state"
 #endif
 
 #ifndef L_HOMING_INCORRECT_LIMIT_HIT

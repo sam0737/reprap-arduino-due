@@ -32,6 +32,7 @@
 
 #include "output.h"
 
+#if HAL_USE_PWM
 /*===========================================================================*/
 /* Exported functions.                                                       */
 /*===========================================================================*/
@@ -60,5 +61,8 @@ void outputSet(RadOutputChannel *ch, uint8_t duty)
   else
     pwmDisableChannel(ch->pwm, ch->channel);
 }
-
+#else
+void outputInit(void){}
+void outputSet(RadOutputChannel *ch, uint8_t duty){}
+#endif
 /** @} */

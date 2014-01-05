@@ -32,6 +32,7 @@
 
 #include "endstop.h"
 
+#ifdef PAL_MODE_INPUT_PULLUP
 
 /*===========================================================================*/
 /* Local variables and types.                                                */
@@ -46,7 +47,7 @@ static WORKING_AREA(waEndstop, 128);
 static void checkEndstop(void)
 {
   chSysLock();
-  for (uint8_t i = 0; i < machine.kinematics.joint_count; i++)
+  for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++)
   {
     int8_t id;
     uint8_t state = LIMIT_Normal;
@@ -61,7 +62,7 @@ static void checkEndstop(void)
         palReadPin(radboard.endstop.channels[id].pin, machine.endstop_config.configs[id].active_low)) {
       state |= LIMIT_MaxHit;
     }
-    joint->state.limit_state = state;
+    stepperSetLimitState(i, state);
   }
   chSysUnlock();
 }
@@ -91,4 +92,7 @@ void endstopInit(void)
   chThdCreateStatic(waEndstop, sizeof(waEndstop), NORMALPRIO + 24, threadEndstop, NULL);
 }
 
+#else
+void endstopInit(void){}
+#endif
 /** @} */

@@ -1,0 +1,4 @@
+; test_planner script1.txt
+G92 X0 Y0
+(; hm?) G1 X30 Y40 F1000000
+G1 X70 Y70 F1000000
