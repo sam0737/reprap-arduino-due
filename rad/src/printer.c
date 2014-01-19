@@ -29,6 +29,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "rad.h"
+#include "chprintf.h"
 
 #include "printer.h"
 
@@ -56,7 +57,7 @@ static PrinterCommand *curr_command;
 char* printer_estop_message = NULL;
 
 static WORKING_AREA(waPrinterFetchSerial, 128);
-static WORKING_AREA(waPrinter, 256);
+static WORKING_AREA(waPrinter, 512);
 
 /*===========================================================================*/
 /* Local functions.                                                          */
@@ -97,9 +98,10 @@ static void printer_normalize_command(void)
         curr_command->payload[i] = '\0';
         return;
       }
-    } else if (c == ')') {
+    } else {
       curr_command->payload[i] = ' ';
-      in_comment = FALSE;
+      if (c == ')')
+        in_comment = FALSE;
     }
   }
 }
@@ -150,8 +152,9 @@ static msg_t threadPrinterFetchSerial(void *arg) {
 
   static char* ptr;
   static char buf[COMMAND_LENGTH];
-  static bool_t comment_mode;
+  static char in_comment = 0;
 
+  ptr = buf;
   while (1)
   {
     msg_t c = chSequentialStreamGet(radboard.hmi.comm_channel);
@@ -161,26 +164,41 @@ static msg_t threadPrinterFetchSerial(void *arg) {
       continue;
     }
     if (c == '\n' || c == '\r') {
-      comment_mode = FALSE;
+      in_comment = 0;
 
-      buf[COMMAND_LENGTH - 1] = 0;
-      PrinterCommand* cmd = printer_new_command();
-      strcpy(cmd->payload, buf);
-      chMBPost(&command_mbox, (msg_t) cmd, TIME_INFINITE);
+      if (ptr == buf) continue;
+
+      *ptr = '\0';
+      // chprintf((BaseSequentialStream*)radboard.hmi.comm_channel, "ok %d\n", strlen(buf));
+      printerAddLine(buf);
       ptr = buf;
+      continue;
 
       /*
        * TODO Checksum, line number, Send ok
        */
     }
 
-    if (comment_mode) continue;
-    if (c == ';' || (ptr - buf) >= COMMAND_LENGTH) {
-      comment_mode = TRUE;
+    if ((ptr - buf) >= COMMAND_LENGTH)
+      continue;
+
+    if (in_comment == 0)
+    {
+      if (c == '(') {
+          in_comment = 1;
+          continue;
+      } else if (c == ';') {
+        in_comment = 2;
+        continue;
+      }
+    } else if (in_comment == 1 && c == ')') {
+      in_comment = 0;
+      continue;
+    } else {
       continue;
     }
 
-    if (c >= 'a' && c <= 'z') c-= 'a' - 'A';
+    if (c >= 'a' && c <= 'z') c -= 'a' - 'A';
     *(ptr++) = c;
   }
   return 0;
@@ -225,7 +243,7 @@ void printerInit(void)
       threadPrinterFetchSerial, NULL);
 }
 
-void printerAddLine(char* line)
+void printerAddLine(const char* line)
 {
   PrinterCommand* cmd = printer_new_command();
   strcpy(cmd->payload, line);

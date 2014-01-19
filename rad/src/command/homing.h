@@ -38,10 +38,12 @@ static void actionHoming(uint32_t joint_mask)
 {
   HomingState state[RAD_NUMBER_JOINTS];
   int8_t sequence = -1;
-  uint8_t count = 0;
+  uint8_t count;
   while (sequence < RAD_NUMBER_JOINTS) {
+    count = 0;
     PlannerJointMovement m;
     memset(&m, 0, sizeof(PlannerJointMovement));
+    memset(&state, 0, sizeof(state));
 
     RadJointsState joints_state = stepperGetJointsState();
     for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++)
@@ -53,8 +55,8 @@ static void actionHoming(uint32_t joint_mask)
 
       RadJointState* js = &joints_state.joints[i];
 
-      count++;
       if (sequence == -1 || (joint_mask & (1 << i))) {
+        count++;
         stepperResetOldLimitState(i);
         m.joints[i] = j->home_search_vel;
         state[i].last_pos = js->pos;

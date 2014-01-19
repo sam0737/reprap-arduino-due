@@ -18,22 +18,30 @@
 
 */
 
-#include <stdlib.h>
+/**
+ * @file    src/radmath.h
+ * @brief   RAD Math header.
+ *
+ * @addtogroup RADMATH
+ * @{
+ */
 
-static char* codep = NULL;
+#ifndef _RADMATH_H_
+#define _RADMATH_H_
 
-static bool_t code_seen(char code)
-{
-  codep = strchr(curr_command->payload, code);
-  return (codep != NULL);
+/*===========================================================================*/
+/* External declarations.                                                    */
+/*===========================================================================*/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+  float fast_inverse_square(float);
+  float rad_strtof(const char *nptr, char **endptr);
+#ifdef __cplusplus
 }
+#endif
 
-static float code_value(void)
-{
-  if (codep == NULL) return 0;
-  float val;
-  val = strtof(codep + 1, NULL);
-  if (!isnormal(val)) // Not NaN, Inf, Subnormal
-    return 0;
-  return val;
-}
+#endif  /* _RADMATH_H_ */
+
+/** @} */

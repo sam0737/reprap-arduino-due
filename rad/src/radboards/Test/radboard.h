@@ -79,5 +79,6 @@
  * @brief Define a macro for printf-style debug suitable on this platform
  */
 #define RAD_DEBUG_PRINTF(...) printf(__VA_ARGS__)
+#define RAD_DEBUG_WAITLINE(...) do { } while (getchar() != '\n')
 
 #endif /* _RADBOARD_H_ */

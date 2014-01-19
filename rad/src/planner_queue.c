@@ -51,14 +51,19 @@ void plannerQueueInit(PlannerQueue* queue, PlannerOutputBlock* buffer, size_t si
   /*
    * Reduce the size such that rd_ptr will never be overridden during recalculation
    */
-  chSemInit(&queue->q_sem, BLOCK_BUFFER_SIZE - 3);
+  chSemInit(&queue->q_sem, size);
   queue->q_buffer = queue->q_wrptr = queue->q_rdptr = buffer;
   queue->q_top = queue->q_buffer + size;
 }
 
-bool_t plannerQueueFetchBlockI(PlannerQueue* queue, PlannerOutputBlock* block)
+bool_t plannerQueueFetchBlockI(PlannerQueue* queue, PlannerOutputBlock* block, PlannerOutputBlockMode current_mode)
 {
   if (queue->q_counter == 0)
+    return FALSE;
+
+  // Only Estop can ends ongoing positional block prematurely
+  if (current_mode == BLOCK_Positional &&
+      queue->q_rdptr->mode != BLOCK_Estop)
     return FALSE;
 
   *block = *queue->q_rdptr;
@@ -87,6 +92,14 @@ PlannerOutputBlock* plannerQueueReserveBlock(PlannerQueue* queue)
   return block;
 }
 
+size_t plannerGetQueueLength(PlannerQueue* queue)
+{
+  chSysLock();
+  size_t len = queue->q_counter;
+  chSysUnlock();
+  return len;
+}
+
 void plannerQueueAddBlock(PlannerQueue* queue)
 {
   chSysLock();
@@ -100,7 +113,21 @@ void plannerQueueCommit(PlannerQueue* queue)
 {
   chSysLock();
   queue->q_counter += queue->q_pending;
+  RAD_DEBUG_PRINTF("QUEUE: COMMIT +%d => %d\n", queue->q_pending, queue->q_counter);
   queue->q_pending = 0;
+  chSysUnlock();
+}
+
+void plannerQueueInterruptCommit(PlannerQueue* queue, PlannerOutputBlock* block)
+{
+  chSysLock();
+  chSemResetI(&queue->q_sem, queue->q_top - queue->q_buffer - 1);
+  queue->q_counter = 1;
+  queue->q_pending = 0;
+  *queue->q_rdptr = *block;
+  queue->q_wrptr = queue->q_rdptr;
+  if (++queue->q_wrptr >= queue->q_top)
+    queue->q_wrptr = queue->q_buffer;
   chSysUnlock();
 }
 
@@ -110,32 +137,24 @@ static void recalculateMaxExitSpeed(PlannerOutputBlock *current, PlannerOutputBl
   float duration = current->p.duration;
 
   for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
-    if (fabs(current->p.delta.joints[i]) < 0.000001) continue;
+    if (next->p.delta.joints[i] == 0) {
+      if (current->p.delta.joints[i] == 0) continue;
+      current->p.max_exit_speed = 0;
+      return;
+    }
     float v = next->p.delta.joints[i] / next->p.duration;
-    if (fabs(v) < 0.000001) {
-      current->p.max_exit_speed = 0;
-      return;
-    }
     float d = current->p.delta.joints[i] / v;
-    if (d < 0) {
-      current->p.max_exit_speed = 0;
-      return;
-    }
     if (d > duration) duration = d;
   }
 
   for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
-    if (fabs(current->p.delta.extruders[i]) < 0.000001) continue;
+    if (next->p.delta.extruders[i] == 0) {
+      if (current->p.delta.extruders[i] == 0) continue;
+      current->p.max_exit_speed = 0;
+      return;
+    }
     float v = next->p.delta.extruders[i] / next->p.duration;
-    if (fabs(v) < 0.000001) {
-      current->p.max_exit_speed = 0;
-      return;
-    }
     float d = current->p.delta.extruders[i] / v;
-    if (d < 0) {
-      current->p.max_exit_speed = 0;
-      return;
-    }
     if (d > duration) duration = d;
   }
 
@@ -222,8 +241,6 @@ static void calculateTrapezoid(float last_exit_speed, PlannerOutputBlock *curren
   current->p.is_profile_valid = TRUE;
   if (current->p.acc == 0)
   {
-    RAD_DEBUG_PRINTF("  T 0\n");
-    current->p.accelerate_until = 0;
     current->p.decelerate_after = 0;
     return;
   }
@@ -235,8 +252,7 @@ static void calculateTrapezoid(float last_exit_speed, PlannerOutputBlock *curren
       (current->p.nominal_speed * current->p.nominal_speed - current->p.exit_speed * current->p.exit_speed) /
       2 / current->p.acc;
 
-  RAD_DEBUG_PRINTF("T %f %f\n", accel_distance, decel_distance);
-  float plateau = current->p.distance- accel_distance - decel_distance;
+  float plateau = current->p.distance - accel_distance - decel_distance;
   if (plateau < 0)
   {
     accel_distance =
@@ -249,7 +265,6 @@ static void calculateTrapezoid(float last_exit_speed, PlannerOutputBlock *curren
     plateau = 0;
   }
 
-  current->p.accelerate_until = accel_distance;
   current->p.decelerate_after = accel_distance + plateau;
 }
 

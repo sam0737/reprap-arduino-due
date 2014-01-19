@@ -27,14 +27,14 @@
 
 #ifndef _HALCONF_H_
 #define _HALCONF_H_
-
+#define MEOWWW FALSE
 /*#include "mcuconf.h"*/
 
 /**
  * @brief   Enables the TM subsystem.
  */
 #if !defined(HAL_USE_TM) || defined(__DOXYGEN__)
-#define HAL_USE_TM                  FALSE
+#define HAL_USE_TM                  TRUE
 #endif
 
 /**

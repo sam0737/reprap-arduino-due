@@ -44,6 +44,8 @@ void (NAME)(const PlannerPhysicalPosition *p, PlannerVirtualPosition *v)  \
 {                                                                         \
   uint8_t i;                                                              \
   for (i = 0; i < RAD_NUMBER_AXES; i++) v->axes[i] = p->joints[i];        \
+  for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++)                              \
+    v->extruders[i] = p->extruders[i];                                    \
 }                                                                         \
 
 /**
@@ -56,6 +58,20 @@ void (NAME)(const PlannerVirtualPosition *v, PlannerPhysicalPosition *p)  \
 {                                                                         \
   uint8_t i;                                                              \
   for (i = 0; i < RAD_NUMBER_AXES; i++) p->joints[i] = v->axes[i];        \
+  for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++)                              \
+    p->extruders[i] = v->extruders[i];                                    \
+}                                                                         \
+
+#define MAKE_CARTESIAN_MAX_FEEDRATE(NAME)                                 \
+float (NAME)(machine_t machine)                                           \
+{                                                                         \
+  float x = 0.0f;                                                         \
+  uint8_t i;                                                              \
+  for (i = 0; i < RAD_NUMBER_JOINTS; i++)                                 \
+    x +=                                                                  \
+        machine.kinematics.joints[i].max_speed *                          \
+        machine.kinematics.joints[i].max_speed;                           \
+  return sqrt(x);                                                         \
 }                                                                         \
 
 /*===========================================================================*/

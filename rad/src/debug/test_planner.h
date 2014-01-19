@@ -28,7 +28,6 @@ void cmd_test_dump_block(BaseSequentialStream *chp, PlannerOutputBlock* block)
       block->mode == BLOCK_Idle ? "Idle" :
       block->mode == BLOCK_Velocity ? "Vel" :
       block->mode == BLOCK_Positional ? "Pos" :
-      block->mode == BLOCK_Stop ? "Stop" :
       block->mode == BLOCK_Estop ? "Estop" :
       block->mode == BLOCK_Reset ? "Reset" :
           "Estop_Clear"
@@ -42,9 +41,10 @@ void cmd_test_dump_block(BaseSequentialStream *chp, PlannerOutputBlock* block)
     for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
       chprintf(chp, "%9.3f ", block->p.target.extruders[i]);
     }
-    chprintf(chp, "V%6.2f X%6.2f MX%6.2f A%6.2f D%.3f AU%.3f DA%.3f",
+    chprintf(chp, "V%6.2f X%6.2f MX%6.2f A%6.2f S%.3f Sa%.3f T%.3f",
         block->p.nominal_speed, block->p.exit_speed, block->p.max_exit_speed, block->p.acc,
-        block->p.distance, block->p.accelerate_until, block->p.decelerate_after);
+        block->p.distance, block->p.decelerate_after,
+        block->p.duration);
   }
   chprintf(chp, "\r\n");
 }
@@ -56,10 +56,11 @@ void cmd_test_dump_all_blocks(BaseSequentialStream *chp)
   while (1)
   {
     chSysLock();
-    new_block = plannerMainQueueFetchBlockI(&block);
+    new_block = plannerMainQueueFetchBlockI(&block, BLOCK_Idle);
     if (!new_block) return;
     chSysUnlock();
     cmd_test_dump_block(chp, &block);
+    block.mode = BLOCK_Idle;
   }
 }
 
@@ -86,13 +87,13 @@ static void cmd_test_planner(BaseSequentialStream *chp, int argc, char *argv[]) 
     line++;
     RAD_DEBUG_PRINTF("Line: %d: %s", line, buffer);
     printerAddLine(buffer);
-    cmd_test_dump_all_blocks(chp);
+    //cmd_test_dump_all_blocks(chp);
   }
   fclose(fp);
 
   chThdSleep(100); // Sleep for printer thread to finish processing.
   RAD_DEBUG_PRINTF("Finished\n");
-  cmd_test_dump_all_blocks(chp);
+  //cmd_test_dump_all_blocks(chp);
 }
 
 #endif

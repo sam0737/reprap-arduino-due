@@ -18,22 +18,27 @@
 
 */
 
+#include "rad.h"
 #include <stdlib.h>
 
-static char* codep = NULL;
-
-static bool_t code_seen(char code)
+static void cmd_benchmark(BaseSequentialStream *chp, int argc, char *argv[])
 {
-  codep = strchr(curr_command->payload, code);
-  return (codep != NULL);
-}
+  (void)argc;
+  (void)argv;
 
-static float code_value(void)
-{
-  if (codep == NULL) return 0;
-  float val;
-  val = strtof(codep + 1, NULL);
-  if (!isnormal(val)) // Not NaN, Inf, Subnormal
-    return 0;
-  return val;
+  TimeMeasurement tm;
+  tmObjectInit(&tm);
+  tmStartMeasurement(&tm);
+  float x;
+  for (float i = 1; i <= 100000; i++) {
+    x = (float)1/sqrt(i);
+  }
+  tmStopMeasurement(&tm);
+  chprintf(chp, "%f, T1 = %ld\r\n", x, RTT2MS(tm.last));
+  tmStartMeasurement(&tm);
+  for (float i = 1; i <= 100000; i++) {
+    x = fast_inverse_square(i);
+  }
+  tmStopMeasurement(&tm);
+  chprintf(chp, "%f, T2 = %ld\r\n", x, RTT2MS(tm.last));
 }

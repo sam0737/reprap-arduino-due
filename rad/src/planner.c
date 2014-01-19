@@ -41,8 +41,9 @@
 static PlannerOutputBlock main_buffer[BLOCK_BUFFER_SIZE];
 PlannerQueue queueMain;
 
-PlannerPhysicalPosition current_physical;
-PlannerVirtualPosition current_virtual;
+static float traj_max_feedrate;
+static PlannerPhysicalPosition current_physical;
+static PlannerVirtualPosition current_virtual;
 
 /*===========================================================================*/
 /* Local functions.                                                          */
@@ -64,6 +65,7 @@ static void plannerAddAxisPointCore(
 void plannerInit(void)
 {
   plannerQueueInit(&queueMain, main_buffer, BLOCK_BUFFER_SIZE);
+  traj_max_feedrate = machine.kinematics.traj_max_feedrate(machine) * 60;
 }
 
 PlannerVirtualPosition plannerSyncCurrentPosition(void)
@@ -95,23 +97,31 @@ void plannerAddAxisPoint(
   }
   distance = sqrt(distance);
   extrusion_distance = sqrt(extrusion_distance);
-  // TODO: If feedrate is way too larger than the max speed of axis,
-  //       the duration calculation and hence steps will be inaccurate (too few steps)
-  float duration = 60 * (distance == 0 ? extrusion_distance : distance) / feedrate;
-  int steps = (int) fmax(
-      (int)(DELTA_SEGMENTS_PER_SECOND * duration),
-      (int)(DELTA_SEGMENTS_PER_MM * distance)
-      );
 
-  duration /= steps;
-  if (steps > 1)
+  float duration;
+  int segments = 1;
+  if (distance > 0) {
+    duration = 60 * distance / fmin(traj_max_feedrate, feedrate);
+    segments = (int)(DELTA_SEGMENTS_PER_SECOND * duration);
+    if (segments < 1)
+      segments = 1;
+  } else {
+    /* Pure extrusion case -
+     * Assume always have linear mapping between extruder and stepper,
+     * so always 1 segment
+     */
+    duration = 60 * extrusion_distance / feedrate;
+  }
+
+  duration /= segments;
+  if (segments > 1)
   {
-    distance /= steps;
-    extrusion_distance /= steps;
+    distance /= segments;
+    extrusion_distance /= segments;
     int j = 1;
-    for (; j <= steps; j++) {
+    for (; j <= segments; j++) {
       PlannerVirtualPosition real_target_virtual;
-      float fraction = (float)j / (float)steps;
+      float fraction = (float)j / (float)segments;
       for (i = 0; i < RAD_NUMBER_AXES; i++) {
         real_target_virtual.axes[i] = current_virtual.axes[i] + delta.axes[i] * fraction;
       }
@@ -119,11 +129,11 @@ void plannerAddAxisPoint(
         real_target_virtual.extruders[i] = current_virtual.extruders[i] + delta.extruders[i] * fraction;
       }
       plannerAddAxisPointCore(&real_target_virtual, distance, extrusion_distance, duration);
-      if (j % 32 == 0) {
+      if (j % (BLOCK_BUFFER_SIZE / 4) == 0) {
         plannerMainQueueRecalculate();
       }
     }
-    if (j % 32 != 0) {
+    if (j % (BLOCK_BUFFER_SIZE / 4) != 0) {
       plannerMainQueueRecalculate();
     }
   } else {
@@ -157,6 +167,10 @@ static void plannerAddAxisPointCore(
       if (fraction > 0 && acceleration * fraction > jt->max_acceleration)
         acceleration = jt->max_acceleration / fraction;
     }
+  } else {
+    for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
+      delta.joints[i] = 0;
+    }
   }
 
   // Deduce extruders speed and speed limit
@@ -178,6 +192,10 @@ static void plannerAddAxisPointCore(
           acceleration = ex->max_retract_acceleration / fraction;
       }
     }
+  } else {
+    for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
+      delta.extruders[i] = 0;
+    }
   }
 
   PlannerOutputBlock* block = plannerMainQueueReserveBlock();
@@ -195,7 +213,7 @@ static void plannerAddAxisPointCore(
    *      a is acceleration,
    *      s is distance.
    */
-  block->p.is_nominal_length = block->p.nominal_speed <= sqrt(2 * acceleration * distance);
+  block->p.is_nominal_length = sq(block->p.nominal_speed) <= 2 * acceleration * distance;
   block->p.is_max_exit_speed_valid = FALSE;
   block->p.is_profile_valid = FALSE;
   plannerMainQueueAddBlock();
@@ -288,9 +306,7 @@ void plannerEstop(void)
 {
   PlannerOutputBlock* block = plannerMainQueueReserveBlock();
   block->mode = BLOCK_Estop;
-  plannerMainQueueAddBlock();
-  plannerMainQueueCommit();
-  // TODO: Interrupt the queue!
+  plannerMainQueueInterruptCommit(block);
 }
 
 void plannerEstopClear(void)
@@ -299,6 +315,5 @@ void plannerEstopClear(void)
   block->mode = BLOCK_Estop_Clear;
   plannerMainQueueAddBlock();
   plannerMainQueueCommit();
-  // TODO: Interrupt the queue!
 }
 /** @} */

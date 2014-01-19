@@ -38,7 +38,7 @@ extern char* printer_estop_message;
 extern "C" {
 #endif
   void printerInit(void);
-  void printerAddLine(char* line);
+  void printerAddLine(const char* line);
   bool_t printerIsEstopped(void);
   void printerEstop(char* message);
   void printerEstopClear(void);

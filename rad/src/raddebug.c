@@ -47,6 +47,7 @@
 /*===========================================================================*/
 
 #include "debug/test_planner.h"
+#include "debug/benchmark.h"
 
 volatile int32_t debug_value[24];
 
@@ -58,6 +59,7 @@ static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
   chprintf(chp, "core free memory : %u bytes\r\n", chCoreStatus());
   chprintf(chp, "heap fragments   : %u\r\n", n);
   chprintf(chp, "heap free total  : %u bytes\r\n", size);
+  chprintf(chp, "sizeof PlannerOutputBlock: %u bytes\r\n", sizeof(PlannerOutputBlock));
 }
 
 static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -184,7 +186,7 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
         virtual.axes[i]);
   }
 
-  chprintf(chp, "\r\nStorage: %d\r\n", storageGetHostState());
+  chprintf(chp, "\r\nStorage: %d. Queue: %d\r\n", storageGetHostState(), plannerGetQueueLength(&queueMain));
   chprintf(chp, "E Stopped: %s\r\n", printer_estop_message ? printer_estop_message : "None");
 }
 
@@ -397,7 +399,7 @@ static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
 /*===========================================================================*/
 
 static WORKING_AREA(waHeartbeat, 128);
-static WORKING_AREA(waShellMonitor, 256);
+static WORKING_AREA(waShellMonitor, 512);
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -418,7 +420,9 @@ static const ShellCommand commands[] = {
   {"reset", cmd_reset},
   {"contrast", cmd_contrast},
   {"temp", cmd_temp},
+  {"benchmark", cmd_benchmark},
 #if RAD_TEST
+  {"t", cmd_test_planner},
   {"test_planner", cmd_test_planner},
 #endif
   {NULL, NULL}
@@ -435,7 +439,7 @@ static msg_t threadHeartbeat(void *arg) {
 #if HAL_USE_USB
   palSetPinMode(radboard.debug.heartbeat_led, PAL_MODE_OUTPUT_PUSHPULL);
   while (TRUE) {
-    systime_t time = USBD1.state == USB_ACTIVE ? 250 : 500;
+    systime_t time = USBD1.state == USB_ACTIVE ? 250 : 2500;
     chThdSleepMilliseconds(time);
     palTogglePad(radboard.debug.heartbeat_led.port, radboard.debug.heartbeat_led.pin);
   }

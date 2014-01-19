@@ -49,6 +49,9 @@ void radInit(void)
   displayInit();
   storageInit();
   printerInit();
+#if HAL_USE_TM
+  tmInit();
+#endif
 }
 
 /** @} */

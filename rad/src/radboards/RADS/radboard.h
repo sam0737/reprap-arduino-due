@@ -77,9 +77,4 @@ extern MMCDriver MMCD1;
   #endif
 #endif
 
-/**
- * @brief Define a macro for printf-style debug suitable on this platform
- */
-#define RAD_DEBUG_PRINTF(...) do {} while (0)
-
 #endif /* _RADBOARD_H_ */

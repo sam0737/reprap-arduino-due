@@ -38,7 +38,6 @@ typedef enum {
 
   BLOCK_Velocity = 1,
   BLOCK_Positional = 2,
-  BLOCK_Stop = 3,
 
   BLOCK_Estop = 4,
   BLOCK_Estop_Clear = 5,
@@ -62,6 +61,10 @@ typedef struct {
       } extruders[RAD_NUMBER_EXTRUDERS];
     } v;
     struct {
+      bool_t is_max_exit_speed_valid;
+      bool_t is_nominal_length;
+
+      bool_t is_profile_valid;
       PlannerPhysicalPosition target;
       PlannerPhysicalPosition delta;
       struct {
@@ -75,14 +78,10 @@ typedef struct {
       float acc;
       float distance;
 
-      float exit_speed;
       float nominal_speed;
-      float max_exit_speed;
-      bool_t is_max_exit_speed_valid;
-      bool_t is_nominal_length;
+      float exit_speed;
 
-      bool_t is_profile_valid;
-      float accelerate_until;
+      float max_exit_speed;
       float decelerate_after;
     } p;
   };
@@ -113,10 +112,12 @@ typedef struct {
 extern "C" {
 #endif
   void plannerQueueInit(PlannerQueue* queue, PlannerOutputBlock* buffer, size_t size);
-  bool_t plannerQueueFetchBlockI(PlannerQueue* queue, PlannerOutputBlock* block);
+  size_t plannerGetQueueLength(PlannerQueue* queue);
+  bool_t plannerQueueFetchBlockI(PlannerQueue* queue, PlannerOutputBlock* block, PlannerOutputBlockMode current_mode);
   PlannerOutputBlock* plannerQueueReserveBlock(PlannerQueue* queue);
   void plannerQueueAddBlock(PlannerQueue* queue);
   void plannerQueueCommit(PlannerQueue* queue);
+  void plannerQueueInterruptCommit(PlannerQueue* queue, PlannerOutputBlock* block);
   void plannerQueueRecalculate(PlannerQueue *queue);
 #ifdef __cplusplus
 }

@@ -61,6 +61,32 @@ const radboard_t radboard =
         .channel = (BaseAsynchronousChannel*) &SD2,
         .software_reset = NULL,
         .erase = NULL
+    },
+    .stepper = {
+        .count = RAD_NUMBER_STEPPERS,
+        .main_enable = { .pin = { IOPORT1, 16 }, .active_low = 0 },
+        .channels = (RadStepperChannel[]) {
+          {
+            .step = { .pin = { IOPORT1, 0 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT1, 1 }, .active_low = 0 },
+          },
+          {
+            .step = { .pin = { IOPORT1, 2 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT1, 3 }, .active_low = 0 },
+          },
+          {
+            .step = { .pin = { IOPORT1, 4 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT1, 5 }, .active_low = 0 },
+          },
+          {
+            .step = { .pin = { IOPORT1, 6 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT1, 7 }, .active_low = 0 },
+          },
+          {
+            .step = { .pin = { IOPORT1, 8 }, .active_low = 0 },
+            .dir = { .pin = { IOPORT1, 9 }, .active_low = 0 },
+          }
+        }
     }
 };
 

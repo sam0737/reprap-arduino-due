@@ -198,5 +198,15 @@ extern const radboard_t radboard;
 #error "Please define RAD_NUMBER_STEPPERS in radboard.h"
 #endif
 
+/*
+ * Define noops for debug hook
+ */
+#ifndef RAD_DEBUG_PRINTF
+#define RAD_DEBUG_PRINTF(...) do {} while (0)
+#endif
+#ifndef RAD_DEBUG_WAITLINE
+#define RAD_DEBUG_WAITLINE(...) do {} while (0)
+#endif
+
 #endif  /* _RADHAL_RADBOARD_H_ */
 /** @} */

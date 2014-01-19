@@ -7,8 +7,11 @@
 # Radboard
 # -----------------------------------------------------
 # -- RADS / Reprap Arduino Due Shield 
-include $(RAD)/radboards/RADS/radboard.mk
-#include $(RAD)/radboards/Test/radboard.mk
+ifneq ($(RAD_TEST),) 
+  include $(RAD)/radboards/Test/radboard.mk
+else
+  include $(RAD)/radboards/RADS/radboard.mk
+endif
 
 # -----------------------------------------------------
 # Machine

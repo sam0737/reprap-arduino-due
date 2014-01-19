@@ -182,7 +182,7 @@ void radboardInit(void)
    */
   usbDisconnectBus(&USBD1);
   usbStart(&USBD1, &usbcfg);
-  chThdSleepMilliseconds(500);
+  chThdSleepMilliseconds(100);
   usbConnectBus(&USBD1);
 }
 

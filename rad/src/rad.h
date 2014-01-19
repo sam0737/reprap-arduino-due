@@ -48,6 +48,7 @@
 #include "display.h"
 #include "storage.h"
 #include "printer.h"
+#include "radmath.h"
 
 /*===========================================================================*/
 /* External declarations.                                                    */

@@ -33,9 +33,8 @@
 /* Data structures and types.                                                */
 /*===========================================================================*/
 
-#define BLOCK_BUFFER_SIZE 256
-#define DELTA_SEGMENTS_PER_SECOND 256
-#define DELTA_SEGMENTS_PER_MM 2
+#define BLOCK_BUFFER_SIZE 200
+#define DELTA_SEGMENTS_PER_SECOND 200
 
 typedef struct {
   float axes[RAD_NUMBER_AXES];
@@ -58,10 +57,11 @@ typedef struct {
 /* Macros.                                                                   */
 /*===========================================================================*/
 
-#define plannerMainQueueFetchBlockI(block_p) plannerQueueFetchBlockI(&queueMain, block_p)
+#define plannerMainQueueFetchBlockI(block_p, current_mode) plannerQueueFetchBlockI(&queueMain, block_p, current_mode)
 #define plannerMainQueueReserveBlock() plannerQueueReserveBlock(&queueMain)
 #define plannerMainQueueAddBlock() plannerQueueAddBlock(&queueMain)
 #define plannerMainQueueCommit() plannerQueueCommit(&queueMain)
+#define plannerMainQueueInterruptCommit(block_p) plannerQueueInterruptCommit(&queueMain, block_p)
 #define plannerMainQueueRecalculate() plannerQueueRecalculate(&queueMain)
 
 /*===========================================================================*/

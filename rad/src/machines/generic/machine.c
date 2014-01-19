@@ -37,8 +37,11 @@ static RadTemp temps[] = {
   { .adc_id = 3, .cooling_pwm_id = 4, .converter = adccSAM3XATempSensor }
 };
 
+machine_t machine;
+
 MAKE_LINEAR_FORWARD_KINEMATICS(kForward);
 MAKE_LINEAR_INVERSE_KINEMATICS(kInverse);
+MAKE_CARTESIAN_MAX_FEEDRATE(kTrajMaxFeedrate);
 
 machine_t machine =
 {
@@ -49,7 +52,7 @@ machine_t machine =
         .type = KINEMATICS_Linear,
         .forward_kinematics = kForward,
         .inverse_kinematics = kInverse,
-        .max_traj_acceleration = 3000,
+        .traj_max_feedrate = kTrajMaxFeedrate,
         .axes = (RadAxis[]) {
           { .name = AXIS_X, .type = AXIS_TYPE_Linear, .min_limit = -15, .max_limit = 175 },
           { .name = AXIS_Y, .type = AXIS_TYPE_Linear, .min_limit = 0, .max_limit = 255 },

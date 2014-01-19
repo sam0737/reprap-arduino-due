@@ -66,8 +66,11 @@ typedef enum {
   KINEMATICS_Linear, KINEMATICS_Custom
 } RadKinematicsType;
 
+struct machine_t;
+
 typedef void (*forward_kinematics_t)(const PlannerPhysicalPosition*, PlannerVirtualPosition*);
 typedef void (*inverse_kinematics_t)(const PlannerVirtualPosition*, PlannerPhysicalPosition*);
+typedef float (*traj_max_feedrate_t)(struct machine_t machine);
 
 typedef enum {
   LIMIT_Normal = 0,
@@ -145,7 +148,7 @@ typedef struct {
   float               contrast;
 } RadHmiSettings;
 
-typedef struct {
+typedef struct machine_t {
   struct {
     /**
      * @brief   Always on and disable software controlled PSU
@@ -158,7 +161,7 @@ typedef struct {
     RadKinematicsType type;
     forward_kinematics_t  forward_kinematics;
     inverse_kinematics_t  inverse_kinematics;
-    float             max_traj_acceleration;
+    traj_max_feedrate_t   traj_max_feedrate;
     RadAxis           *axes;
     RadJoint          *joints;
   } kinematics;
