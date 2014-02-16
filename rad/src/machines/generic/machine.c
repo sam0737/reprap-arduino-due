@@ -31,10 +31,10 @@
 MAKE_THERMISTOR_CONVERTER(adccBedConverter, TEMP_R2, 4013, 101, 4675);
 
 static RadTemp temps[] = {
-  { .adc_id = 1, .heating_pwm_id = 2, .converter = adccType1 },
-  { .adc_id = 2, .heating_pwm_id = 3, .converter = adccType1 },
-  { .adc_id = 0, .heating_pwm_id = 1, .converter = adccBedConverter },
-  { .adc_id = 3, .cooling_pwm_id = 4, .converter = adccSAM3XATempSensor }
+  { .adc_id = 1, .heating_pwm_id = 2, .cooling_pwm_id = -1, .converter = adccType1 },
+  { .adc_id = 2, .heating_pwm_id = 3, .cooling_pwm_id = -1, .converter = adccType1 },
+  { .adc_id = 0, .heating_pwm_id = 1, .cooling_pwm_id = -1, .converter = adccBedConverter },
+  { .adc_id = 3, .heating_pwm_id = -1, .cooling_pwm_id = 4, .converter = adccSAM3XATempSensor }
 };
 
 machine_t machine;
@@ -93,13 +93,12 @@ machine_t machine =
         }
     },
     .temperature = {
-        .count = 4,
         .devices = temps,
     },
     .extruder = {
         .devices = (RadExtruder[]) {
           {
-            .temp = &temps[0],
+            .temp_id = 0,
             .stepper_id = 3,
             .max_speed = 50,
             .max_acceleration = 1000,
@@ -108,7 +107,7 @@ machine_t machine =
             .scale = 100
           },
           {
-            .temp = &temps[1],
+            .temp_id = 1,
             .stepper_id = 4,
             .max_speed = 50,
             .max_acceleration = 1000,
@@ -121,13 +120,13 @@ machine_t machine =
     .heated_bed = {
         .count = 1,
         .devices = (RadHeatedBed[]) {
-          { .temp = &temps[2] },
+          { .temp_id = 2 },
         }
     },
     .temp_monitor = {
         .count = 1,
-        .devices = (RadTemp*[]) {
-          &temps[3]
+        .devices = (RadTempMonitor[]) {
+          { .temp_id = 3 }
         }
     },
     .fan = {

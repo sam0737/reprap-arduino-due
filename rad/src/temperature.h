@@ -19,18 +19,35 @@
 */
 
 /**
- * @file    radadc.h
- * @brief   RAD ADC header
+ * @file    temperature.h
+ * @brief   Temperature header
  *
- * @addtogroup RADADC
+ * @addtogroup TEMPERATURE
  * @{
  */
-#ifndef _RAD_ADC_H_
-#define _RAD_ADC_H_
+#ifndef _RAD_TEMPERATURE_H_
+#define _RAD_TEMPERATURE_H_
 
 /*===========================================================================*/
 /* Data structures and types.                                                */
 /*===========================================================================*/
+
+typedef struct {
+  float               sv;
+  float               pv;
+  adcsample_t         raw;
+} RadTempState;
+
+typedef struct {
+  float   Kp;
+  float   Ki;
+  float   Kd;
+  float   error;
+  float   i_error;
+  float   d_state;
+  float   d_pv;
+  uint8_t tuning_cycle_remains;
+} RadTempPidState;
 
 /*===========================================================================*/
 /* External declarations.                                                    */
@@ -39,7 +56,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void radadcInit(void);
+  void temperatureInit(void);
+  void temperatureSet(uint8_t temp_id, float temp);
+  void temperatureAllZero(void);
+  RadTempState temperatureGet(uint8_t temp_id);
+  void temperatureAutoTune(uint8_t temp_id, float target, uint8_t total_cycles);
 #ifdef __cplusplus
 }
 #endif

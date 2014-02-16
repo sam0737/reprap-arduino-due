@@ -37,6 +37,8 @@
 /* Exported functions.                                                       */
 /*===========================================================================*/
 
+static uint8_t outputs[RAD_NUMBER_OUTPUTS];
+
 void outputInit()
 {
   uint8_t i;
@@ -49,20 +51,87 @@ void outputInit()
   }
 }
 
-/**
- * @brief Set the duty cycle of an PWM output channel.
- * @param[in] ch        pointer to a @p PWMRadOutputChannel object
- * @param[in] duty      Duty cycle (0 = off, 255 = on)
- */
-void outputSet(RadOutputChannel *ch, uint8_t duty)
+static void outputSetI(uint8_t output_id, uint8_t duty)
 {
-  if (duty > 0)
+  RadOutputChannel *ch = &radboard.output.channels[output_id];
+  if (duty > 0 && !printerIsEstopped())
     pwmEnableChannel(ch->pwm, ch->channel, PWM_FRACTION_TO_WIDTH(ch->pwm, 255, duty));
   else
     pwmDisableChannel(ch->pwm, ch->channel);
+  outputs[output_id] = duty;
 }
+
+/**
+ * @brief Set the duty cycle of an PWM output channel.
+ * @param[in] ch        PWM output channel number
+ * @param[in] duty      Duty cycle (0 = off, 255 = on)
+ */
+void outputSet(uint8_t output_id, uint8_t duty)
+{
+  if (output_id > RAD_NUMBER_OUTPUTS)
+    return;
+
+  chSysLock();
+  outputSetI(output_id, duty);
+  chSysUnlock();
+}
+
+uint8_t outputGet(uint8_t output_id)
+{
+  uint8_t duty;
+
+  if (output_id > RAD_NUMBER_OUTPUTS)
+    return 0;
+  chSysLock();
+  duty = outputs[output_id];
+  chSysUnlock();
+  return duty;
+}
+
+void outputAllZero(void)
+{
+  chSysLock();
+  for (uint8_t i = 0; i < RAD_NUMBER_OUTPUTS; i++)
+    outputSetI(i, 0);
+  chSysUnlock();
+}
+
 #else
-void outputInit(void){}
-void outputSet(RadOutputChannel *ch, uint8_t duty){}
+
+static uint8_t outputs[RAD_NUMBER_OUTPUTS];
+
+void outputInit(void)
+{
+
+}
+
+void outputSet(uint8_t output_id, uint8_t duty)
+{
+  if (output_id >= RAD_NUMBER_OUTPUTS)
+    return;
+  chSysLock();
+  outputs[output_id] = printerIsEstopped() ? 0 : duty;
+  chSysUnlock();
+}
+
+uint8_t outputGet(uint8_t output_id)
+{
+  uint8_t duty;
+
+  if (output_id >= RAD_NUMBER_OUTPUTS)
+    return 0;
+  chSysLock();
+  duty = outputs[output_id];
+  chSysUnlock();
+  return duty;
+}
+
+void outputAllZero(void)
+{
+  for (uint8_t i = 0; i < RAD_NUMBER_OUTPUTS; i++)
+    outputSet(i, 0);
+}
+
 #endif
+
 /** @} */

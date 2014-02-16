@@ -19,14 +19,14 @@
 */
 
 /**
- * @file    radadc_converter.h
- * @brief   RAD ADC Converters header
+ * @file    temperature_converter.h
+ * @brief   Temperature Converters header
  *
- * @addtogroup RADADC_CONVERTER
+ * @addtogroup TEMPERATURE_CONVERTER
  * @{
  */
-#ifndef _RAD_ADC_CONVERTER_H_
-#define _RAD_ADC_CONVERTER_H_
+#ifndef _TEMPERATURE_CONVERTER_H_
+#define _TEMPERATURE_CONVERTER_H_
 
 #include <math.h>
 

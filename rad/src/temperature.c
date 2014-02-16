@@ -19,10 +19,10 @@
 */
 
 /**
- * @file    radadc_converter.c
- * @brief   RAD ADC Converters
+ * @file    temperature.c
+ * @brief   Temperature
  *
- * @addtogroup RADADC_CONVERTER
+ * @addtogroup TEMPERATURE
  * @{
  */
 
@@ -30,31 +30,29 @@
 #include "hal.h"
 #include "rad.h"
 
-#include "radadc_converter.h"
+#include "temperature.h"
+
+/*===========================================================================*/
+/* Local variables and types.                                                */
+/*===========================================================================*/
+
+static RadTempPidState pid_states[RAD_NUMBER_TEMPERATURES];
+
+#include "temperature_pid.h"
+
+#if HAL_USE_ADC
+#include "temperature_core_real.h"
+#else
+#include "temperature_core_simulated.h"
+#endif
 
 /*===========================================================================*/
 /* Exported functions.                                                       */
 /*===========================================================================*/
 
-#ifdef TEMP_R2
-// 100k thermistor - best choice for EPCOS 100k (B57540G0104F000)
-MAKE_THERMISTOR_CONVERTER(adccType1, TEMP_R2, 100000, 25, 4066);
-#endif
-
-float adccSAM3XATempSensor(const adcsample_t sample, const uint8_t resolution)
+void temperatureInit()
 {
-  return
-      (
-        ((float)sample / (1 << resolution)) * 3.3f // Voltage
-        - 0.8f // 27deg base voltage
-      ) / 0.00265 // mV per degree
-      + 27;
+  temperature_core_init();
+  chThdCreateStatic(waTemp, sizeof(waTemp), NORMALPRIO, threadTemp, NULL);
 }
-
-float adccDummy(const adcsample_t sample, const uint8_t resolution)
-{
-  (void) resolution;
-  return sample;
-}
-
 /** @} */

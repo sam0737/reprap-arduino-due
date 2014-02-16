@@ -38,3 +38,19 @@
 #define L_HOMING_INCORRECT_LIMIT_HIT \
   "Incorrect limit switch is hit during homing"
 #endif
+
+
+#ifndef L_TEMPERATURE_AUTOTUNE_OVERHEATED
+#define L_TEMPERATURE_AUTOTUNE_OVERHEATED \
+  "[T1] Autotune overheated"
+#endif
+
+#ifndef L_TEMPERATURE_AUTOTUNE_TIMEOUT
+#define L_TEMPERATURE_AUTOTUNE_TIMEOUT \
+  "[T2] Autotune timeout"
+#endif
+
+#ifndef L_TEMPERATURE_AUTOTUNE_IN_ESTOP
+#define L_TEMPERATURE_AUTOTUNE_IN_ESTOP \
+  "[T3] Autotune aborted by ESTOP"
+#endif

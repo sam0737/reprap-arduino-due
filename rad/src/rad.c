@@ -43,7 +43,7 @@ void radInit(void)
   outputInit();
   stepperInit();
   endstopInit();
-  radadcInit();
+  temperatureInit();
   debugInit();
   plannerInit();
   displayInit();

@@ -154,7 +154,7 @@ void radboardInit(void)
 
   pwmStart(radboard.hmi.beeper_pwm, &beeper_cfg);
 
-  for (i = 0; i < radboard.output.count; i++) {
+  for (i = 0; i < RAD_NUMBER_OUTPUTS; i++) {
     pwmStart(radboard.output.channels[i].pwm, &output_cfg[i]);
   }
 
@@ -202,7 +202,6 @@ const radboard_t radboard =
 #endif
     },
     .output = {
-        .count = 5,
         .channels = (RadOutputChannel[]) {
           { .pwm = &PWMD1, .channel = 0,
             .signal = { .pin = { IOPORT3, 3 }, .active_low = 0 } },

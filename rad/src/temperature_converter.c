@@ -19,34 +19,42 @@
 */
 
 /**
- * @file    output.h
- * @brief   PWM Output header
+ * @file    temperature_converter.c
+ * @brief   Temperature Converters
  *
- * @addtogroup OUTPUT
+ * @addtogroup TEMPERATURE_CONVERTER
  * @{
  */
-#ifndef _RAD_OUTPUT_H_
-#define _RAD_OUTPUT_H_
+
+#include "ch.h"
+#include "hal.h"
+#include "rad.h"
+
+#include "temperature_converter.h"
 
 /*===========================================================================*/
-/* Data structures and types.                                                */
+/* Exported functions.                                                       */
 /*===========================================================================*/
 
-/*===========================================================================*/
-/* External declarations.                                                    */
-/*===========================================================================*/
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef TEMP_R2
+// 100k thermistor - best choice for EPCOS 100k (B57540G0104F000)
+MAKE_THERMISTOR_CONVERTER(adccType1, TEMP_R2, 100000, 25, 4066);
 #endif
-  void outputInit(void);
-  void outputSet(uint8_t output_id, uint8_t duty);
-  uint8_t outputGet(uint8_t output_id);
-  void outputAllZero(void);
-#ifdef __cplusplus
+
+float adccSAM3XATempSensor(const adcsample_t sample, const uint8_t resolution)
+{
+  return
+      (
+        ((float)sample / (1 << resolution)) * 3.3f // Voltage
+        - 0.8f // 27deg base voltage
+      ) / 0.00265 // mV per degree
+      + 27;
 }
-#endif
 
-#endif  /* _RAD_OUTPUT_H_ */
+float adccDummy(const adcsample_t sample, const uint8_t resolution)
+{
+  (void) resolution;
+  return sample;
+}
 
 /** @} */

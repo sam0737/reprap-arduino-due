@@ -46,12 +46,12 @@ static WORKING_AREA(waEndstop, 128);
 
 static void checkEndstop(void)
 {
-  chSysLock();
   for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++)
   {
     int8_t id;
     uint8_t state = LIMIT_Normal;
     RadJoint *joint = &machine.kinematics.joints[i];
+    pexSysLock();
     id = joint->min_endstop_id;
     if (id >= 0 &&
         palReadPin(radboard.endstop.channels[id].pin, machine.endstop_config.configs[id].active_low)) {
@@ -62,9 +62,9 @@ static void checkEndstop(void)
         palReadPin(radboard.endstop.channels[id].pin, machine.endstop_config.configs[id].active_low)) {
       state |= LIMIT_MaxHit;
     }
+    pexSysUnlock();
     stepperSetLimitState(i, state);
   }
-  chSysUnlock();
 }
 
 static msg_t threadEndstop(void *arg) {

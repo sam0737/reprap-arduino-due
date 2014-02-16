@@ -93,12 +93,12 @@ static void actionHoming(uint32_t joint_mask)
           }
           if (!js->stopped) continue;
           stepperClearStopped(i);
-          if (js->limit_state == LIMIT_Normal) {
+          if (js->limit_state == LIMIT_Normal && js->changed_limit_state == LIMIT_Normal) {
             m.joints[i] = j->home_search_vel;
             plannerSetJointVelocity(&m);
           } else {
-            if ((j->home_search_vel < 0 && js->limit_state == LIMIT_MinHit) ||
-                (j->home_search_vel > 0 && js->limit_state == LIMIT_MaxHit))
+            if ((j->home_search_vel < 0 && ((js->changed_limit_state | js->limit_state) & LIMIT_MinHit)) ||
+                (j->home_search_vel > 0 && ((js->changed_limit_state | js->limit_state) & LIMIT_MaxHit)))
             {
               state[i].stage = HOMING_SEARCH_AT_LIMIT;
               continue;
@@ -108,6 +108,7 @@ static void actionHoming(uint32_t joint_mask)
           }
           break;
         case HOMING_SEARCH_AT_LIMIT:
+          stepperResetOldLimitState(i);
           state[i].last_pos = js->pos;
           if ((j->home_search_vel > 0 && j->home_latch_vel > 0) ||
               (j->home_search_vel < 0 && j->home_latch_vel < 0))
@@ -130,6 +131,7 @@ static void actionHoming(uint32_t joint_mask)
           if (js->limit_state == LIMIT_Normal) {
             state[i].stage = HOMING_LATCH_HIT;
             m.joints[i] = j->home_latch_vel;
+            stepperResetOldLimitState(i);
             plannerSetJointVelocity(&m);
           } else {
             printerEstop(L_HOMING_INCORRECT_LIMIT_HIT);

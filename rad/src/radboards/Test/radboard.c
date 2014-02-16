@@ -62,6 +62,15 @@ const radboard_t radboard =
         .software_reset = NULL,
         .erase = NULL
     },
+    .output = {
+        .channels = (RadOutputChannel[]) {
+          { },
+          { },
+          { },
+          { },
+          { }
+        }
+    },
     .stepper = {
         .count = RAD_NUMBER_STEPPERS,
         .main_enable = { .pin = { IOPORT1, 16 }, .active_low = 0 },

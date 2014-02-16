@@ -19,10 +19,10 @@
 */
 
 /**
- * @file    radadc.c
- * @brief   RAD ADC
+ * @file    temperature_core_real.h
+ * @brief   Temperature Core (Real)
  *
- * @addtogroup RADADC
+ * @addtogroup TEMPERATURE
  * @{
  */
 
@@ -30,14 +30,15 @@
 #include "hal.h"
 #include "rad.h"
 
-#include "radadc.h"
+#include "temperature.h"
 
-#if HAL_USE_ADC
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-static WORKING_AREA(waAdc, 128);
+static WORKING_AREA(waTemp, 128);
+
+static RadTempState temperatures[RAD_NUMBER_TEMPERATURES];
 
 int8_t finishing_count = 0;
 int8_t has_error = 0;
@@ -71,14 +72,13 @@ void radadc_error_callback(ADCDriver *adcp, adcerror_t err)
   }
 }
 
-static msg_t threadAdc(void *arg) {
+static msg_t threadTemp(void *arg) {
   (void)arg;
   uint8_t i, j, k, c;
   RadAdcChannel *ch;
-  RadTemp *cht;
 
   tp = chThdSelf();
-  chRegSetThreadName("adc");
+  chRegSetThreadName("temp");
 
   while (TRUE) {
     chThdSleepMilliseconds(50);
@@ -100,11 +100,18 @@ static msg_t threadAdc(void *arg) {
     for (i = 0; i < radboard.adc.count; i++) {
       ch = &radboard.adc.channels[i];
       for (j = 0; j < ch->group_base.num_channels; j++, c++) {
-        for (k = 0; k < machine.temperature.count; k++) {
-          cht = &machine.temperature.devices[k];
+        for (k = 0; k < RAD_NUMBER_TEMPERATURES; k++) {
+          RadTemp *cht = &machine.temperature.devices[k];
           if (cht->adc_id == c && cht->converter) {
-            cht->state.raw = ch->samples[j];
-            cht->state.pv = cht->converter(ch->samples[j], ch->resolution);
+            RadTempState *s = &temperatures[k];
+            adcsample_t sample = ch->samples[j];
+            float pv = cht->converter(sample, ch->resolution);
+            chSysLock();
+            s->pv = pv;
+            s->raw = sample;
+            float sv = s->sv;
+            chSysUnlock();
+            temperature_pid_loop(k, sv, pv);
           }
         }
       }
@@ -113,11 +120,42 @@ static msg_t threadAdc(void *arg) {
   return 0;
 }
 
-/*===========================================================================*/
-/* Exported functions.                                                       */
-/*===========================================================================*/
+static void temperatureSetI(uint8_t temp_id, float temp)
+{
+  temperatures[temp_id].sv = temp;
+}
 
-void radadcInit()
+void temperatureSet(uint8_t temp_id, float temp)
+{
+  if (temp_id >= RAD_NUMBER_TEMPERATURES)
+    return;
+
+  chSysLock();
+  temperatureSetI(temp_id, temp);
+  chSysUnlock();
+}
+
+void temperatureAllZero(void)
+{
+  chSysLock();
+  for (uint8_t i = 0; i < RAD_NUMBER_TEMPERATURES; i++)
+    temperatureSetI(i, 0);
+  chSysUnlock();
+}
+
+RadTempState temperatureGet(uint8_t temp_id)
+{
+  if (temp_id >= RAD_NUMBER_TEMPERATURES)
+    return 0;
+
+  RadTempState temp;
+  chSysLock();
+  temp = temperatures[temp_id];
+  chSysUnlock();
+  return temp;
+}
+
+void temperature_core_init()
 {
   uint8_t i;
   RadAdcChannel *ch;
@@ -127,9 +165,6 @@ void radadcInit()
     ch->group_base.end_cb = radadc_end_callback;
     ch->group_base.error_cb = radadc_error_callback;
   }
-  chThdCreateStatic(waAdc, sizeof(waAdc), NORMALPRIO, threadAdc, NULL);
 }
-#else
-void radadcInit(void) {}
-#endif
+
 /** @} */

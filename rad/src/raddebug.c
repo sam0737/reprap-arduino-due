@@ -153,17 +153,22 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
   chprintf(chp, "\r\n");
 
   chprintf(chp, "Temperatures:\r\n");
+  RadTempState temp;
+  uint8_t temp_id;
   for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
-    RadTemp *cht = machine.extruder.devices[i].temp;
-    chprintf(chp, "  Extruder %d: PV %6.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+    temp = temperatureGet(temp_id = machine.extruder.devices[i].temp_id);
+    chprintf(chp, "  Extruder %d: PV %6.2f [%.4d] >> SV %.2f (@%3d)\r\n", i, temp.pv, temp.raw, temp.sv,
+        outputGet(machine.temperature.devices[temp_id].heating_pwm_id));
   }
   for (uint8_t i = 0; i < machine.heated_bed.count; i++) {
-    RadTemp *cht = machine.heated_bed.devices[i].temp;
-    chprintf(chp, "  Bed      %d: PV %6.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+    temp = temperatureGet(temp_id = machine.heated_bed.devices[i].temp_id);
+    chprintf(chp, "  Bed      %d: PV %6.2f [%.4d] >> SV %.2f (@%3d)\r\n", i, temp.pv, temp.raw, temp.sv,
+        outputGet(machine.temperature.devices[temp_id].heating_pwm_id));
   }
   for (uint8_t i = 0; i < machine.temp_monitor.count; i++) {
-    RadTemp *cht = machine.temp_monitor.devices[i];
-    chprintf(chp, "  Monitor  %d: PV %6.2f [%.4d] >> SV %.2f\r\n", i, cht->state.pv, cht->state.raw, cht->state.sv);
+    temp = temperatureGet(temp_id = machine.temp_monitor.devices[i].temp_id);
+    chprintf(chp, "  Monitor  %d: PV %6.2f [%.4d] >> SV %.2f (@%3d)\r\n", i, temp.pv, temp.raw, temp.sv,
+        outputGet(machine.temperature.devices[temp_id].heating_pwm_id));
   }
 
   RadJointsState joints_state = stepperGetJointsState();
@@ -195,9 +200,6 @@ static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {
     int duty;
     char* end;
 
-    (void)argv;
-    (void)ch;
-    (void)duty;
     if (argc == 2) {
       do {
         ch = strtol(argv[0], &end, 10);
@@ -205,11 +207,49 @@ static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {
         duty = strtol(argv[1], &end, 10);
         if (argv[1] == end) break;
 
-        if (ch >= 0 && ch < radboard.output.count)
-          outputSet(&radboard.output.channels[ch], (uint8_t) duty);
+        outputSet(ch, (uint8_t) duty);
+        return;
       } while(0);
     }
     chprintf(chp, "Usage: out [ch] [0-255]\r\n");
+}
+
+static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
+    int ch;
+    int temp;
+    char* end;
+
+    if (argc == 2) {
+      do {
+        ch = strtol(argv[0], &end, 10);
+        if (argv[0] == end) break;
+        temp = strtol(argv[1], &end, 10);
+        if (argv[1] == end) break;
+
+        temperatureSet(ch, temp);
+        return;
+      } while(0);
+    }
+    chprintf(chp, "Usage: temp [ch] [temperature]\r\n");
+}
+
+static void cmd_tune_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
+    int ch;
+    int target;
+    char* end;
+
+    if (argc == 2) {
+      do {
+        ch = strtol(argv[0], &end, 10);
+        if (argv[0] == end) break;
+        target = strtol(argv[1], &end, 10);
+        if (argv[1] == end) break;
+
+        temperatureAutoTune(ch, target, 5);
+        return;
+      } while(0);
+    }
+    chprintf(chp, "Usage: tune_temp [ch] [temperature]\r\n");
 }
 
 /*
@@ -368,7 +408,7 @@ static void cmd_contrast(BaseSequentialStream *chp, int argc, char *argv[]) {
   displaySetContrast(contrast / 100.0);
 }
 
-static void cmd_temp(BaseSequentialStream *chp, int argc, char *argv[]) {
+static void cmd_temp2(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)chp;
   (void)argc;
   (void)argv;
@@ -410,6 +450,8 @@ static const ShellCommand commands[] = {
   {"beep", cmd_beep},
   {"status", cmd_status},
   {"out", cmd_out},
+  {"temp", cmd_temp},
+  {"tune_temp", cmd_tune_temp},
   {"mount", cmd_mount},
   {"unmount", cmd_unmount},
   {"homing", cmd_homing},
@@ -419,7 +461,6 @@ static const ShellCommand commands[] = {
   {"clear", cmd_clear},
   {"reset", cmd_reset},
   {"contrast", cmd_contrast},
-  {"temp", cmd_temp},
   {"benchmark", cmd_benchmark},
 #if RAD_TEST
   {"t", cmd_test_planner},

@@ -36,7 +36,8 @@ typedef struct {
   bool_t              stopped;
   bool_t              homed;
   RadLimitState       limit_state;
-  RadLimitState       old_limit_state;
+  RadLimitState       changed_limit_state;
+  RadLimitState       base_limit_state;
   int32_t             limit_step;
   float               pos;
 } RadJointState;

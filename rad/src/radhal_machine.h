@@ -33,7 +33,7 @@
 #include "chevents.h"
 
 #include "machine.h"
-#include "radadc_converter.h"
+#include "temperature_converter.h"
 #include "kinematics.h"
 #include "planner.h"
 
@@ -109,21 +109,14 @@ typedef struct {
 } RadEndstopConfig;
 
 typedef struct {
-  float               sv;
-  float               pv;
-  adcsample_t         raw;
-} RadTempState;
-
-typedef struct {
   uint8_t             adc_id;
-  uint8_t             heating_pwm_id;
-  uint8_t             cooling_pwm_id;
+  int8_t              heating_pwm_id;
+  int8_t              cooling_pwm_id;
   adcconverter_t      converter;
-  volatile RadTempState state;
 } RadTemp;
 
 typedef struct {
-  RadTemp             *temp;
+  uint8_t             temp_id;
   uint8_t             stepper_id;
   float               max_speed;
   float               max_acceleration;
@@ -136,8 +129,12 @@ typedef struct {
 } RadExtruder;
 
 typedef struct {
-  RadTemp             *temp;
+  uint8_t             temp_id;
 } RadHeatedBed;
+
+typedef struct {
+  uint8_t             temp_id;
+} RadTempMonitor;
 
 typedef struct {
   uint8_t             pwm_id;
@@ -170,7 +167,6 @@ typedef struct machine_t {
     RadEndstopConfig  *configs;
   } endstop_config;
   struct {
-    uint8_t           count;
     RadTemp           *devices;
   } temperature;
   struct {
@@ -182,7 +178,7 @@ typedef struct machine_t {
   } heated_bed;
   struct {
     uint8_t           count;
-    RadTemp           **devices;
+    RadTempMonitor    *devices;
   } temp_monitor;
   struct {
     uint8_t           count;
@@ -206,6 +202,10 @@ extern machine_t machine;
 
 #ifndef RAD_NUMBER_EXTRUDERS
 #error "Please define RAD_NUMBER_EXTRUDERS in machine.h"
+#endif
+
+#ifndef RAD_NUMBER_TEMPERATURES
+#error "Please define RAD_NUMBER_TEMPERATURES in machine.h"
 #endif
 
 #ifdef __cplusplus

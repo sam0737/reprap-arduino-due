@@ -260,6 +260,8 @@ void printerEstop(char *message)
   printer_estop_message = message;
   beeperPlay(&tuneWarning);
   plannerEstop();
+  temperatureAllZero();
+  outputAllZero();
 }
 
 void printerEstopClear(void)

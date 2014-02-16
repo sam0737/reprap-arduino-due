@@ -65,7 +65,12 @@ extern MMCDriver MMCD1;
 /**
  * @brief Define number of stepper output
  */
-#define RAD_NUMBER_STEPPERS 5
+#define RAD_NUMBER_STEPPERS   5
+
+/**
+ * @brief Define number of PWM output
+ */
+#define RAD_NUMBER_OUTPUTS    5
 
 /**
  * @brief Define board support software display contrast control

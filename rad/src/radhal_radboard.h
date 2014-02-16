@@ -127,7 +127,6 @@ typedef struct {
    * @brief PWM Output
    */
   struct {
-    uint8_t                   count;
     RadOutputChannel          *channels;
   } output;
 
@@ -196,6 +195,10 @@ extern const radboard_t radboard;
 
 #ifndef RAD_NUMBER_STEPPERS
 #error "Please define RAD_NUMBER_STEPPERS in radboard.h"
+#endif
+
+#ifndef RAD_NUMBER_OUTPUTS
+#error "Please define RAD_NUMBER_OUTPUTS in radboard.h"
 #endif
 
 /*

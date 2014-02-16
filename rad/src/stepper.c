@@ -94,8 +94,6 @@ typedef struct {
 
 static WORKING_AREA(waStepper, 256);
 
-static Mutex mtxState;
-
 static uint8_t phase = 0;
 static bool_t estop = 0;
 static PlannerOutputBlock active_block;
@@ -175,12 +173,12 @@ static void stepper_wait_timer(void)
     RAD_DEBUG_PRINTF("STEPPER: %4d/%-4d:%d %8d|",
         step_state.total_step_spent, step_state.step_max, active_block.mode,
         timer_interval);
-    chMtxLock(&mtxState);
+    chSysLock();
     for (uint8_t i = 0; i < radboard.stepper.count; i++) {
       StepperStepStateChannel *ss = &step_state.channels[i];
       RAD_DEBUG_PRINTF(" %6d", ss->pos);
     }
-    chMtxUnlock();
+    chSysUnlock();
     RAD_DEBUG_PRINTF("|%.3f A %.3f\n",
         step_state.unit_tick_pace / step_state.last_tick_pace,
         step_state.step_max > 0 ?
@@ -296,7 +294,6 @@ static void stepper_fetch_new_block(void)
     stepper_stop_timer();
     chThdSleepMilliseconds(10);
   }
-  chSysUnlock();
   if (!new_block)
     return;
 
@@ -401,7 +398,7 @@ static void stepper_fetch_new_block(void)
 
 static void reset_step_state(void)
 {
-  chMtxLock(&mtxState);
+  chSysLock();
   for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
     RadJoint *j = &machine.kinematics.joints[i];
     StepperStepStateChannel *ss = &step_state.channels[j->stepper_id];
@@ -412,7 +409,7 @@ static void reset_step_state(void)
     StepperStepStateChannel *ss = &step_state.channels[j->stepper_id];
     ss->pos = active_block.p.target.extruders[i] * j->scale;
   }
-  chMtxUnlock();
+  chSysUnlock();
 }
 
 static void positional_calculation(void)
@@ -478,13 +475,13 @@ static void stepper_velocity_profile(void)
 
     if (!ss->limit_hit && (
         (active_block.stop_on_limit_changes &&
-            js->limit_state != js->old_limit_state) ||
+            js->changed_limit_state != LIMIT_Normal) ||
         (!active_block.stop_on_limit_changes &&
             js->limit_state != LIMIT_Normal)
       )) {
       *sv = 0;
       ss->limit_hit = 1;
-      js->old_limit_state = js->limit_state;
+      stepperResetOldLimitState(i);
       js->limit_step = ss->pos;
     }
 
@@ -555,7 +552,7 @@ static void stepper_velocity_profile(void)
   if (all_stopped) {
     stepper_idle();
   }
-  chMtxUnlock();
+  chSysUnlock();
 }
 
 static msg_t threadStepper(void *arg) {
@@ -612,7 +609,7 @@ static msg_t threadStepper(void *arg) {
     } else
     {
       // Phase Execute
-      chMtxLock(&mtxState);
+      chSysLock();
       pexSysLock();
       for (uint8_t i = 0; i < radboard.stepper.count; i++) {
         StepperStepStateChannel *ss = &step_state.channels[i];
@@ -624,7 +621,7 @@ static msg_t threadStepper(void *arg) {
         }
       }
       pexSysUnlock();
-      chMtxUnlock();
+      chSysUnlock();
 
     }
     phase = 1 - phase;
@@ -671,7 +668,6 @@ void stepperInit(void)
   stepper_init_timer();
 
   // Start stepper loop
-  chMtxInit(&mtxState);
   chThdCreateStatic(waStepper, sizeof(waStepper), NORMALPRIO + 32, threadStepper, NULL);
 }
 
@@ -685,7 +681,7 @@ void stepperSetHome(uint8_t joint_id, int32_t home_step, float home_pos)
 
 RadJointsState stepperGetJointsState()
 {
-  chMtxLock(&mtxState);
+  chSysLock();
   for (uint8_t i = 0; i <RAD_NUMBER_JOINTS; i++) {
     RadJoint *j = &machine.kinematics.joints[i];
     RadJointState *js = &joints_state.joints[i];
@@ -694,36 +690,40 @@ RadJointsState stepperGetJointsState()
     js->pos = ss->pos / j->scale;
   }
   RadJointsState s = joints_state;
-  chMtxUnlock();
+  chSysUnlock();
   return s;
 }
 
 void stepperSetLimitState(uint8_t joint_id, RadLimitState state)
 {
-  chMtxLock(&mtxState);
-  joints_state.joints[joint_id].limit_state = state;
-  chMtxUnlock();
+  chSysLock();
+  RadJointState* js = &joints_state.joints[joint_id];
+  js->limit_state = state;
+  js->changed_limit_state |= js->base_limit_state ^ state;
+  chSysUnlock();
 }
 
 void stepperResetOldLimitState(uint8_t joint_id)
 {
-  chMtxLock(&mtxState);
-  joints_state.joints[joint_id].old_limit_state = LIMIT_Normal;
-  chMtxUnlock();
+  chSysLock();
+  RadJointState* js = &joints_state.joints[joint_id];
+  js->base_limit_state = js->limit_state;
+  js->changed_limit_state = LIMIT_Normal;
+  chSysUnlock();
 }
 
 void stepperClearStopped(uint8_t joint_id)
 {
-  chMtxLock(&mtxState);
+  chSysLock();
   joints_state.joints[joint_id].stopped = FALSE;
-  chMtxUnlock();
+  chSysUnlock();
 }
 
 void stepperSetHomed(uint8_t joint_id)
 {
-  chMtxLock(&mtxState);
+  chSysLock();
   joints_state.joints[joint_id].homed = TRUE;
-  chMtxUnlock();
+  chSysUnlock();
 }
 
 /** @} */
