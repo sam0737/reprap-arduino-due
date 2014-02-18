@@ -5,25 +5,15 @@
  *              http://ugfx.org/license.html
  */
 
-/**
- * @file    drivers/tdisp/HD44780/tdisp_lld_board_example.h
- * @brief   TDISP driver subsystem board interface for the HD44780 display
- *
- * @addtogroup TDISP
- * @{
- */
-
 #ifndef _TDISP_LLD_CONTROL_H
-#define _TDISP_LLD_BOARD_H
+#define _TDISP_LLD_CONTROL_H
 
 #include "ch.h"
 #include "hal.h"
 
-#ifdef RAD_DISPLAY_HD44780
-  #include "tdisp_board_hd44780.h"
-#else
-  #error "Unsupported displays (TDISP)"
-#endif
+static void display_control_init(void)
+{
+}
 
 /*
 static void display_lld_set_power(bool_t power)
@@ -46,6 +36,5 @@ static void display_lld_set_brightness(float brightness)
 }
 */
 
-#endif /* _TDISP_LLD_BOARD_H */
-/** @} */
+#endif /* _TDISP_LLD_CONTROL_H */
 

@@ -38,6 +38,7 @@ extern char* printer_estop_message;
 extern "C" {
 #endif
   void printerInit(void);
+  uint8_t printerGetActiveExtruder(void);
   void printerAddLine(const char* line);
   bool_t printerIsEstopped(void);
   void printerEstop(char* message);

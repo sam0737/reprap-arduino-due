@@ -24,33 +24,47 @@
  *
  */
 
+#ifndef L_UI_STATUS_READY
+#define L_UI_STATUS_READY \
+  "S0-Ready"
+#endif
+
+#ifndef L_UI_STATUS_NOT_HOMED
+#define L_UI_STATUS_NOT_HOMED \
+  "S1-Printer is not homed"
+#endif
+
+#ifndef L_DEBUG_STOPPED_BY_SHELL
+#define L_DEBUG_STOPPED_BY_SHELL \
+  "S2-Stopped by shell"
+#endif
+
 #ifndef L_HOMING_INCORRECT_INIT_STATE
 #define L_HOMING_INCORRECT_INIT_STATE \
-  "Incorrect initial limit switch for homing"
+  "H1-Incorrect initial limit switch state for homing"
 #endif
 
 #ifndef L_HOMING_TRAVEL_LIMIT
 #define L_HOMING_TRAVEL_LIMIT \
-  "Joint traveled too long without changing limit switch state"
+  "H2-Joint has traveled too far without triggering any limit switch"
 #endif
 
 #ifndef L_HOMING_INCORRECT_LIMIT_HIT
 #define L_HOMING_INCORRECT_LIMIT_HIT \
-  "Incorrect limit switch is hit during homing"
+  "H3-Incorrect limit switch is hit when homing"
 #endif
-
 
 #ifndef L_TEMPERATURE_AUTOTUNE_OVERHEATED
 #define L_TEMPERATURE_AUTOTUNE_OVERHEATED \
-  "[T1] Autotune overheated"
+  "T1-Autotune overheated"
 #endif
 
 #ifndef L_TEMPERATURE_AUTOTUNE_TIMEOUT
 #define L_TEMPERATURE_AUTOTUNE_TIMEOUT \
-  "[T2] Autotune timeout"
+  "T2-Autotune timeout"
 #endif
 
 #ifndef L_TEMPERATURE_AUTOTUNE_IN_ESTOP
 #define L_TEMPERATURE_AUTOTUNE_IN_ESTOP \
-  "[T3] Autotune aborted by ESTOP"
+  "T3-Autotune aborted by ESTOP"
 #endif

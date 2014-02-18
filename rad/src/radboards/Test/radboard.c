@@ -29,13 +29,22 @@
 #include "hal.h"
 #include "rad.h"
 
+#include "httpmmap.h"
+
 SerialConfig ser_shellcfg = {};
 SerialConfig ser_commcfg = {};
+
+HttpMmapDriver hmd;
+HttpMmapConfig hm_config = { .port = 29100 };
 
 void radboardInit(void)
 {
   sdStart((SerialDriver*)radboard.debug.channel, &ser_shellcfg);
   sdStart((SerialDriver*)radboard.hmi.comm_channel, &ser_commcfg);
+
+  httpmmapInit();
+  httpmmapObjectInit(&hmd);
+  httpmmapStart(&hmd, &hm_config);
 
   /**
    * Disable buffering on output for Eclipse console

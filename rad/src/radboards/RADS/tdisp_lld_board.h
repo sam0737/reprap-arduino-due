@@ -5,13 +5,6 @@
  *              http://ugfx.org/license.html
  */
 
-/**
- * @file    drivers/tdisp/HD44780/tdisp_lld_board_example.h
- * @brief   TDISP driver subsystem board interface for the HD44780 display
- *
- * @addtogroup TDISP
- * @{
- */
 
 #ifndef _TDISP_LLD_BOARD_H
 #define _TDISP_LLD_BOARD_H
@@ -25,7 +18,7 @@
   #error "Unsupported displays (TDISP)"
 #endif
 
-static void display_lld_init()
+static void display_lld_init(void)
 {
   palSetGroupMode(IOPORT2, (1<<15) | (1<<16), 0, PAL_MODE_INPUT_ANALOG);
   pmc_enable_peripheral_clock(ID_DACC);
@@ -38,5 +31,5 @@ static void display_lld_init()
 }
 
 #endif /* _TDISP_LLD_BOARD_H */
-/** @} */
+
 

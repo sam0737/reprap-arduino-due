@@ -161,6 +161,8 @@ static void stepper_set_timer(int32_t interval)
   timer_active = TRUE;
   timer_interval = interval;
 }
+
+systime_t past_timer;
 static void stepper_wait_timer(void)
 {
   while (!timer_active) {
@@ -168,10 +170,11 @@ static void stepper_wait_timer(void)
     chThdSleepMilliseconds(1000);
   }
   #if RAD_TEST
-  if (phase == 0)
+  past_timer += timer_interval;
+  if (phase == 0 && active_block.mode == BLOCK_Positional)
   {
-    RAD_DEBUG_PRINTF("STEPPER: %4d/%-4d:%d %8d|",
-        step_state.total_step_spent, step_state.step_max, active_block.mode,
+    RAD_DEBUG_PRINTF("STEPPER: %4d/%-4d %8d|",
+        step_state.total_step_spent, step_state.step_max,
         timer_interval);
     chSysLock();
     for (uint8_t i = 0; i < radboard.stepper.count; i++) {
@@ -186,8 +189,12 @@ static void stepper_wait_timer(void)
             0
         );
   }
+  while (past_timer >= (clock.tick_frequency / 20))
+  {
+    past_timer -= (clock.tick_frequency / 20);
+    chThdSleepMilliseconds(50);
+  }
   #endif
-  chThdSleepMilliseconds(1);
 }
 #endif
 

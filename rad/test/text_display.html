@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+    <head>
+        <script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+    </head>
+    <body>
+        <script>
+            var decodeBase64 = function(d,b,h,g,c,u,r,q,x){g=new Uint8Array(d.length);h=g.subarray||g.subset||g.slice;b="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";for(r=0,q=x='';c=d[x++];~c&&(u=q%4?u*64+c:c,q++%4)?g[r++]=(255&u>>(-2*q&6)):0)c=b.indexOf(c);return h.call(g,0,r)};
+
+
+            $(function() {
+                function refresh() 
+                {
+                    jQuery.ajax('http://localhost:29100/display').
+                        done(function(text) {
+                            var data = decodeBase64(text);
+                            var cols = data[0];
+                            var rows = data[1];
+                            var output = "";
+                            for (var j = 0; j < rows; j++)
+                            {
+                                for (var i = 0; i < cols; i++)
+                                {
+                                    var code = data[i + j * cols + 5];
+                                    output +=
+                                        code == 0 ? ' ' :
+                                        code >= 32 && code < 128 ? String.fromCharCode(code) : 
+                                        '*';
+                                }
+                                output += "\n";
+                            }
+                            $('#display').text(output);
+                        }).
+                        fail(function(){
+                            $('#display').text('Not connected');
+                        }).
+                        always(function(){
+                            setTimeout(refresh, 100);
+                        });;
+                }
+                refresh();
+            });
+        </script>
+        <h1>RAD Virtual Console</h1>
+        <pre id="display" style="background: #333388; color: white; font-weight: bold; font-size: 16px; float: left;"></pre>
+    </body>
+</html>

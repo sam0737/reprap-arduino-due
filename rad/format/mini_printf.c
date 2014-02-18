@@ -118,13 +118,13 @@ mini_format(
           done += len;
 					break;
 
-				case 'c' :
+				case 'c':
 				  bf[0] = (char)(va_arg(va, int));
 				  arg = cons(arg, bf, 1);
           done++;
 					break;
 
-				case 's' :
+				case 's':
 					ptr = va_arg(va, char*);
 					len = mini_strlen(ptr);
           arg = cons(arg, ptr, len);

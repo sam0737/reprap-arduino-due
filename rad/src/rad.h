@@ -45,7 +45,7 @@
 #include "temperature.h"
 #include "raddebug.h"
 #include "radpex.h"
-#include "display.h"
+#include "ui.h"
 #include "storage.h"
 #include "printer.h"
 #include "radmath.h"

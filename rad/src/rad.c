@@ -46,7 +46,7 @@ void radInit(void)
   temperatureInit();
   debugInit();
   plannerInit();
-  displayInit();
+  uiInit();
   storageInit();
   printerInit();
 #if HAL_USE_TM

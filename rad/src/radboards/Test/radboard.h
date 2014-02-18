@@ -35,6 +35,9 @@
 #ifndef _RADBOARD_H_
 #define _RADBOARD_H_
 
+#include "httpmmap.h"
+extern HttpMmapDriver hmd;
+
 /**
  * @brief Board identifier.
  */

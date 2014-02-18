@@ -183,7 +183,7 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
         js->stopped, js->homed);
   }
 
-  PlannerVirtualPosition virtual = plannerSyncCurrentPosition();
+  PlannerVirtualPosition virtual = plannerGetCurrentPosition();
   chprintf(chp, "Position:\r\n");
   for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++) {
     chprintf(chp, "  %c: %-4.2f ",
@@ -338,7 +338,7 @@ static void cmd_homing(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  printerAddLine("G29");
+  printerAddLine("G28");
 }
 
 static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -375,7 +375,7 @@ static void cmd_estop(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  printerEstop("Stopped by shell");
+  printerEstop(L_DEBUG_STOPPED_BY_SHELL);
 }
 
 static void cmd_clear(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -405,7 +405,7 @@ static void cmd_contrast(BaseSequentialStream *chp, int argc, char *argv[]) {
   contrast = atoi(argv[0]);
   if (contrast > 100) contrast = 100;
   if (contrast < 0) contrast = 0;
-  displaySetContrast(contrast / 100.0);
+  uiSetContrast(contrast / 100.0);
 }
 
 static void cmd_temp2(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -414,14 +414,16 @@ static void cmd_temp2(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
 
 #if HAL_USE_GFX
+  /*
   // Get the screen size
   coord_t width = gdispGetWidth();
   coord_t height = gdispGetHeight();
 
   gdispDrawBox(10, 10, width/2, height/2, White);
   gdispFillArea(width/2, height/2, width/2-10, height/2-10, White);
-  gdispControl(GDISP_CONTROL_LLD_FLUSH, NULL);
+  //gdispControl(GDISP_CONTROL_LLD_FLUSH, NULL);
   chprintf(chp, "G: %d %d", width, height);
+  */
 #endif
   /*
   tdispHome();

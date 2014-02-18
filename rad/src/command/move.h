@@ -19,7 +19,6 @@
 */
 
 static PlannerVirtualPosition commanded;
-static uint8_t active_extruder;
 static float feedrate;
 static float feedrate_multiplier = 1;
 
@@ -73,5 +72,5 @@ static void commandSetPosition(void)
 
 static void printerSyncCommanded(void)
 {
-  commanded = plannerSyncCurrentPosition();
+  commanded = plannerGetCurrentPosition();
 }

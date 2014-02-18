@@ -135,7 +135,7 @@ machine_t machine =
           { .pwm_id = 5 }
         }
     },
-    .hmi = {
+    .ui = {
         .contrast = 0.5
     }
 };

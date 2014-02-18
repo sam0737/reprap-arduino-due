@@ -68,7 +68,7 @@ void plannerInit(void)
   traj_max_feedrate = machine.kinematics.traj_max_feedrate(machine) * 60;
 }
 
-PlannerVirtualPosition plannerSyncCurrentPosition(void)
+PlannerVirtualPosition plannerGetCurrentPosition(void)
 {
   RadJointsState state = stepperGetJointsState();
   for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++)

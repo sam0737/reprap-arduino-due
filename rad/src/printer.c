@@ -56,6 +56,8 @@ Mailbox command_mbox;
 static PrinterCommand *curr_command;
 char* printer_estop_message = NULL;
 
+static uint8_t active_extruder;
+
 static WORKING_AREA(waPrinterFetchSerial, 128);
 static WORKING_AREA(waPrinter, 512);
 
@@ -241,6 +243,11 @@ void printerInit(void)
   chThdCreateStatic(waPrinter, sizeof(waPrinter), NORMALPRIO, threadPrinter, NULL);
   chThdCreateStatic(waPrinterFetchSerial, sizeof(waPrinterFetchSerial), NORMALPRIO,
       threadPrinterFetchSerial, NULL);
+}
+
+uint8_t printerGetActiveExtruder(void)
+{
+  return active_extruder;
 }
 
 void printerAddLine(const char* line)

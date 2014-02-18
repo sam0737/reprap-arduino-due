@@ -143,7 +143,7 @@ typedef struct {
 
 typedef struct {
   float               contrast;
-} RadHmiSettings;
+} RadUiSettings;
 
 typedef struct machine_t {
   struct {
@@ -184,7 +184,7 @@ typedef struct machine_t {
     uint8_t           count;
     RadFan            *devices;
   } fan;
-  RadHmiSettings      hmi;
+  RadUiSettings      ui;
 } machine_t;
 
 /**

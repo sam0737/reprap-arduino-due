@@ -16,6 +16,7 @@ PROJECT = rad
 # Imported source files and paths
 CHIBIOS = chibios
 GFXLIB = ugfx
+HTTPMMAP = httpmmap
 RAD = src
 
 # Chibios/RT Chained Makefile
@@ -42,6 +43,7 @@ CSRC = $(PORTSRC) \
        $(RADBOARDSRC) \
        $(MACHINESRC) \
        $(DISPLAYSRC) \
+       $(HTTPMMAPSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(MSDSRC) \
@@ -84,6 +86,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(RADBOARDINC) \
          $(MACHINEINC) \
          $(DISPLAYINC) \
+         $(HTTPMMAPINC) \
          src \
 
 #

@@ -18,29 +18,22 @@
 
 */
 
-/**
- * @file    display.h
- * @brief   Display header
- *
- * @addtogroup DISPLAY
- * @{
- */
-#ifndef _RAD_DISPLAY_H
-#define _RAD_DISPLAY_H
+#include "gfx.h"
 
-/*===========================================================================*/
-/* External declarations.                                                    */
-/*===========================================================================*/
+static font_t fontText;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-void displayInit(void);
-void displaySetContrast(float contrast);
-#ifdef __cplusplus
+#define DISPLAY_MARQUEE_DELAY (MS2ST(1500 / GDISP_SCREEN_WIDTH))
+#define DISPLAY_DASHBOARD_TEMPS 4
+
+static void display_ui_init(void) {
+  // fontStatus = gdispOpenFont("DejaVuSans12");
+  fontText = gdispOpenFont("DejaVuSans24");
+  //font4 = gdispOpenFont("DejaVuSans10");
+  gdispClear(Black);
 }
-#endif
 
-#endif  /* _RAD_DISPLAY_H */
+static void display_lld_set_contrast(float contrast)
+{
+  gdispControl(GDISP_CONTROL_CONTRAST, (void*)(size_t)(contrast * 100));
+}
 
-/** @} */
