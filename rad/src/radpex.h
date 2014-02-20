@@ -31,11 +31,30 @@
 #define _RADPAL_H_
 
 #include "hal.h"
-#include "rad.h"
 
-#ifndef PAL_PAD_IS_ATOMIC
-#error "Please define PAL_PAD_IS_ATOMIC radboard.h - if PAL pad change is atomic"
-#endif
+/*===========================================================================*/
+/* External declarations.                                                    */
+/*===========================================================================*/
+
+/**
+ * @brief Define a IO pin
+ */
+typedef struct {
+  /**
+   * @brief   The PIO port
+   */
+  ioportid_t  port;
+
+  /**
+   * @brief   The pin number
+   */
+  uint8_t     pin;
+} pin_t;
+
+typedef struct {
+  pin_t       pin;
+  uint8_t     active_low;
+} signal_t;
 
 /*===========================================================================*/
 /* Macro declarations.                                                       */

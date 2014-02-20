@@ -19,11 +19,14 @@ struct HttpMmapDriver {
   WORKING_AREA(working_area, 16 * 1024);
 };
 
+typedef void (*httpmmap_post_callback_t)(HttpMmapObject* object);
+
 struct HttpMmapObject {
   char*           name;
   size_t          size;
+  size_t          upload_size;
   char*           buffer;
-  char            modified;
+  httpmmap_post_callback_t  callback;
   HttpMmapObject* next;
 };
 

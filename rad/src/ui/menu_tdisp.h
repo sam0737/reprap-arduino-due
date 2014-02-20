@@ -18,41 +18,29 @@
 
 */
 
-/**
- * @file    rad.c
- * @brief   RAD core
- *
- * @addtogroup RAD
- * @{
- */
+static void ui_menu_renderer(void) {
+  if (uiState.changed_parts & DASHBOARD_Reset)
+  {
+    tdispClear();
+  }
 
-#include "ch.h"
-#include "hal.h"
-#include "rad.h"
-
-/*===========================================================================*/
-/* Driver exported functions.                                                */
-/*===========================================================================*/
-
-void radInit(void)
-{
-  if (radboard.init != NULL)
-    radboard.init();
-  powerInit();
-  beeperInit();
-  inputInit();
-  outputInit();
-  stepperInit();
-  endstopInit();
-  temperatureInit();
-  debugInit();
-  plannerInit();
-  uiInit();
-  storageInit();
-  printerInit();
-#if HAL_USE_TM
-  tmInit();
-#endif
+  if (uiState.changed_parts & MENU_Changed)
+  {
+    for (uint8_t i = 0; i < TDISP_ROWS; i++)
+    {
+      tdispSetCursor(0, i);
+      const UiMenuItem* item =
+          uiState.menu.get_next_cb != NULL && i > 0 ?
+          uiState.menu.get_next_cb() :
+          uiMenuGetItem(i);
+      tdispDrawChar(i == uiState.menu.pos ? '>' : ' ');
+      if (item != NULL) {
+        tdispDrawString(item->name);
+        for (uint8_t j = TDISP_COLUMNS - strlen(item->name) - 1; j > 0; j--)
+          tdispDrawChar(' ');
+      }
+    }
+    if (uiState.menu.close_cb != NULL)
+      uiState.menu.close_cb();
+  }
 }
-
-/** @} */

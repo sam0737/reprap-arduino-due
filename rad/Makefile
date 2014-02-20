@@ -44,6 +44,7 @@ CSRC = $(PORTSRC) \
        $(MACHINESRC) \
        $(DISPLAYSRC) \
        $(HTTPMMAPSRC) \
+       $(RADSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(MSDSRC) \
@@ -85,6 +86,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(FORMATINC) \
          $(RADBOARDINC) \
          $(MACHINEINC) \
+         $(RADINC) \
          $(DISPLAYINC) \
          $(HTTPMMAPINC) \
          src \

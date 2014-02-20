@@ -408,34 +408,6 @@ static void cmd_contrast(BaseSequentialStream *chp, int argc, char *argv[]) {
   uiSetContrast(contrast / 100.0);
 }
 
-static void cmd_temp2(BaseSequentialStream *chp, int argc, char *argv[]) {
-  (void)chp;
-  (void)argc;
-  (void)argv;
-
-#if HAL_USE_GFX
-  /*
-  // Get the screen size
-  coord_t width = gdispGetWidth();
-  coord_t height = gdispGetHeight();
-
-  gdispDrawBox(10, 10, width/2, height/2, White);
-  gdispFillArea(width/2, height/2, width/2-10, height/2-10, White);
-  //gdispControl(GDISP_CONTROL_LLD_FLUSH, NULL);
-  chprintf(chp, "G: %d %d", width, height);
-  */
-#endif
-  /*
-  tdispHome();
-  tdispClear();
-  tdispSetCursor(0, 0);
-  tdispDrawChar('H');
-  tdispDrawChar('E');
-  tdispDrawChar('L');
-  tdispDrawChar(0x55);
-  */
-}
-
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/

@@ -43,7 +43,7 @@ void outputInit()
 {
   uint8_t i;
   RadOutputChannel *ch;
-  for (i = 0; i < radboard.output.count; i++)
+  for (i = 0; i < RAD_NUMBER_OUTPUTS; i++)
   {
     ch = &radboard.output.channels[i];
     pexDisableSig(ch->signal);

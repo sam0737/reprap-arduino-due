@@ -34,10 +34,6 @@
 /* Macro definitions                                                         */
 /*===========================================================================*/
 
-#if !HAL_USE_ADC
-typedef uint16_t adcsample_t;
-#endif
-
 /**
  * @brief Generate converter function for NTC thermistor.
  *        NAME is the function name,
@@ -83,6 +79,6 @@ extern "C" {
 }
 #endif
 
-#endif  /* _RAD_ADC_CONVERTER_H_ */
+#endif  /* _TEMPERATURE_CONVERTER_H_ */
 
 /** @} */

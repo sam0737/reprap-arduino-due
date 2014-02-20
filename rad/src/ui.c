@@ -45,6 +45,21 @@
 #if HAS_DISPLAY
 static WORKING_AREA(waDisplay, 2048);
 
+#define ENABLE_INPUT(TYPE) \
+  do { \
+    if (machine.ui.TYPE.enabled) \
+      inputEnable(machine.ui.TYPE.input_id); \
+  } while (0)
+
+#define FLUSH_INPUT(TYPE) \
+  do { \
+    if (machine.ui.TYPE.enabled) \
+      inputGet(machine.ui.TYPE.input_id); \
+  } while (0)
+
+#define GET_INPUT(TYPE) \
+  inputGet(machine.ui.TYPE.enabled ? machine.ui.TYPE.input_id : 255)
+
 typedef enum {
   DASHBOARD_Temp_Idle = 0,
   DASHBOARD_Temp_Heating = 1,
@@ -64,7 +79,8 @@ typedef enum {
   DASHBOARD_Line1 = 0x100,
   DASHBOARD_Line2 = 0x200,
   DASHBOARD_Reset = 0x400,
-  DASHBOARD_All = 0xFFF
+  MENU_Changed = 0x800,
+  UI_PARTS_All = 0xFFFF
 } UiParts;
 
 typedef struct {
@@ -73,11 +89,32 @@ typedef struct {
   int16_t sv;
 } DashboardTempData;
 
-typedef void (*display_fetcher_t)(void);
+typedef void (*display_viewmodel_t)(void);
 typedef void (*display_renderer_t)(void);
 
+typedef uint8_t (*menu_visible_t)(void);
+typedef void (*menu_action_t)(void*);
+
 typedef struct {
-  display_fetcher_t   fetcher;
+  char* name;
+  void* icon;
+  menu_visible_t visible_cb;
+  menu_action_t action_cb;
+  void* state;
+} UiMenuItem;
+
+typedef struct {
+  uint8_t count;
+  const UiMenuItem *menus;
+} UiStandardMenu;
+
+typedef const UiMenuItem* (*menu_get_t)(int16_t);
+typedef int16_t (*menu_count_t)(void);
+typedef const UiMenuItem* (*menu_get_next_t)(void);
+typedef void (*menu_close_t)(void);
+
+typedef struct {
+  display_viewmodel_t   viewmodel;
   display_renderer_t  renderer;
   UiParts changed_parts;
   union
@@ -107,6 +144,26 @@ typedef struct {
       uint8_t active_extruder;
       uint8_t temps_screen;
     } dashboard;
+    struct {
+      union {
+        struct {
+          UiMenuItem item;
+          uint16_t depth;
+          int16_t directory_opened;
+        } print;
+      };
+      const void* state;
+      menu_get_t get_cb;
+      menu_count_t count_cb;
+      menu_get_next_t get_next_cb;
+      menu_close_t close_cb;
+      menu_action_t back_action;
+      systime_t last_refresh;
+      int8_t pos;
+      int16_t encoder_delta;
+      int16_t offset;
+      int16_t current;
+    } menu;
   };
 } UiState;
 
@@ -119,18 +176,30 @@ static UiState uiState;
 
 #if HAS_DISPLAY
 
+static void uiChangePage(display_viewmodel_t viewmodel)
+{
+  uiState.viewmodel = viewmodel;
+  uiState.renderer = NULL;
+  uiState.changed_parts = UI_PARTS_All;
+}
+
+#include "ui/menu.h"
 #include "ui/display_format.h"
 #if GFX_USE_TDISP
 #include "tdisp_lld_control.h"
 #include "ui/display_tdisp.h"
 #include "ui/dashboard_tdisp.h"
+#include "ui/menu_tdisp.h"
 #endif
 #if GFX_USE_GDISP
 #include "ui/display_gdisp.h"
 #include "ui/dashboard_gdisp.h"
 #endif
 
-#include "ui/dashboard_fetcher.h"
+#include "ui/menu_viewmodel.h"
+#include "ui/dashboard_viewmodel.h"
+#include "ui/print_viewmodel.h"
+#include "ui/mainmenu_viewmodel.h"
 
 static msg_t threadDisplay(void *arg) {
   (void)arg;
@@ -143,7 +212,10 @@ static msg_t threadDisplay(void *arg) {
 
   while (TRUE) {
     next = chTimeNow() + MS2ST(100); // 10 fps
-    uiState.fetcher();
+    do
+    {
+      uiState.viewmodel();
+    } while (uiState.renderer == NULL);
     uiState.renderer();
     if (uiState.changed_parts)
     {
@@ -159,6 +231,17 @@ static msg_t threadDisplay(void *arg) {
 }
 #endif
 
+static void uiInputInit()
+{
+  ENABLE_INPUT(generic_wheel);
+  ENABLE_INPUT(up_button);
+  ENABLE_INPUT(down_button);
+  ENABLE_INPUT(left_button);
+  ENABLE_INPUT(right_button);
+  ENABLE_INPUT(back_button);
+  ENABLE_INPUT(enter_button);
+}
+
 /*===========================================================================*/
 /* Exported functions.                                                       */
 /*===========================================================================*/
@@ -167,9 +250,10 @@ void uiInit(void)
 {
 #if HAS_DISPLAY
   gfxInit();
+  uiInputInit();
   uiSetContrast(machine.ui.contrast);
-  uiState.fetcher = ui_dashboard_fetcher;
-  uiState.changed_parts = DASHBOARD_All;
+
+  uiChangePage(ui_dashboard_viewmodel);
   chThdCreateStatic(waDisplay, sizeof(waDisplay), NORMALPRIO - 2, threadDisplay, NULL);
 #endif
 }

@@ -37,6 +37,20 @@ SerialConfig ser_commcfg = {};
 HttpMmapDriver hmd;
 HttpMmapConfig hm_config = { .port = 29100 };
 
+static char control1_buffer[16];
+HttpMmapObject hmo_control1 = {
+    .name = "control1",
+    .buffer = control1_buffer,
+    .size = sizeof(control1_buffer)
+};
+
+static char control2_buffer[16];
+HttpMmapObject hmo_control2 = {
+    .name = "control2",
+    .buffer = control2_buffer,
+    .size = sizeof(control2_buffer)
+};
+
 void radboardInit(void)
 {
   sdStart((SerialDriver*)radboard.debug.channel, &ser_shellcfg);
@@ -45,6 +59,9 @@ void radboardInit(void)
   httpmmapInit();
   httpmmapObjectInit(&hmd);
   httpmmapStart(&hmd, &hm_config);
+  httpmmapAdd(&hmd, &hmo_control1);
+  httpmmapAdd(&hmd, &hmo_control2);
+  inputEnable(2);
 
   /**
    * Disable buffering on output for Eclipse console
@@ -61,15 +78,21 @@ const radboard_t radboard =
     .hmi = {
         .comm_channel = (BaseAsynchronousChannel*) &SD1
     },
-    .endstop = {
-        .count = 0,
-        .channels = (RadEndstopChannel[]) {
+    .input = {
+        .channels = (RadInputChannel[]) {
+          {
+            .fetcher = inputVirtualEncoderFetcher,
+            .config = {  .virtual_encoder = { .hmo = &hmo_control1 } },
+            .processor = inputEncoderProcessor
+          },
+          { .processor = inputButtonProcessor },
+          {
+            .fetcher = inputVirtualEncoderFetcher,
+            .config = {  .virtual_encoder = { .hmo = &hmo_control2 } },
+            .processor = inputEncoderProcessor
+          },
+          { .processor = inputButtonProcessor },
         }
-    },
-    .debug = {
-        .channel = (BaseAsynchronousChannel*) &SD2,
-        .software_reset = NULL,
-        .erase = NULL
     },
     .output = {
         .channels = (RadOutputChannel[]) {
@@ -81,7 +104,6 @@ const radboard_t radboard =
         }
     },
     .stepper = {
-        .count = RAD_NUMBER_STEPPERS,
         .main_enable = { .pin = { IOPORT1, 16 }, .active_low = 0 },
         .channels = (RadStepperChannel[]) {
           {
@@ -105,7 +127,16 @@ const radboard_t radboard =
             .dir = { .pin = { IOPORT1, 9 }, .active_low = 0 },
           }
         }
-    }
+    },
+    .endstop = {
+        .channels = (RadEndstopChannel[]) {
+        }
+    },
+    .debug = {
+        .channel = (BaseAsynchronousChannel*) &SD2,
+        .software_reset = NULL,
+        .erase = NULL
+    },
 };
 
 /** @} */

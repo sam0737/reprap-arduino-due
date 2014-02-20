@@ -177,7 +177,7 @@ static void stepper_wait_timer(void)
         step_state.total_step_spent, step_state.step_max,
         timer_interval);
     chSysLock();
-    for (uint8_t i = 0; i < radboard.stepper.count; i++) {
+    for (uint8_t i = 0; i < RAD_NUMBER_STEPPERS; i++) {
       StepperStepStateChannel *ss = &step_state.channels[i];
       RAD_DEBUG_PRINTF(" %6d", ss->pos);
     }
@@ -308,7 +308,7 @@ static void stepper_fetch_new_block(void)
   if (active_block.mode == BLOCK_Velocity) {
     stepper_enable_all();
     step_state.step_max = STEPPER_VELOCITY_STEP_FREQ;
-    for (uint8_t i = 0; i < radboard.stepper.count; i++) {
+    for (uint8_t i = 0; i < RAD_NUMBER_STEPPERS; i++) {
       StepperStepStateChannel *ss = &step_state.channels[i];
       ss->current = - ((int32_t)step_state.step_max) / 2;
       ss->limit_hit = 0;
@@ -366,7 +366,7 @@ static void stepper_fetch_new_block(void)
         active_block.p.distance * clock.tick_frequency / step_state.step_max :
         clock.tick_frequency * clock.tick_frequency;
     step_state.decelerate_after_step = active_block.p.decelerate_after / active_block.p.distance * step_state.step_max + 0.5;
-    for (uint8_t i = 0; i < radboard.stepper.count; i++) {
+    for (uint8_t i = 0; i < RAD_NUMBER_STEPPERS; i++) {
       StepperStepStateChannel *ss = &step_state.channels[i];
       ss->current = - ((int32_t)step_state.step_max) / 2;
     }
@@ -575,7 +575,7 @@ static msg_t threadStepper(void *arg) {
     if (phase == 0)
     {
       // Phase Setup
-      for (uint8_t i = 0; i < radboard.stepper.count; i++) {
+      for (uint8_t i = 0; i < RAD_NUMBER_STEPPERS; i++) {
         palDisableSig(radboard.stepper.channels[i].step);
       }
 
@@ -618,7 +618,7 @@ static msg_t threadStepper(void *arg) {
       // Phase Execute
       chSysLock();
       pexSysLock();
-      for (uint8_t i = 0; i < radboard.stepper.count; i++) {
+      for (uint8_t i = 0; i < RAD_NUMBER_STEPPERS; i++) {
         StepperStepStateChannel *ss = &step_state.channels[i];
         ss->current += ss->step;
         if (ss->current > 0) {
@@ -659,7 +659,7 @@ void stepperInit(void)
     palSetSigMode(radboard.stepper.main_enable, PAL_MODE_OUTPUT_PUSHPULL);
   }
 
-  for (i = 0; i < radboard.stepper.count; i++)
+  for (i = 0; i < RAD_NUMBER_STEPPERS; i++)
   {
     ch = &radboard.stepper.channels[i];
     if (palHasSig(ch->enable)) {

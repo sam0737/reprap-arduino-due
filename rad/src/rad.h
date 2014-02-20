@@ -32,23 +32,26 @@
 #include "math.h"
 #include "mini_printf.h"
 
-#include "radhal_radboard.h"
-#include "radhal_machine.h"
-
 #include "power.h"
 #include "beeper.h"
+#include "input_hardware.h"
+#include "input.h"
 #include "output.h"
-#include "stepper.h"
 #include "endstop.h"
-#include "planner.h"
-#include "planner_queue.h"
 #include "temperature.h"
 #include "raddebug.h"
-#include "radpex.h"
 #include "ui.h"
 #include "storage.h"
 #include "printer.h"
 #include "radmath.h"
+
+#include "radhal_radboard.h"
+#include "radhal_machine.h"
+
+#include "stepper.h"
+#include "planner.h"
+#include "planner_queue.h"
+#include "radpex.h"
 
 /*===========================================================================*/
 /* External declarations.                                                    */

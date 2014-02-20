@@ -73,7 +73,7 @@ static char *ftostr42(const float x)
     conv[0]=(xx/100000)%10+'0';
   else
     conv[0]='-';
-  xx=abs(xx);
+  xx=fabs(xx);
   conv[1]=(xx/10000)%10+'0';
   conv[2]=(xx/1000)%10+'0';
   conv[3]=(xx/100)%10+'0';

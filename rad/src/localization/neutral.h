@@ -68,3 +68,68 @@
 #define L_TEMPERATURE_AUTOTUNE_IN_ESTOP \
   "T3-Autotune aborted by ESTOP"
 #endif
+
+#ifndef L_UI_BACK
+#define L_UI_BACK \
+  "Back"
+#endif
+
+#ifndef L_UI_MAINMENU_ESTOP_CLEAR
+#define L_UI_MAINMENU_ESTOP_CLEAR \
+  "Reset EStop"
+#endif
+
+#ifndef L_UI_MAINMENU_RESUME_PRINTING
+#define L_UI_MAINMENU_RESUME_PRINTING \
+  "Resume"
+#endif
+
+#ifndef L_UI_MAINMENU_TUNING
+#define L_UI_MAINMENU_TUNING \
+  "Tuning"
+#endif
+
+#ifndef L_UI_MAINMENU_INTERRUPT_NOW
+#define L_UI_MAINMENU_INTERRUPT_NOW \
+  "Pause"
+#endif
+
+#ifndef L_UI_MAINMENU_PRINT
+#define L_UI_MAINMENU_PRINT \
+  "Print File"
+#endif
+
+#ifndef L_UI_MAINMENU_STORAGE_UMS
+#define L_UI_MAINMENU_STORAGE_UMS \
+  "USB Storage On"
+#endif
+
+#ifndef L_UI_MAINMENU_STORAGE_LOCAL
+#define L_UI_MAINMENU_STORAGE_LOCAL \
+  "USB Storage Off"
+#endif
+
+#ifndef L_UI_MAINMENU_PREPARE
+#define L_UI_MAINMENU_PREPARE \
+  "Prepare"
+#endif
+
+#ifndef L_UI_MAINMENU_INFO
+#define L_UI_MAINMENU_INFO \
+  "Info"
+#endif
+
+#ifndef L_UI_MAINMENU_POWER_OFF
+#define L_UI_MAINMENU_POWER_OFF \
+  "Power Off"
+#endif
+
+#ifndef L_UI_PRINT_UP
+#define L_UI_PRINT_UP \
+  "[Up]"
+#endif
+
+#ifndef L_UI_PRINT_NO_FILES
+#define L_UI_PRINT_NO_FILES \
+  "- No Files -"
+#endif

@@ -83,11 +83,11 @@ static msg_t threadTemp(void *arg) {
   while (TRUE) {
     chThdSleepMilliseconds(50);
 
-    finishing_count = radboard.adc.count;
+    finishing_count = RAD_NUMBER_ADCS;
     has_error = 0;
 
     chSysLock();
-    for (i = 0; i < radboard.adc.count; i++) {
+    for (i = 0; i < RAD_NUMBER_ADCS; i++) {
       ch = &radboard.adc.channels[i];
       adcStartConversionI(ch->adc, &ch->group_base, ch->samples, ch->group_base.num_channels);
     }
@@ -97,7 +97,7 @@ static msg_t threadTemp(void *arg) {
       continue;
 
     c = 0;
-    for (i = 0; i < radboard.adc.count; i++) {
+    for (i = 0; i < RAD_NUMBER_ADCS; i++) {
       ch = &radboard.adc.channels[i];
       for (j = 0; j < ch->group_base.num_channels; j++, c++) {
         for (k = 0; k < RAD_NUMBER_TEMPERATURES; k++) {
@@ -145,22 +145,26 @@ void temperatureAllZero(void)
 
 RadTempState temperatureGet(uint8_t temp_id)
 {
-  if (temp_id >= RAD_NUMBER_TEMPERATURES)
-    return 0;
-
   RadTempState temp;
+
+  if (temp_id >= RAD_NUMBER_TEMPERATURES)
+  {
+    memset(&temp, 0, sizeof(temp));
+    return temp;
+  }
+
   chSysLock();
   temp = temperatures[temp_id];
   chSysUnlock();
   return temp;
 }
 
-void temperature_core_init()
+void temperature_core_init(void)
 {
   uint8_t i;
   RadAdcChannel *ch;
 
-  for (i = 0; i < radboard.adc.count; i++) {
+  for (i = 0; i < RAD_NUMBER_ADCS; i++) {
     ch = &radboard.adc.channels[i];
     ch->group_base.end_cb = radadc_end_callback;
     ch->group_base.error_cb = radadc_error_callback;

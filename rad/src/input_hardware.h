@@ -19,55 +19,35 @@
 */
 
 /**
- * @file    storage.h
- * @brief   Storage header
+ * @file    input_hardware.h
+ * @brief   Input hardware header
  *
- * @addtogroup STORAGE
+ * @addtogroup INPUT_HARDWARE
  * @{
  */
-#ifndef _RAD_STORAGE_H
-#define _RAD_STORAGE_H
+#ifndef _INPUT_HARDWARE_H_
+#define _INPUT_HARDWARE_H_
+
+#include "input.h"
 
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#include "storage_lld.h"
-
-typedef enum {
-  FILETYPE_File = 0,
-  FILETYPE_Directory = 1
-} RadFileType;
-
-typedef struct {
-  TCHAR* filename;
-  RadFileType type;
-} RadFileInfo;
-
-typedef enum {
-  STORAGE_None = 0,
-  STORAGE_Usb = 1,
-  STORAGE_Local = 2
-} RadStorageHost;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void storageInit(void);
-  void storageUsbMount(void);
-  void storageUsbUnmount(void);
-  RadStorageHost storageGetHostState(void);
-
-  void storageChangeDir(const TCHAR *path);
-  void storageOpenDir(void);
-  bool_t storageReadFile(RadFileInfo* file);
-  void storageCloseDir(void);
-
-  bool_t storageDumpConfig(void);
+  void inputButtonFetcher(RadInputConfig* config, RadInputState* state);
+  void inputEncoderFetcher(RadInputConfig* config, RadInputState* state);
+#ifdef HAS_HTTPMMAP
+  void inputVirtualEncoderFetcher(RadInputConfig* config, RadInputState* state);
+#endif
+  RadInputValue inputButtonProcessor(RadInputState* state);
+  RadInputValue inputEncoderProcessor(RadInputState* state);
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* _RAD_HMI_H */
+#endif  /* _INPUT_HARDWARE_H_ */
 
 /** @} */

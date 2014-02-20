@@ -66,18 +66,54 @@ int answer_to_connection (void *cls, struct MHD_Connection *connection,
   struct MHD_Response *response;
   if (obj == NULL)
   {
+    if (strcmp(method, "POST") == 0) {
+      if (!*con_cls || *upload_data_size) {
+        *((size_t*)con_cls) = 1;
+        *upload_data_size = 0;
+        return MHD_YES;
+      }
+    }
     const char *page = "<html><body>Object not found</body></html>";
     response = MHD_create_response_from_buffer(strlen (page),
         (void*) page, MHD_RESPMEM_PERSISTENT);
-
   } else {
-    chSysLock();
-    char* result = string_to_base64(obj->buffer, obj->size);
-    chSysUnlock();
-    response = MHD_create_response_from_buffer(strlen(result),
-        (void*) result, MHD_RESPMEM_MUST_FREE);
+    if (strcmp(method, "POST") == 0) {
+      if (!*con_cls) {
+        // New Post Request
+        *((size_t*)con_cls) = 1;
+        obj->upload_size = 0;
+        return MHD_YES;
+      }
+      if (*upload_data_size)
+      {
+        // Post request uploading
+        size_t space = obj->size - obj->upload_size;
+        if (space > *upload_data_size)
+          space = *upload_data_size;
+        memcpy(obj->buffer, upload_data, space);
+        obj->upload_size += space;
+        *upload_data_size = 0;
+        return MHD_YES;
+      } else {
+        // Post request done
+        if (obj->callback) {
+          obj->callback(obj);
+        }
+      }
+      const char* page = "Done";
+      response = MHD_create_response_from_buffer(strlen(page),
+                (void*) page, MHD_RESPMEM_MUST_FREE);
+    } else {
+      chSysLock();
+      char* result = string_to_base64(obj->buffer, obj->size);
+      chSysUnlock();
+      response = MHD_create_response_from_buffer(strlen(result),
+          (void*) result, MHD_RESPMEM_MUST_FREE);
+    }
   }
   MHD_add_response_header(response, "Access-Control-Allow-Origin", "*");
+  MHD_add_response_header(response, "Access-Control-Allow-Headers", "content-type");
+  MHD_add_response_header(response, "Access-Control-Allow-Methods", "POST, GET");
   int ret = MHD_queue_response(connection, obj == NULL ? MHD_HTTP_NOT_FOUND : MHD_HTTP_OK, response);
   MHD_destroy_response(response);
   return ret;

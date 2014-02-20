@@ -37,13 +37,13 @@ static RadTemp temps[] = {
   { .adc_id = 3, .heating_pwm_id = -1, .cooling_pwm_id = 4, .converter = adccSAM3XATempSensor }
 };
 
-machine_t machine;
+const machine_t machine;
 
 MAKE_LINEAR_FORWARD_KINEMATICS(kForward);
 MAKE_LINEAR_INVERSE_KINEMATICS(kInverse);
 MAKE_CARTESIAN_MAX_FEEDRATE(kTrajMaxFeedrate);
 
-machine_t machine =
+const machine_t machine =
 {
     .power = {
         .always_on = 0
@@ -136,7 +136,10 @@ machine_t machine =
         }
     },
     .ui = {
-        .contrast = 0.5
+        .contrast = 0.5,
+        .generic_wheel = { .enabled = 1, .input_id = 0 },
+        .enter_button = { .enabled = 1, .input_id = 1 },
+        .back_button = { .enabled = 1, .input_id = 3 }
     }
 };
 

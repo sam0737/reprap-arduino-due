@@ -24,6 +24,7 @@ static font_t fontText;
 
 #define DISPLAY_MARQUEE_DELAY (MS2ST(1500 / GDISP_SCREEN_WIDTH))
 #define DISPLAY_DASHBOARD_TEMPS 4
+#define DISPLAY_MENU_VISIBLE_MAX ((GDISP_WIDTH + 47) / 48)
 
 static void display_ui_init(void) {
   // fontStatus = gdispOpenFont("DejaVuSans12");

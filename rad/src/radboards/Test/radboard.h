@@ -64,24 +64,38 @@ extern HttpMmapDriver hmd;
 #define TEMP_R2 560
 
 /**
- * @brief Define number of stepper output
+ * @brief Define number of inputs
+ */
+#define RAD_NUMBER_INPUTS     4
+
+/**
+ * @brief Define number of endstops
+ */
+#define RAD_NUMBER_ENDSTOPS   3
+
+/**
+ * @brief Define number of stepper outputs
  */
 #define RAD_NUMBER_STEPPERS   5
 
-
 /**
- * @brief Define number of PWM output
+ * @brief Define number of PWM outputs
  */
 #define RAD_NUMBER_OUTPUTS    5
+
+/**
+ * @brief Define number of ADC inputs
+ */
+#define RAD_NUMBER_ADCS       0
 
 /**
  * @brief Define board support software display contrast control
  *        Implementation might need to determine based on display model
  */
 #ifndef RAD_DISPLAY_CONTRAST_SUPPORT
-  #if GFX_USE_TDISP
-    #define RAD_DISPLAY_CONTRAST_SUPPORT TRUE
-  #endif
+#if GFX_USE_TDISP
+#define RAD_DISPLAY_CONTRAST_SUPPORT TRUE
+#endif
 #endif
 
 /**

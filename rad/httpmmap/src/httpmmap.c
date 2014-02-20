@@ -1,4 +1,5 @@
 #include "httpmmap.h"
+#include <stdio.h>
 
 void httpmmapInit(void)
 {
@@ -17,7 +18,13 @@ void httpmmapStart(HttpMmapDriver *hmd, HttpMmapConfig *config)
 
 void httpmmapAdd(HttpMmapDriver *hmd, HttpMmapObject *hmo)
 {
+  HttpMmapObject* search = hmd->root;
+  while (search) {
+    if (search == hmo)
+      return;
+    search = search->next;
+  }
+
   hmo->next = hmd->root;
-  hmo->modified = 0;
   hmd->root = hmo;
 }

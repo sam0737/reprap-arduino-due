@@ -65,7 +65,7 @@ void powerInit(void)
 
 void powerPsuOn(void)
 {
-  if (!palHasSig(radboard.power.psu_on) || machine.power.always_on)
+  if (!powerCanControlPsu())
     return;
 
   chMtxLock(&mutex);
@@ -82,7 +82,7 @@ void powerPsuOn(void)
 
 void powerPsuOff(void)
 {
-  if (!palHasSig(radboard.power.psu_on) || machine.power.always_on)
+  if (!powerCanControlPsu())
     return;
 
   chMtxLock(&mutex);
@@ -94,7 +94,12 @@ void powerPsuOff(void)
   chMtxUnlock();
 }
 
-uint8_t powerIsPsuOn(void)
+bool_t powerCanControlPsu(void)
+{
+  return palHasSig(radboard.power.psu_on) && !machine.power.always_on;
+}
+
+bool_t powerIsPsuOn(void)
 {
   chMtxLock(&mutex);
   bool_t state = psu_state;

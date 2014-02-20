@@ -19,10 +19,10 @@
 */
 
 /**
- * @file    rad.c
- * @brief   RAD core
+ * @file    storage_lld.c
+ * @brief   Storgae
  *
- * @addtogroup RAD
+ * @addtogroup STORAGE
  * @{
  */
 
@@ -30,29 +30,10 @@
 #include "hal.h"
 #include "rad.h"
 
-/*===========================================================================*/
-/* Driver exported functions.                                                */
-/*===========================================================================*/
-
-void radInit(void)
-{
-  if (radboard.init != NULL)
-    radboard.init();
-  powerInit();
-  beeperInit();
-  inputInit();
-  outputInit();
-  stepperInit();
-  endstopInit();
-  temperatureInit();
-  debugInit();
-  plannerInit();
-  uiInit();
-  storageInit();
-  printerInit();
-#if HAL_USE_TM
-  tmInit();
-#endif
-}
+void storageInit(void) {}
+void storageUsbMount(void) {}
+void storageUsbUnmount(void) {}
+RadStorageHost storageGetHostState(void){ return STORAGE_None; }
+bool_t storageDumpConfig(void){ return TRUE; }
 
 /** @} */

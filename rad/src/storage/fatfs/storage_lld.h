@@ -18,41 +18,9 @@
 
 */
 
-/**
- * @file    rad.c
- * @brief   RAD core
- *
- * @addtogroup RAD
- * @{
- */
+#ifndef _RAD_STORAGE_LLD_H
+#define _RAD_STORAGE_LLD_H
 
-#include "ch.h"
-#include "hal.h"
-#include "rad.h"
+#include "ff.h"
 
-/*===========================================================================*/
-/* Driver exported functions.                                                */
-/*===========================================================================*/
-
-void radInit(void)
-{
-  if (radboard.init != NULL)
-    radboard.init();
-  powerInit();
-  beeperInit();
-  inputInit();
-  outputInit();
-  stepperInit();
-  endstopInit();
-  temperatureInit();
-  debugInit();
-  plannerInit();
-  uiInit();
-  storageInit();
-  printerInit();
-#if HAL_USE_TM
-  tmInit();
 #endif
-}
-
-/** @} */

@@ -32,6 +32,10 @@
 /* Data structures and types.                                                */
 /*===========================================================================*/
 
+#if !HAL_USE_ADC
+typedef uint16_t adcsample_t;
+#endif
+
 typedef struct {
   float               sv;
   float               pv;

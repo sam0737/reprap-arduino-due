@@ -201,6 +201,13 @@ const radboard_t radboard =
         .usb_msd = &UMSD,
 #endif
     },
+    .input = {
+        .channels = (RadInputChannel[]) {
+          {
+            .fetcher = NULL
+          }
+        }
+    },
     .output = {
         .channels = (RadOutputChannel[]) {
           { .pwm = &PWMD1, .channel = 0,
@@ -216,7 +223,6 @@ const radboard_t radboard =
         }
     },
     .stepper = {
-        .count = RAD_NUMBER_STEPPERS,
         .gpt = &GPTD1,
         .gpt_config = &gpt_stepper_cfg,
         .main_enable = { .pin = { IOPORT3, 2 }, .active_low = 1 },
@@ -244,7 +250,6 @@ const radboard_t radboard =
         }
     },
     .endstop = {
-        .count = 3,
         .channels = (RadEndstopChannel[]) {
           { .pin = { IOPORT3, 4 } },
           { .pin = { IOPORT3, 6 } },
@@ -252,7 +257,6 @@ const radboard_t radboard =
         }
     },
     .adc = {
-        .count = 1,
         .channels = (RadAdcChannel[]) {
           {
             .adc = &ADCD1,

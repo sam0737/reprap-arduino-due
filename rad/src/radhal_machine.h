@@ -140,9 +140,20 @@ typedef struct {
   uint8_t             pwm_id;
 } RadFan;
 
+typedef struct {
+  uint8_t             enabled;
+  uint8_t             input_id;
+} RadUiInput;
 
 typedef struct {
   float               contrast;
+  RadUiInput          generic_wheel;
+  RadUiInput          up_button;
+  RadUiInput          down_button;
+  RadUiInput          left_button;
+  RadUiInput          right_button;
+  RadUiInput          back_button;
+  RadUiInput          enter_button;
 } RadUiSettings;
 
 typedef struct machine_t {
@@ -190,7 +201,7 @@ typedef struct machine_t {
 /**
  * @brief Machine configuration
  */
-extern machine_t machine;
+extern const machine_t machine;
 
 #ifndef RAD_NUMBER_AXES
 #error "Please define RAD_NUMBER_AXES in machine.h"

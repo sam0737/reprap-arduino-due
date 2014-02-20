@@ -38,7 +38,8 @@ extern "C" {
   void powerInit(void);
   void powerPsuOn(void);
   void powerPsuOff(void);
-  uint8_t powerIsPsuOn(void);
+  bool_t powerCanControlPsu(void);
+  bool_t powerIsPsuOn(void);
 #ifdef __cplusplus
 }
 #endif

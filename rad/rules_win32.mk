@@ -78,7 +78,7 @@ VPATH     = $(SRCPATHS)
 
 all: $(OBJS) $(OUTFILES) MAKE_ALL_RULE_HOOK
 
-MAKE_ALL_RULE_HOOK:
+MAKE_ALL_RULE_HOOK: $(BUILDDIR)/$(PROJECT).siz
 
 $(OBJS): | $(BUILDDIR)
 
@@ -153,6 +153,11 @@ else
 	@echo Linking $@
 	@$(LD) $(OBJS) $(LDFLAGS) $(LIBS) -o $@
 endif
+
+%.siz: %.elf
+	@echo 'Output Size:'
+	@size --format=berkeley -t $<
+	@echo ' '
 
 %.elf: $(OBJS) $(LDSCRIPT)
 ifeq ($(USE_VERBOSE_COMPILE),yes)

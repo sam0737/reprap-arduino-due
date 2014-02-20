@@ -20,6 +20,7 @@
 
 #define DISPLAY_MARQUEE_DELAY (MS2ST(1500 / TDISP_COLUMNS))
 #define DISPLAY_DASHBOARD_TEMPS 2
+#define DISPLAY_MENU_VISIBLE_MAX TDISP_ROWS
 
 static void display_ui_init(void) {
   display_control_init();

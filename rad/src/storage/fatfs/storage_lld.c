@@ -19,7 +19,7 @@
 */
 
 /**
- * @file    storage.c
+ * @file    storage_lld.c
  * @brief   Storgae
  *
  * @addtogroup STORAGE
@@ -30,17 +30,11 @@
 #include "hal.h"
 #include "rad.h"
 
-#include "storage.h"
-
-#if RAD_STORAGE
-
-#include "ff.h"
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-#include "storage_config.h"
-static WORKING_AREA(waStorage, 512);
+static WORKING_AREA(waStorage, 256);
 static Mutex mutex;
 
 static RadStorageHost host;
@@ -142,13 +136,5 @@ failed:
   chMtxUnlock();
   return FALSE;
 }
-
-#else
-void storageInit(void) {}
-void storageUsbMount(void) {}
-void storageUsbUnmount(void) {}
-RadStorageHost storageGetHostState(void){ return STORAGE_None; }
-bool_t storageDumpConfig(void){ return TRUE; }
-#endif
 
 /** @} */

@@ -32,31 +32,21 @@
 #include "hal.h"
 #include "chevents.h"
 
+#include "radpex.h"
 #include "radboard.h"
+#include "input.h"
+#include "input_hardware.h"
+#include "temperature_converter.h"
 
 /*===========================================================================*/
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-/**
- * @brief Define a IO pin
- */
 typedef struct {
-  /**
-   * @brief   The PIO port
-   */
-  ioportid_t  port;
-
-  /**
-   * @brief   The pin number
-   */
-  uint8_t     pin;
-} pin_t;
-
-typedef struct {
-  pin_t       pin;
-  uint8_t     active_low;
-} signal_t;
+  RadInputConfig    config;
+  input_fetch_t     fetcher;
+  input_process_t   processor;
+} RadInputChannel;
 
 typedef struct {
 #if HAL_USE_PWM
@@ -124,6 +114,13 @@ typedef struct {
   } hmi;
 
   /*******************************************
+   * @brief Input
+   */
+  struct {
+    RadInputChannel           *channels;
+  } input;
+
+  /*******************************************
    * @brief PWM Output
    */
   struct {
@@ -134,7 +131,6 @@ typedef struct {
    * @brief Stepper Output
    */
   struct {
-    uint8_t                   count;
     signal_t                  main_enable;
 #if HAL_USE_GPT
     GPTDriver                 *gpt;
@@ -147,7 +143,6 @@ typedef struct {
    * @brief Endstop Input
    */
   struct {
-    uint8_t                   count;
     RadEndstopChannel         *channels;
   } endstop;
 
@@ -193,12 +188,24 @@ extern const radboard_t radboard;
 #error "Please define SYSTEM_CLOCK in radboard.h - System clock in Hz"
 #endif
 
+#ifndef RAD_NUMBER_INPUTS
+#error "Please define RAD_NUMBER_INPUTS in radboard.h"
+#endif
+
+#ifndef RAD_NUMBER_ENDSTOPS
+#error "Please define RAD_NUMBER_ENDSTOPS in radboard.h"
+#endif
+
 #ifndef RAD_NUMBER_STEPPERS
 #error "Please define RAD_NUMBER_STEPPERS in radboard.h"
 #endif
 
 #ifndef RAD_NUMBER_OUTPUTS
 #error "Please define RAD_NUMBER_OUTPUTS in radboard.h"
+#endif
+
+#ifndef RAD_NUMBER_ADCS
+#error "Please define RAD_NUMBER_ADCS in radboard.h"
 #endif
 
 /*

@@ -17,10 +17,6 @@
   #error "Unsupported displays (TDISP)"
 #endif
 
-static void display_lld_init(void)
-{
-}
-
 #endif /* _TDISP_LLD_BOARD_H */
 /** @} */
 
