@@ -53,6 +53,8 @@ Semaphore command_pool_sem;
 MemoryPool command_pool;
 Mailbox command_mbox;
 
+static PrinterState state;
+
 static PrinterCommand *curr_command;
 char* printer_estop_message = NULL;
 
@@ -257,13 +259,31 @@ void printerAddLine(const char* line)
   chMBPost(&command_mbox, (msg_t) cmd, TIME_INFINITE);
 }
 
+PrinterState printerGetState(void)
+{
+  chSysLock();
+  PrinterState now_state = state;
+  chSysUnlock();
+  return now_state;
+}
+
+static void printerSetState(PrinterState new_state)
+{
+  chSysLock();
+  if (state == PRINTERSTATE_Estopped)
+    return;
+  state = new_state;
+  chSysUnlock();
+}
+
 bool_t printerIsEstopped(void)
 {
-  return (printer_estop_message != NULL);
+  return printerGetState() == PRINTERSTATE_Estopped;
 }
 
 void printerEstop(char *message)
 {
+  printerSetState(PRINTERSTATE_Estopped);
   printer_estop_message = message;
   beeperPlay(&tuneWarning);
   plannerEstop();
@@ -275,6 +295,9 @@ void printerEstopClear(void)
 {
   printer_estop_message = NULL;
   plannerEstopClear();
+  chSysLock();
+  state = PRINTERSTATE_Standby;
+  chSysUnlock();
 }
 
 /** @} */

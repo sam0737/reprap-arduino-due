@@ -20,16 +20,27 @@
 
 static uint8_t ui_mainmenu_can_estop_clear(void) { return printerIsEstopped(); }
 static void ui_mainmenu_do_estop_clear(void* state) { printerEstopClear(); }
-static uint8_t ui_mainmenu_can_power_off(void) { return powerCanControlPsu(); }
-static void ui_mainmenu_do_power_off(void* state) { powerPsuOff(); }
+static uint8_t ui_mainmenu_can_resume(void) { return printerGetState() == PRINTERSTATE_Interrupted; }
+static uint8_t ui_mainmenu_can_tuning(void) { return printerGetState() & PRINTERSTATE_Printing; }
+static uint8_t ui_mainmenu_can_interrupt_now(void) { return printerGetState() & PRINTERSTATE_Printing; }
 static uint8_t ui_mainmenu_can_storage_ums(void) { return storageGetHostState() == STORAGE_Local; }
 static void ui_mainmenu_do_storage_ums(void* state) { storageUsbMount(); }
 static uint8_t ui_mainmenu_can_storage_local(void) { return storageGetHostState() == STORAGE_Usb; }
 static void ui_mainmenu_do_storage_local(void* state) { storageUsbUnmount(); }
+static uint8_t ui_mainmenu_can_prepare(void) {
+  return printerGetState() == PRINTERSTATE_Interrupted || printerGetState() == PRINTERSTATE_Standby;
+}
+static uint8_t ui_mainmenu_can_estop(void) { return !printerIsEstopped(); }
+static void ui_mainmenu_do_estop(void* state) { printerEstop(L_DEBUG_STOPPED_BY_MENU); }
+static uint8_t ui_mainmenu_can_power_off(void) {
+  return powerCanControlPsu() &&
+      (printerGetState() == PRINTERSTATE_Standby || printerGetState() == PRINTERSTATE_Estopped);
+}
+static void ui_mainmenu_do_power_off(void* state) { powerPsuOff(); }
 
 static const UiStandardMenu ui_mainmenu =
 {
-    .count = 11,
+    .count = 12,
     .menus = (UiMenuItem[]) {
       {
           .name = L_UI_BACK,
@@ -44,12 +55,15 @@ static const UiStandardMenu ui_mainmenu =
       },
       {
           .name = L_UI_MAINMENU_RESUME_PRINTING,
+          .visible_cb = ui_mainmenu_can_resume,
       },
       {
           .name = L_UI_MAINMENU_TUNING,
+          .visible_cb = ui_mainmenu_can_tuning,
       },
       {
           .name = L_UI_MAINMENU_INTERRUPT_NOW,
+          .visible_cb = ui_mainmenu_can_interrupt_now,
       },
       {
           .name = L_UI_MAINMENU_PRINT,
@@ -68,9 +82,15 @@ static const UiStandardMenu ui_mainmenu =
       },
       {
           .name = L_UI_MAINMENU_PREPARE,
+          .visible_cb = ui_mainmenu_can_prepare,
       },
       {
           .name = L_UI_MAINMENU_INFO,
+      },
+      {
+          .name = L_UI_MAINMENU_ESTOP,
+          .visible_cb = ui_mainmenu_can_estop,
+          .action_cb = ui_mainmenu_do_estop
       },
       {
           .name = L_UI_MAINMENU_POWER_OFF,
@@ -84,8 +104,8 @@ static void ui_mainmenu_viewmodel(void) {
   uiState.viewmodel = ui_menu_viewmodel;
   uiState.menu.get_cb = uiStandardMenuGet;
   uiState.menu.count_cb = uiStandardMenuCount;
-  uiState.menu.get_next_cb = NULL;
+  uiState.menu.get_next_cb = uiStandardMenuGetNext;
   uiState.menu.close_cb = NULL;
-  uiState.menu.state = &ui_mainmenu;
+  uiState.menu.standard.menu = &ui_mainmenu;
   uiState.menu.back_action = ui_menu_goto_dashboard;
 }

@@ -33,8 +33,8 @@ static void ui_menu_renderer(void) {
           uiState.menu.get_next_cb != NULL && i > 0 ?
           uiState.menu.get_next_cb() :
           uiMenuGetItem(i);
-      tdispDrawChar(i == uiState.menu.pos ? '>' : ' ');
       if (item != NULL) {
+        tdispDrawChar(i == uiState.menu.pos ? '>' : ' ');
         tdispDrawString(item->name);
         for (uint8_t j = TDISP_COLUMNS - strlen(item->name) - 1; j > 0; j--)
           tdispDrawChar(' ');

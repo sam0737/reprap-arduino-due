@@ -26,47 +26,62 @@
 
 #ifndef L_UI_STATUS_READY
 #define L_UI_STATUS_READY \
-  "S0-Ready"
+  "S00-Ready"
+#endif
+
+#ifndef L_UI_STATUS_PRINTING
+#define L_UI_STATUS_PRINTING \
+  "S01-Printing"
+#endif
+
+#ifndef L_UI_STATUS_HEATING
+#define L_UI_STATUS_HEATING \
+  "S02-Heating up"
+#endif
+
+#ifndef L_UI_STATUS_INTERRUPTED
+#define L_UI_STATUS_INTERRUPTED \
+  "S05-Interrupted"
 #endif
 
 #ifndef L_UI_STATUS_NOT_HOMED
 #define L_UI_STATUS_NOT_HOMED \
-  "S1-Printer is not homed"
+  "E00-Printer is not homed"
 #endif
 
 #ifndef L_DEBUG_STOPPED_BY_SHELL
 #define L_DEBUG_STOPPED_BY_SHELL \
-  "S2-Stopped by shell"
+  "E01-Stopped by shell"
+#endif
+
+#ifndef L_DEBUG_STOPPED_BY_MENU
+#define L_DEBUG_STOPPED_BY_MENU \
+  "E02-Stopped by menu"
 #endif
 
 #ifndef L_HOMING_INCORRECT_INIT_STATE
 #define L_HOMING_INCORRECT_INIT_STATE \
-  "H1-Incorrect initial limit switch state for homing"
+  "E10-Incorrect initial limit switch state for homing"
 #endif
 
 #ifndef L_HOMING_TRAVEL_LIMIT
 #define L_HOMING_TRAVEL_LIMIT \
-  "H2-Joint has traveled too far without triggering any limit switch"
+  "E11-Joint has traveled too far without triggering any limit switch"
 #endif
 
 #ifndef L_HOMING_INCORRECT_LIMIT_HIT
 #define L_HOMING_INCORRECT_LIMIT_HIT \
-  "H3-Incorrect limit switch is hit when homing"
+  "E12-Incorrect limit switch is hit when homing"
 #endif
 
 #ifndef L_TEMPERATURE_AUTOTUNE_OVERHEATED
 #define L_TEMPERATURE_AUTOTUNE_OVERHEATED \
-  "T1-Autotune overheated"
+  "E20-Autotune overheated"
 #endif
 
 #ifndef L_TEMPERATURE_AUTOTUNE_TIMEOUT
 #define L_TEMPERATURE_AUTOTUNE_TIMEOUT \
-  "T2-Autotune timeout"
-#endif
-
-#ifndef L_TEMPERATURE_AUTOTUNE_IN_ESTOP
-#define L_TEMPERATURE_AUTOTUNE_IN_ESTOP \
-  "T3-Autotune aborted by ESTOP"
+  "E21-Autotune timeout"
 #endif
 
 #ifndef L_UI_BACK
@@ -76,7 +91,7 @@
 
 #ifndef L_UI_MAINMENU_ESTOP_CLEAR
 #define L_UI_MAINMENU_ESTOP_CLEAR \
-  "Reset EStop"
+  "Reset Estop"
 #endif
 
 #ifndef L_UI_MAINMENU_RESUME_PRINTING
@@ -117,6 +132,11 @@
 #ifndef L_UI_MAINMENU_INFO
 #define L_UI_MAINMENU_INFO \
   "Info"
+#endif
+
+#ifndef L_UI_MAINMENU_ESTOP
+#define L_UI_MAINMENU_ESTOP \
+  "Emergency Stop"
 #endif
 
 #ifndef L_UI_MAINMENU_POWER_OFF

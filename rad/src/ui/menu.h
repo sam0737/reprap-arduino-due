@@ -20,14 +20,46 @@
 
 const UiMenuItem* uiStandardMenuGet(int16_t index)
 {
-  if (index < 0 || index >= ((UiStandardMenu*)uiState.menu.state)->count)
+  if (index < 0 || index >= uiState.menu.standard.menu->count)
     return NULL;
-  return &((UiStandardMenu*)uiState.menu.state)->menus[index];
+  for (int8_t i = 0; i < uiState.menu.standard.menu->count; i++)
+  {
+    const UiMenuItem* item = &uiState.menu.standard.menu->menus[i];
+    if (!item->visible_cb || item->visible_cb())
+    {
+      if (index == 0) {
+        uiState.menu.standard.last_index = i;
+        return item;
+      }
+      index--;
+    }
+  }
+  return NULL;
+}
+
+const UiMenuItem* uiStandardMenuGetNext(void)
+{
+  for (int8_t i = uiState.menu.standard.last_index + 1; i < uiState.menu.standard.menu->count; i++)
+  {
+    const UiMenuItem* item = &uiState.menu.standard.menu->menus[i];
+    if (!item->visible_cb || item->visible_cb())
+    {
+      uiState.menu.standard.last_index = i;
+      return item;
+    }
+  }
 }
 
 int16_t uiStandardMenuCount()
 {
-  return ((UiStandardMenu*)uiState.menu.state)->count;
+  int8_t count;
+  for (int8_t i = uiState.menu.standard.menu->count - 1; i >= 0; i--)
+  {
+    const UiMenuItem* item = &uiState.menu.standard.menu->menus[i];
+    if (!item->visible_cb || item->visible_cb())
+      count++;
+  }
+  return count;
 }
 
 const UiMenuItem* uiMenuGetItem(int8_t offset)
@@ -35,7 +67,6 @@ const UiMenuItem* uiMenuGetItem(int8_t offset)
   const UiMenuItem* ret;
 
   int16_t count = uiState.menu.count_cb();
-
   if (uiState.menu.current >= count)
   {
     // Out of range: overflow
@@ -43,62 +74,13 @@ const UiMenuItem* uiMenuGetItem(int8_t offset)
     if (uiState.menu.pos >= count)
       uiState.menu.pos = count - 1;
   }
-  if (uiState.menu.current < 0) {
+  if (uiState.menu.current < 0)
+  {
     // Out of range: underflow
     uiState.menu.current = 0;
   }
 
-  offset -= uiState.menu.pos;
-
-  if (uiState.menu.get_next_cb)
-    return uiState.menu.get_cb(uiState.menu.current + offset);
-
-  int16_t index = uiState.menu.current;
-
-  // If the current highlighted item is invisible, move to next
-  while (1)
-  {
-    ret = uiState.menu.get_cb(index);
-    if (ret == NULL) break;
-    if (!ret->visible_cb || ret->visible_cb())
-      goto OK;
-    index += uiState.menu.offset > 0 ? 1 : -1;
-  }
-
-  index = uiState.menu.current;
-  while (1)
-  {
-    ret = uiState.menu.get_cb(index);
-    if (ret == NULL) return NULL;
-    if (!ret->visible_cb || ret->visible_cb())
-      goto OK;
-    index -= uiState.menu.offset > 0 ? 1 : -1;
-  }
-
-  OK:
-  uiState.menu.current = index;
-
-  // If the current highlighted item is invisible, move to next
-  while (offset < 0)
-  {
-    if (index < 1) return NULL;
-    ret = uiState.menu.get_cb(index - 1);
-    if (ret == NULL) return NULL;
-    if (!ret->visible_cb || ret->visible_cb()) {
-      offset++;
-    }
-    index--;
-  }
-  while (offset > 0)
-  {
-    ret = uiState.menu.get_cb(index + 1);
-    if (ret == NULL) return NULL;
-    if (!ret->visible_cb || ret->visible_cb()) {
-      offset--;
-    }
-    index++;
-  }
-  return uiState.menu.get_cb(index);
+  return uiState.menu.get_cb(uiState.menu.current + offset - uiState.menu.pos);
 }
 
 uint8_t ui_menu_shows_back_item(void)

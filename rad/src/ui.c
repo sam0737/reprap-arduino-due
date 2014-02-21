@@ -147,12 +147,15 @@ typedef struct {
     struct {
       union {
         struct {
+          const UiStandardMenu* menu;
+          int8_t last_index;
+        } standard;
+        struct {
           UiMenuItem item;
           uint16_t depth;
           int16_t directory_opened;
         } print;
       };
-      const void* state;
       menu_get_t get_cb;
       menu_count_t count_cb;
       menu_get_next_t get_next_cb;

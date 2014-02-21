@@ -47,7 +47,6 @@ void temperatureAutoTune(uint8_t temp_id, float target, uint8_t total_cycles)
 
   if (printerIsEstopped())
   {
-    printerEstop(L_TEMPERATURE_AUTOTUNE_IN_ESTOP);
     return;
   }
 

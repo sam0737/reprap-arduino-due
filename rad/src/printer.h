@@ -32,6 +32,23 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+typedef enum {
+  PRINTERSTATE_Standby = 0x00,
+
+  PRINTERSTATE_Printing = 0x10,
+  PRINTERSTATE_Heating = 0x11,
+
+  PRINTERSTATE_Interrupting = 0x40,
+  PRINTERSTATE_Interrupted = 0x41,
+
+  PRINTERSTATE_Estopped = 0x80
+} PrinterState;
+
+typedef enum {
+  PRINTINGSOURCE_SD = 0,
+  PRINTINGSOURCE_Host = 1,
+} PrintingSource;
+
 extern char* printer_estop_message;
 
 #ifdef __cplusplus
@@ -40,6 +57,7 @@ extern "C" {
   void printerInit(void);
   uint8_t printerGetActiveExtruder(void);
   void printerAddLine(const char* line);
+  PrinterState printerGetState(void);
   bool_t printerIsEstopped(void);
   void printerEstop(char* message);
   void printerEstopClear(void);
