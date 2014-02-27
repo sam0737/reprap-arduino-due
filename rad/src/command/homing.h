@@ -57,10 +57,17 @@ static void actionHoming(uint32_t joint_mask)
 
       if (sequence == -1 || (joint_mask & (1 << i))) {
         count++;
+        stepperClearStopped(i);
         stepperResetOldLimitState(i);
-        m.joints[i] = j->home_search_vel;
-        state[i].last_pos = js->pos;
-        state[i].stage = HOMING_SEARCH;
+        if ((j->home_search_vel < 0 && (js->limit_state & LIMIT_MinHit)) ||
+            (j->home_search_vel > 0 && (js->limit_state & LIMIT_MaxHit)))
+        {
+          state[i].stage = HOMING_SEARCH_AT_LIMIT;
+        } else {
+          m.joints[i] = j->home_search_vel;
+          state[i].last_pos = js->pos;
+          state[i].stage = HOMING_SEARCH;
+        }
       }
     }
 
@@ -123,7 +130,7 @@ static void actionHoming(uint32_t joint_mask)
           break;
         case HOMING_SEARCH_BACKOFF:
           if (fabs(state[i].last_pos - js->pos) >
-              fmax((j->max_limit - j->min_limit) / 20.0, 20)) {
+              fmax((j->max_limit - j->min_limit) / 20.0, fabs(j->home_search_vel) + 20)) {
             printerEstop(L_HOMING_TRAVEL_LIMIT);
           }
           if (!js->stopped) continue;
@@ -139,7 +146,7 @@ static void actionHoming(uint32_t joint_mask)
           break;
         case HOMING_LATCH_RELEASE:
           if (fabs(state[i].last_pos - js->pos) >
-              fmax((j->max_limit - j->min_limit) / 20.0, 20)) {
+              fmax((j->max_limit - j->min_limit) / 20.0, fabs(j->home_search_vel) + 20)) {
             printerEstop(L_HOMING_TRAVEL_LIMIT);
           }
           if (!js->stopped) continue;
@@ -148,7 +155,7 @@ static void actionHoming(uint32_t joint_mask)
             m.joints[i] = 0;
             stepperSetHome(i,
                 js->limit_step,
-                js->limit_state == LIMIT_MinHit ? j->min_limit : j->max_limit);
+                j->home_search_vel < 0 ? j->min_limit : j->max_limit);
             state[i].stage = HOMING_PRE_FINAL;
           } else {
             printerEstop(L_HOMING_INCORRECT_LIMIT_HIT);
@@ -156,7 +163,7 @@ static void actionHoming(uint32_t joint_mask)
           break;
         case HOMING_LATCH_HIT:
           if (fabs(state[i].last_pos - js->pos) >
-              fmax((j->max_limit - j->min_limit) / 20.0, 20)) {
+              fmax((j->max_limit - j->min_limit) / 20.0, fabs(j->home_search_vel) + 20)) {
             printerEstop(L_HOMING_TRAVEL_LIMIT);
           }
           if (!js->stopped) continue;
@@ -168,7 +175,7 @@ static void actionHoming(uint32_t joint_mask)
               m.joints[i] = 0;
               stepperSetHome(i,
                   js->limit_step,
-                  js->limit_state == LIMIT_MinHit ? j->min_limit : j->max_limit);
+                  j->home_search_vel < 0 ? j->min_limit : j->max_limit);
               state[i].stage = HOMING_PRE_FINAL;
               continue;
             } else {
@@ -189,8 +196,6 @@ static void actionHoming(uint32_t joint_mask)
       } /* per axis processing */
     } /* while current stage not finished */
   } /* sequence */
-
-  printerSyncCommanded();
 } /* commandHoming */
 
 
@@ -198,10 +203,17 @@ static void commandHoming(void)
 {
   uint32_t mask = 0;
   for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
-    if (code_seen((char) machine.kinematics.joints[i].home_axis_name))
-      mask |= 1 << i;
+    for (uint8_t j = 0; j < RAD_NUMBER_AXES; j++) {
+      if (!isnan(curr_command->axes_value[j]) &&
+          machine.kinematics.axes[j].name ==
+          machine.kinematics.joints[i].home_axis_name) {
+        mask |= 1 << i;
+        break;
+      }
+    }
   }
   if (mask == 0)
     mask = 0xFFFF;
   actionHoming(mask);
+  printerSyncCommanded();
 }

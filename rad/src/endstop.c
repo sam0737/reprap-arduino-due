@@ -32,8 +32,6 @@
 
 #include "endstop.h"
 
-#ifdef PAL_MODE_INPUT_PULLUP
-
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
@@ -46,11 +44,17 @@ static WORKING_AREA(waEndstop, 64);
 
 static void checkEndstop(void)
 {
+
+#ifndef PAL_MODE_INPUT_PULLUP
+  RadJointsState jointsState = stepperGetJointsState();
+#endif
   for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++)
   {
     int8_t id;
     uint8_t state = LIMIT_Normal;
     RadJoint *joint = &machine.kinematics.joints[i];
+
+#ifdef PAL_MODE_INPUT_PULLUP
     pexSysLock();
     id = joint->min_endstop_id;
     if (id >= 0 &&
@@ -63,6 +67,17 @@ static void checkEndstop(void)
       state |= LIMIT_MaxHit;
     }
     pexSysUnlock();
+#else
+    id = joint->min_endstop_id;
+    if (id >= 0 && jointsState.joints[i].pos < joint->min_limit) {
+      state |= LIMIT_MinHit;
+    }
+    id = joint->max_endstop_id;
+    if (id >= 0 && jointsState.joints[i].pos > joint->max_limit) {
+      state |= LIMIT_MaxHit;
+    }
+#endif
+
     stepperSetLimitState(i, state);
   }
 }
@@ -84,15 +99,13 @@ static msg_t threadEndstop(void *arg) {
 
 void endstopInit(void)
 {
-  uint8_t i;
-  for (i = 0; i < RAD_NUMBER_ENDSTOPS; i++) {
+#ifdef PAL_MODE_INPUT_PULLUP
+  for (uint8_t i = 0; i < RAD_NUMBER_ENDSTOPS; i++) {
     palSetPinMode(radboard.endstop.channels[i].pin, PAL_MODE_INPUT_PULLUP);
   }
+#endif
 
   chThdCreateStatic(waEndstop, sizeof(waEndstop), NORMALPRIO + 24, threadEndstop, NULL);
 }
 
-#else
-void endstopInit(void){}
-#endif
 /** @} */

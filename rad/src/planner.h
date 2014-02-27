@@ -63,6 +63,7 @@ typedef struct {
 #define plannerMainQueueCommit() plannerQueueCommit(&queueMain)
 #define plannerMainQueueInterruptCommit(block_p) plannerQueueInterruptCommit(&queueMain, block_p)
 #define plannerMainQueueRecalculate() plannerQueueRecalculate(&queueMain)
+#define plannerMainQueueGetLength() plannerQueueGetLength(&queueMain)
 
 /*===========================================================================*/
 /* External declarations.                                                    */

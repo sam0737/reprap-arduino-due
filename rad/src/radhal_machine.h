@@ -112,6 +112,7 @@ typedef struct {
   uint8_t             adc_id;
   int8_t              heating_pwm_id;
   int8_t              cooling_pwm_id;
+  systime_t           residency_time;
   adcconverter_t      converter;
 } RadTemp;
 

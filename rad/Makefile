@@ -27,6 +27,7 @@ include $(CHIBIOS)/os/kernel/kernel.mk
 include format/format.mk
 
 # RAD Chained Makefile
+include $(RAD)/rad_base.mk
 include hardware.mk
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
@@ -47,8 +48,7 @@ CSRC = $(PORTSRC) \
        $(RADSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       $(MSDSRC) \
-       $(wildcard ${RAD}/*.c)
+       $(MSDSRC) 
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

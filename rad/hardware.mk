@@ -9,7 +9,7 @@
 # -- RADS / Reprap Arduino Due Shield 
 ifneq ($(RAD_TEST),) 
   include $(RAD)/radboards/Test/radboard.mk
-  include $(HTTPMMAP)/httpmmap.mk
+  include $(HTTPMMAP)/httpmmap.mk  
 else
   include $(RAD)/radboards/RADS/radboard.mk
 endif

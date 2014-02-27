@@ -191,8 +191,9 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
         virtual.axes[i]);
   }
 
-  chprintf(chp, "\r\nStorage: %d. Queue: %d\r\n", storageGetHostState(), plannerGetQueueLength(&queueMain));
-  chprintf(chp, "E Stopped: %s\r\n", printer_estop_message ? printer_estop_message : "None");
+  chprintf(chp, "\r\nStorage: %d. Queue: %d\r\n", storageGetHostState(), plannerQueueGetLength(&queueMain));
+  const char* message = printerGetMessage();
+  chprintf(chp, "Status: %s\r\n", message ? message : L_UI_STATUS_READY);
 }
 
 static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -338,7 +339,7 @@ static void cmd_homing(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  printerAddLine("G28");
+  //printerAddLine("G28");
 }
 
 static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]) {

@@ -1,4 +1,4 @@
-# ARM7/9 common makefile scripts and rules.
+# Win32 common makefile scripts and rules.
 
 # Output directory and files
 ifeq ($(BUILDDIR),)

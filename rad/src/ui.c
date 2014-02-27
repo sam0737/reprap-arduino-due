@@ -43,7 +43,7 @@
 #define HAS_DISPLAY  (GFX_USE_TDISP || GFX_USE_GDISP)
 
 #if HAS_DISPLAY
-static WORKING_AREA(waDisplay, 2048);
+static WORKING_AREA(waDisplay, 512);
 
 #define ENABLE_INPUT(TYPE) \
   do { \
@@ -94,10 +94,12 @@ typedef void (*display_renderer_t)(void);
 
 typedef uint8_t (*menu_visible_t)(void);
 typedef void (*menu_action_t)(void*);
+typedef void (*menu_event_t)(void);;
 
 typedef struct {
   char* name;
   void* icon;
+  char suffix;
   menu_visible_t visible_cb;
   menu_action_t action_cb;
   void* state;
@@ -122,7 +124,7 @@ typedef struct {
     struct {
       systime_t subscreen_time;
       struct {
-        char* text;
+        const char* text;
         struct {
           systime_t time;
           int16_t offset;
@@ -156,11 +158,12 @@ typedef struct {
           int16_t directory_opened;
         } print;
       };
+      menu_event_t check_cb;
       menu_get_t get_cb;
       menu_count_t count_cb;
       menu_get_next_t get_next_cb;
       menu_close_t close_cb;
-      menu_action_t back_action;
+      menu_event_t back_cb;
       systime_t last_refresh;
       int8_t pos;
       int16_t encoder_delta;
@@ -202,10 +205,12 @@ static void uiChangePage(display_viewmodel_t viewmodel)
 #include "ui/menu_viewmodel.h"
 #include "ui/dashboard_viewmodel.h"
 #include "ui/print_viewmodel.h"
+#include "ui/prepare_viewmodel.h"
 #include "ui/mainmenu_viewmodel.h"
 
 static msg_t threadDisplay(void *arg) {
   (void)arg;
+  const char* old_estop_state = NULL;
   systime_t next;
   systime_t now;
 
@@ -217,6 +222,10 @@ static msg_t threadDisplay(void *arg) {
     next = chTimeNow() + MS2ST(100); // 10 fps
     do
     {
+      if (!old_estop_state && (old_estop_state = printerIsEstopped()) != NULL)
+      {
+        uiChangePage(ui_dashboard_viewmodel);
+      }
       uiState.viewmodel();
     } while (uiState.renderer == NULL);
     uiState.renderer();

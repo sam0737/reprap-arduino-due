@@ -30,14 +30,15 @@ static void ui_menu_renderer(void) {
     {
       tdispSetCursor(0, i);
       const UiMenuItem* item =
-          uiState.menu.get_next_cb != NULL && i > 0 ?
-          uiState.menu.get_next_cb() :
+          i > 0 ? uiState.menu.get_next_cb() :
           uiMenuGetItem(i);
       if (item != NULL) {
         tdispDrawChar(i == uiState.menu.pos ? '>' : ' ');
         tdispDrawString(item->name);
-        for (uint8_t j = TDISP_COLUMNS - strlen(item->name) - 1; j > 0; j--)
+        for (int8_t j = TDISP_COLUMNS - strlen(item->name) - 2; j > 0; j--)
           tdispDrawChar(' ');
+        tdispSetCursor(TDISP_COLUMNS - 1, i);
+        tdispDrawChar(item->suffix ? item->suffix : ' ');
       }
     }
     if (uiState.menu.close_cb != NULL)

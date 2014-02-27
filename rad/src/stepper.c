@@ -36,6 +36,13 @@
 /* Local definition.                                                         */
 /*===========================================================================*/
 
+#ifdef RAD_DEBUG_WAITLINE
+#undef RAD_DEBUG_WAITLINE
+#define RAD_DEBUG_WAITLINE(...)
+#endif
+
+#define DEBUG_STEP 0
+
 #define STEPPER_VELOCITY_STEP_FREQ     32768
 #define STEPPER_VELOCITY_PROFILE_FREQ  256
 
@@ -169,8 +176,8 @@ static void stepper_wait_timer(void)
     RAD_DEBUG_PRINTF("STEPPER: Sleep while not active?\n");
     chThdSleepMilliseconds(1000);
   }
-  #if RAD_TEST
   past_timer += timer_interval;
+  #if RAD_TEST && DEBUG_STEP
   if (phase == 0 && active_block.mode == BLOCK_Positional)
   {
     RAD_DEBUG_PRINTF("STEPPER: %4d/%-4d %8d|",
@@ -189,12 +196,12 @@ static void stepper_wait_timer(void)
             0
         );
   }
-  while (past_timer >= (clock.tick_frequency / 20))
-  {
-    past_timer -= (clock.tick_frequency / 20);
-    chThdSleepMilliseconds(50);
-  }
   #endif
+  while (past_timer >= (clock.tick_frequency / 40))
+  {
+    past_timer -= (clock.tick_frequency / 40);
+    chThdSleepMilliseconds(20);
+  }
 }
 #endif
 
@@ -352,10 +359,6 @@ static void stepper_fetch_new_block(void)
 
     RAD_DEBUG_PRINTF("\nSTEPPER: NEW BLOCK - step_max: %d, distance: %.3fmm, duration: %.5fs\n",
         step_state.step_max, active_block.p.distance, active_block.p.duration);
-    /*if (step_state.step_max == 0) {
-      active_block.mode = BLOCK_Idle;
-      return;
-    }*/
 
     step_state.acc_per_tick =
         step_state.step_max ?

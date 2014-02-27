@@ -18,11 +18,12 @@
 
 */
 
-static uint8_t ui_mainmenu_can_estop_clear(void) { return printerIsEstopped(); }
+static uint8_t ui_mainmenu_can_estop_clear(void) { return printerIsEstopped() != 0; }
 static void ui_mainmenu_do_estop_clear(void* state) { printerEstopClear(); }
 static uint8_t ui_mainmenu_can_resume(void) { return printerGetState() == PRINTERSTATE_Interrupted; }
 static uint8_t ui_mainmenu_can_tuning(void) { return printerGetState() & PRINTERSTATE_Printing; }
 static uint8_t ui_mainmenu_can_interrupt_now(void) { return printerGetState() & PRINTERSTATE_Printing; }
+static uint8_t ui_mainmenu_can_print(void) { return printerGetState() == PRINTERSTATE_Standby; }
 static uint8_t ui_mainmenu_can_storage_ums(void) { return storageGetHostState() == STORAGE_Local; }
 static void ui_mainmenu_do_storage_ums(void* state) { storageUsbMount(); }
 static uint8_t ui_mainmenu_can_storage_local(void) { return storageGetHostState() == STORAGE_Usb; }
@@ -44,6 +45,7 @@ static const UiStandardMenu ui_mainmenu =
     .menus = (UiMenuItem[]) {
       {
           .name = L_UI_BACK,
+          .suffix = '^',
           .visible_cb = ui_menu_shows_back_item,
           .action_cb = ui_menu_goto_page,
           .state = ui_dashboard_viewmodel
@@ -59,6 +61,7 @@ static const UiStandardMenu ui_mainmenu =
       },
       {
           .name = L_UI_MAINMENU_TUNING,
+          .suffix = '>',
           .visible_cb = ui_mainmenu_can_tuning,
       },
       {
@@ -67,6 +70,8 @@ static const UiStandardMenu ui_mainmenu =
       },
       {
           .name = L_UI_MAINMENU_PRINT,
+          .suffix = '>',
+          .visible_cb = ui_mainmenu_can_print,
           .action_cb = ui_menu_goto_page,
           .state = ui_print_viewmodel
       },
@@ -82,10 +87,14 @@ static const UiStandardMenu ui_mainmenu =
       },
       {
           .name = L_UI_MAINMENU_PREPARE,
+          .suffix = '>',
           .visible_cb = ui_mainmenu_can_prepare,
+          .action_cb = ui_menu_goto_page,
+          .state = ui_prepare_viewmodel,
       },
       {
           .name = L_UI_MAINMENU_INFO,
+          .suffix = '>',
       },
       {
           .name = L_UI_MAINMENU_ESTOP,
@@ -102,10 +111,11 @@ static const UiStandardMenu ui_mainmenu =
 
 static void ui_mainmenu_viewmodel(void) {
   uiState.viewmodel = ui_menu_viewmodel;
+  uiState.menu.check_cb = NULL;
   uiState.menu.get_cb = uiStandardMenuGet;
   uiState.menu.count_cb = uiStandardMenuCount;
   uiState.menu.get_next_cb = uiStandardMenuGetNext;
   uiState.menu.close_cb = NULL;
+  uiState.menu.back_cb = ui_menu_goto_dashboard;
   uiState.menu.standard.menu = &ui_mainmenu;
-  uiState.menu.back_action = ui_menu_goto_dashboard;
 }

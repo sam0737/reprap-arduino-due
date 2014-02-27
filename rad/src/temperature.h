@@ -40,6 +40,9 @@ typedef struct {
   float               sv;
   float               pv;
   adcsample_t         raw;
+  bool_t              is_heating;
+  systime_t           target_reached_at;
+  bool_t              target_reached;
 } RadTempState;
 
 typedef struct {

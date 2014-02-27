@@ -34,18 +34,18 @@
   "S01-Printing"
 #endif
 
-#ifndef L_UI_STATUS_HEATING
-#define L_UI_STATUS_HEATING \
+#ifndef L_UI_STATUS_INTERRUPTED
+#define L_UI_STATUS_INTERRUPTED \
+  "S05-Paused"
+#endif
+
+#ifndef L_PRINTER_STATUS_HEATING
+#define L_PRINTER_STATUS_HEATING \
   "S02-Heating up"
 #endif
 
-#ifndef L_UI_STATUS_INTERRUPTED
-#define L_UI_STATUS_INTERRUPTED \
-  "S05-Interrupted"
-#endif
-
-#ifndef L_UI_STATUS_NOT_HOMED
-#define L_UI_STATUS_NOT_HOMED \
+#ifndef L_PRINTER_STATUS_NOT_HOMED
+#define L_PRINTER_STATUS_NOT_HOMED \
   "E00-Printer is not homed"
 #endif
 
@@ -146,10 +146,25 @@
 
 #ifndef L_UI_PRINT_UP
 #define L_UI_PRINT_UP \
-  "[Up]"
+  "Up"
 #endif
 
 #ifndef L_UI_PRINT_NO_FILES
 #define L_UI_PRINT_NO_FILES \
   "- No Files -"
+#endif
+
+#ifndef L_UI_PREPARE_HOMING
+#define L_UI_PREPARE_HOMING \
+  "Homing"
+#endif
+
+#ifndef L_PRINTER_HOST_GCODE_ERROR
+#define L_PRINTER_HOST_GCODE_ERROR \
+  "E50-Invalid GCode from host"
+#endif
+
+#ifndef L_PRINTER_STOPPED_BY_HOST
+#define L_PRINTER_STOPPED_BY_HOST \
+  "E03-Stopped by host"
 #endif

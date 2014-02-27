@@ -20,7 +20,7 @@
 
 static void ui_print_viewmodel_core(void);
 
-void ui_print_up(void* state)
+void ui_print_up(void)
 {
   if (uiState.menu.print.depth == 0)
   {
@@ -33,12 +33,18 @@ void ui_print_up(void* state)
   uiChangePage((display_viewmodel_t)ui_print_viewmodel_core);
 }
 
+void ui_print_up_action(void* state)
+{
+  (void)state;
+  ui_print_up();
+}
+
 void ui_print_change_directory(void* filename)
 {
   uiState.menu.print.depth++;
   storageChangeDir((TCHAR*)filename);
   uiChangePage((display_viewmodel_t)ui_print_viewmodel_core);
-  uiState.menu.back_action = ui_print_up;
+  uiState.menu.back_cb = ui_print_up;
 }
 
 static const UiMenuItem* ui_print_file_to_menu(RadFileInfo *file)
@@ -49,6 +55,7 @@ static const UiMenuItem* ui_print_file_to_menu(RadFileInfo *file)
       .action_cb =
           file->type == FILETYPE_Directory ? ui_print_change_directory :
               NULL,
+      .suffix = file->type == FILETYPE_Directory ? '>' : 0,
       .state = file->filename
     };
   return &uiState.menu.print.item;
@@ -84,7 +91,8 @@ const UiMenuItem* ui_print_get(int16_t index)
       uiState.menu.print.item = (UiMenuItem)
         {
             .name = uiState.menu.print.depth == 0 ? L_UI_BACK : L_UI_PRINT_UP,
-            .action_cb = ui_print_up
+            .suffix = '^',
+            .action_cb = ui_print_up_action
         };
       return &uiState.menu.print.item;
     }
@@ -145,12 +153,13 @@ static void ui_print_close(void)
 
 static void ui_print_viewmodel_core(void) {
   uiState.viewmodel = ui_menu_viewmodel;
+  uiState.menu.check_cb = NULL;
   uiState.menu.get_cb = ui_print_get;
   uiState.menu.count_cb = ui_print_count;
   uiState.menu.get_next_cb = ui_print_get_next;
   uiState.menu.close_cb = ui_print_close;
   if (uiState.menu.print.depth == 0)
-    uiState.menu.back_action = ui_menu_goto_mainmenu;
+    uiState.menu.back_cb = ui_menu_goto_mainmenu;
 }
 
 static void ui_print_viewmodel(void) {

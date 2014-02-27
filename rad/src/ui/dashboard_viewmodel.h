@@ -35,10 +35,24 @@ static void ui_mainmenu_viewmodel(void);
 static void ui_dashboard_viewmodel(void) {
   uiState.renderer = ui_dashboard_renderer;
 
-  char* status = printer_estop_message;
+  const char* message = printerGetMessage();
 
-  if (status == NULL)
-    status = L_UI_STATUS_READY;
+  if (message == NULL)
+  {
+    switch (printerGetState())
+    {
+      case PRINTERSTATE_Standby:
+        message = L_UI_STATUS_READY;
+        break;
+      case PRINTERSTATE_Printing:
+      case PRINTERSTATE_Interrupting:
+        message = L_UI_STATUS_PRINTING;
+        break;
+      case PRINTERSTATE_Interrupted:
+        message = L_UI_STATUS_INTERRUPTED;
+        break;
+    }
+  }
 
   bool change_subscreen = FALSE;
   if (uiState.changed_parts & DASHBOARD_Reset)
@@ -58,10 +72,10 @@ static void ui_dashboard_viewmodel(void) {
     }
   }
 
-  if (status != uiState.dashboard.status.text)
+  if (message != uiState.dashboard.status.text)
   {
     uiState.changed_parts |= DASHBOARD_Status;
-    uiState.dashboard.status.text = status;
+    uiState.dashboard.status.text = message;
     uiState.dashboard.status.marquee.time = chTimeNow();
     uiState.dashboard.status.marquee.length = 0;
     uiState.dashboard.status.marquee.offset = 0;

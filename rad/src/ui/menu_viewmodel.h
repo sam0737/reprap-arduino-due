@@ -34,7 +34,7 @@ static void ui_menu_viewmodel(void) {
     uiState.menu.current = 0;
     uiState.menu.pos = 0;
   } else if (GET_INPUT(back_button).button.times) {
-    uiState.menu.back_action(NULL);
+    uiState.menu.back_cb();
     return;
   } else if (GET_INPUT(enter_button).button.times)
   {
@@ -42,6 +42,7 @@ static void ui_menu_viewmodel(void) {
     if (menu && (!menu->visible_cb || menu->visible_cb()))
     {
       if (menu->action_cb) {
+        uiState.renderer = NULL;
         menu->action_cb(menu->state);
         uiState.changed_parts = UI_PARTS_All;
       }

@@ -38,6 +38,7 @@ typedef enum {
 
   BLOCK_Velocity = 1,
   BLOCK_Positional = 2,
+  BLOCK_Command = 3,
 
   BLOCK_Estop = 4,
   BLOCK_Estop_Clear = 5,
@@ -112,7 +113,7 @@ typedef struct {
 extern "C" {
 #endif
   void plannerQueueInit(PlannerQueue* queue, PlannerOutputBlock* buffer, size_t size);
-  size_t plannerGetQueueLength(PlannerQueue* queue);
+  size_t plannerQueueGetLength(PlannerQueue* queue);
   bool_t plannerQueueFetchBlockI(PlannerQueue* queue, PlannerOutputBlock* block, PlannerOutputBlockMode current_mode);
   PlannerOutputBlock* plannerQueueReserveBlock(PlannerQueue* queue);
   void plannerQueueAddBlock(PlannerQueue* queue);

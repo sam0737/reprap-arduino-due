@@ -18,43 +18,8 @@
 
 */
 
-/**
- * @file    src/rad.h
- * @brief   RAD header.
- *
- * @addtogroup RAD
- * @{
- */
-
-#ifndef _RAD_H_
-#define _RAD_H_
-
-#include "math.h"
-#include "mini_printf.h"
-
-#include "power.h"
-#include "beeper.h"
-#include "input_hardware.h"
-#include "input.h"
-#include "output.h"
-#include "endstop.h"
-#include "temperature.h"
-#include "raddebug.h"
-#include "ui.h"
-#include "storage.h"
-#include "radmath.h"
-
-#include "radhal_radboard.h"
-#include "radhal_machine.h"
-
-#include "gcode_definition.h"
-#include "printer.h"
-#include "gcode.h"
-
-#include "stepper.h"
-#include "planner.h"
-#include "planner_queue.h"
-#include "radpex.h"
+#ifndef _RAD_DATA_SERIAL_H_
+#define _RAD_DATA_SERIAL_H_
 
 /*===========================================================================*/
 /* External declarations.                                                    */
@@ -63,11 +28,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void radInit(void);
+  void dataHostInit(void);
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* _RAD_H_ */
-
-/** @} */
+#endif  /* _RAD_DATA_SERIAL_H_ */

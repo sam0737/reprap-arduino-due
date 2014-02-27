@@ -64,7 +64,7 @@ const machine_t machine =
             .min_limit = -15, .max_limit = 175,
             .max_speed = 100, .max_acceleration = 100, .scale = 100, //45.7142,
             // .max_speed = 400, .max_acceleration = 800, .scale = 100, //45.7142,
-            .home_search_vel = -75, .home_latch_vel = 2,
+            .home_search_vel = -20, .home_latch_vel = -2,
             .home_sequence = 1, .home_axis_name = AXIS_X
           },
           {
@@ -72,7 +72,7 @@ const machine_t machine =
             .min_limit = 0, .max_limit = 255,
             .max_speed = 100, .max_acceleration = 100, .scale = 100, //45.7142,
             // .max_speed = 400, .max_acceleration = 2500, .scale = 100, //45.7142,
-            .home_search_vel = -75, .home_latch_vel = 2,
+            .home_search_vel = -20, .home_latch_vel = -2,
             .home_sequence = 1, .home_axis_name = AXIS_Y
           },
           {

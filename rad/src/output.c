@@ -110,7 +110,7 @@ void outputSet(uint8_t output_id, uint8_t duty)
   if (output_id >= RAD_NUMBER_OUTPUTS)
     return;
   chSysLock();
-  outputs[output_id] = printerIsEstopped() ? 0 : duty;
+  outputs[output_id] = duty == 0 || printerIsEstopped() ? 0 : duty;
   chSysUnlock();
 }
 

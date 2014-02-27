@@ -37,6 +37,7 @@
 /*===========================================================================*/
 
 static RadTempPidState pid_states[RAD_NUMBER_TEMPERATURES];
+static RadTempState temperatures[RAD_NUMBER_TEMPERATURES];
 
 #include "temperature_pid.h"
 
@@ -49,6 +50,56 @@ static RadTempPidState pid_states[RAD_NUMBER_TEMPERATURES];
 /*===========================================================================*/
 /* Exported functions.                                                       */
 /*===========================================================================*/
+
+static void temperatureSetI(uint8_t temp_id, float temp)
+{
+  RadTempState* t = &temperatures[temp_id];
+  t->sv = temp;
+  t->is_heating = t->sv > t->pv;
+  t->target_reached = 0;
+  t->target_reached_at = 0;
+}
+
+void temperatureSet(uint8_t temp_id, float temp)
+{
+  if (temp_id >= RAD_NUMBER_TEMPERATURES)
+    return;
+
+  chSysLock();
+  temperatureSetI(temp_id, temp);
+  chSysUnlock();
+}
+
+void temperatureAllZero(void)
+{
+  chSysLock();
+  for (uint8_t i = 0; i < RAD_NUMBER_TEMPERATURES; i++)
+    temperatureSetI(i, 0);
+  chSysUnlock();
+}
+
+RadTempState temperatureGet(uint8_t temp_id)
+{
+  RadTempState temp;
+
+  if (temp_id >= RAD_NUMBER_TEMPERATURES)
+  {
+    memset(&temp, 0, sizeof(temp));
+    return temp;
+  }
+
+  chSysLock();
+  temp = temperatures[temp_id];
+  if (!temp.target_reached && temp.target_reached_at)
+  {
+    systime_t residency_time = machine.temperature.devices[temp_id].residency_time;
+    if (residency_time == 0)
+      residency_time = S2ST(10);
+    temp.target_reached = chTimeNow() - temp.target_reached_at > residency_time;
+  }
+  chSysUnlock();
+  return temp;
+}
 
 void temperatureInit()
 {

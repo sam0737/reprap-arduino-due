@@ -18,22 +18,21 @@
 
 */
 
-#include <stdlib.h>
+#ifndef _GCODE_DECODE_H_
+#define _GCODE_DECODE_H_
 
-static char* codep = NULL;
+typedef uint8_t parse_context_t;
+typedef char* decode_context_t;
 
-static bool_t code_seen(char code)
-{
-  codep = strchr(curr_command->payload, code);
-  return (codep != NULL);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+  void gcodeResetParseContext(parse_context_t* context);
+  char gcodeFilterCharacter(char c, parse_context_t* context);
+  bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_context);
+#ifdef __cplusplus
 }
+#endif
 
-static float code_value(void)
-{
-  if (codep == NULL) return 0;
-  float val;
-  val = strtof(codep + 1, NULL);
-  if (!isnormal(val)) // Not NaN, Inf, Subnormal
-    return 0;
-  return val;
-}
+#endif

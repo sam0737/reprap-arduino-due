@@ -51,7 +51,7 @@ void plannerQueueInit(PlannerQueue* queue, PlannerOutputBlock* buffer, size_t si
   /*
    * Reduce the size such that rd_ptr will never be overridden during recalculation
    */
-  chSemInit(&queue->q_sem, size);
+  chSemInit(&queue->q_sem, size - 2);
   queue->q_buffer = queue->q_wrptr = queue->q_rdptr = buffer;
   queue->q_top = queue->q_buffer + size;
 }
@@ -92,7 +92,7 @@ PlannerOutputBlock* plannerQueueReserveBlock(PlannerQueue* queue)
   return block;
 }
 
-size_t plannerGetQueueLength(PlannerQueue* queue)
+size_t plannerQueueGetLength(PlannerQueue* queue)
 {
   chSysLock();
   size_t len = queue->q_counter;
@@ -268,7 +268,7 @@ static void calculateTrapezoid(float last_exit_speed, PlannerOutputBlock *curren
   current->p.decelerate_after = accel_distance + plateau;
 }
 
-static void ralculateForwardPass(PlannerQueue *queue, PlannerOutputBlock *head, PlannerOutputBlock *tail)
+static void ralculateForwardPass(PlannerQueue *queue, float queue_last_exit_speed, PlannerOutputBlock *head, PlannerOutputBlock *tail)
 {
   PlannerOutputBlock *prev = NULL;
   do
@@ -276,8 +276,9 @@ static void ralculateForwardPass(PlannerQueue *queue, PlannerOutputBlock *head, 
     if (!head->busy && head->mode == BLOCK_Positional)
     {
       float last_exit_speed =
-          (prev == NULL || prev->busy || prev->mode != BLOCK_Positional) ?
-              queue->last_exit_speed : prev->p.exit_speed;
+          prev == NULL ? queue_last_exit_speed :
+          prev->mode != BLOCK_Positional ? 0 :
+              prev->p.exit_speed;
       ralculateForwardPassKernel(last_exit_speed, head);
       if (!head->p.is_profile_valid)
         calculateTrapezoid(last_exit_speed, head);
@@ -293,6 +294,7 @@ void plannerQueueRecalculate(PlannerQueue *queue)
 {
   PlannerOutputBlock* tail;
   PlannerOutputBlock* head;
+  float last_exit_speed;
   chSysLock();
   if (queue->q_pending == 0 && queue->q_counter == 0) {
     chSysUnlock();
@@ -300,10 +302,11 @@ void plannerQueueRecalculate(PlannerQueue *queue)
   }
   tail = queue->q_wrptr;
   head = queue->q_rdptr;
+  last_exit_speed = queue->last_exit_speed;
   chSysUnlock();
 
   ralculateReversePass(queue, head, tail);
-  ralculateForwardPass(queue, head, tail);
+  ralculateForwardPass(queue, last_exit_speed, head, tail);
 
   plannerQueueCommit(queue);
 }

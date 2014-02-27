@@ -25,6 +25,7 @@
  * @addtogroup PRINTER
  * @{
  */
+
 #ifndef _RAD_PRINTER_H_
 #define _RAD_PRINTER_H_
 
@@ -32,11 +33,14 @@
 /* External declarations.                                                    */
 /*===========================================================================*/
 
+#define COMMAND_BUFFER_SIZE 4
+
+#include "data/datahost.h"
+
 typedef enum {
   PRINTERSTATE_Standby = 0x00,
 
   PRINTERSTATE_Printing = 0x10,
-  PRINTERSTATE_Heating = 0x11,
 
   PRINTERSTATE_Interrupting = 0x40,
   PRINTERSTATE_Interrupted = 0x41,
@@ -45,22 +49,30 @@ typedef enum {
 } PrinterState;
 
 typedef enum {
-  PRINTINGSOURCE_SD = 0,
-  PRINTINGSOURCE_Host = 1,
+  PRINTINGSOURCE_None = 1,
+  PRINTINGSOURCE_SD = 1,
+  PRINTINGSOURCE_Host = 2,
+  PRINTINGSOURCE_LCD = 3,
 } PrintingSource;
-
-extern char* printer_estop_message;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
   void printerInit(void);
   uint8_t printerGetActiveExtruder(void);
-  void printerAddLine(const char* line);
+  void printerRelease(const PrintingSource source);
+  bool_t printerTryAcquire(const PrintingSource source);
+  void printerPushCommand(const PrinterCommand* command);
+  void printerFreeCommand(PrinterCommand* command);
+  PrinterState printerGetStateI(void);
   PrinterState printerGetState(void);
-  bool_t printerIsEstopped(void);
-  void printerEstop(char* message);
+  void printerSetStateI(PrinterState new_state);
+  void printerSetState(PrinterState new_state);
+  const char* printerIsEstopped(void);
+  void printerEstop(const char* message);
   void printerEstopClear(void);
+  void printerSetMessage(const char* message);
+  const char* printerGetMessage(void);
 #ifdef __cplusplus
 }
 #endif

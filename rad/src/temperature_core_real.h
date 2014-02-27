@@ -38,8 +38,6 @@
 
 static WORKING_AREA(waTemp, 128);
 
-static RadTempState temperatures[RAD_NUMBER_TEMPERATURES];
-
 int8_t finishing_count = 0;
 int8_t has_error = 0;
 Thread* tp;
@@ -110,6 +108,10 @@ static msg_t threadTemp(void *arg) {
             s->pv = pv;
             s->raw = sample;
             float sv = s->sv;
+            if (!s->target_reached_at)
+              if ((s->is_heating && s->pv >= sv) ||
+                  (!s->is_heating && s->pv <= sv))
+                s->target_reached_at = chTimeNow();
             chSysUnlock();
             temperature_pid_loop(k, sv, pv);
           }
@@ -118,45 +120,6 @@ static msg_t threadTemp(void *arg) {
     }
   }
   return 0;
-}
-
-static void temperatureSetI(uint8_t temp_id, float temp)
-{
-  temperatures[temp_id].sv = temp;
-}
-
-void temperatureSet(uint8_t temp_id, float temp)
-{
-  if (temp_id >= RAD_NUMBER_TEMPERATURES)
-    return;
-
-  chSysLock();
-  temperatureSetI(temp_id, temp);
-  chSysUnlock();
-}
-
-void temperatureAllZero(void)
-{
-  chSysLock();
-  for (uint8_t i = 0; i < RAD_NUMBER_TEMPERATURES; i++)
-    temperatureSetI(i, 0);
-  chSysUnlock();
-}
-
-RadTempState temperatureGet(uint8_t temp_id)
-{
-  RadTempState temp;
-
-  if (temp_id >= RAD_NUMBER_TEMPERATURES)
-  {
-    memset(&temp, 0, sizeof(temp));
-    return temp;
-  }
-
-  chSysLock();
-  temp = temperatures[temp_id];
-  chSysUnlock();
-  return temp;
 }
 
 void temperature_core_init(void)

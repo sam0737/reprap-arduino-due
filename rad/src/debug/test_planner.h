@@ -86,7 +86,7 @@ static void cmd_test_planner(BaseSequentialStream *chp, int argc, char *argv[]) 
   {
     line++;
     RAD_DEBUG_PRINTF("Line: %d: %s", line, buffer);
-    printerAddLine(buffer);
+    //printerAddLine(buffer);
     //cmd_test_dump_all_blocks(chp);
   }
   fclose(fp);

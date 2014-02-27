@@ -48,11 +48,12 @@ const UiMenuItem* uiStandardMenuGetNext(void)
       return item;
     }
   }
+  return NULL;
 }
 
 int16_t uiStandardMenuCount()
 {
-  int8_t count;
+  int8_t count = 0;
   for (int8_t i = uiState.menu.standard.menu->count - 1; i >= 0; i--)
   {
     const UiMenuItem* item = &uiState.menu.standard.menu->menus[i];
@@ -89,13 +90,13 @@ uint8_t ui_menu_shows_back_item(void)
 }
 
 static void ui_dashboard_viewmodel(void);
-static void ui_menu_goto_dashboard(void *state)
+static void ui_menu_goto_dashboard(void)
 {
   uiChangePage(ui_dashboard_viewmodel);
 }
 
 static void ui_mainmenu_viewmodel(void);
-static void ui_menu_goto_mainmenu(void *state)
+static void ui_menu_goto_mainmenu(void)
 {
   uiChangePage(ui_mainmenu_viewmodel);
 }

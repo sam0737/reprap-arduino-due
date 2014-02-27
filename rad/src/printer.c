@@ -29,39 +29,37 @@
 #include "ch.h"
 #include "hal.h"
 #include "rad.h"
-#include "chprintf.h"
-
-#include "printer.h"
 
 /*===========================================================================*/
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-#define COMMAND_LENGTH 128
-#define COMMAND_BUFFER_SIZE 8
+static msg_t command_main_mbox_buffer[COMMAND_BUFFER_SIZE];
 
-typedef struct {
-  char payload[COMMAND_LENGTH];
-} PrinterCommand;
+static Semaphore command_main_pool_sem;
+static Mailbox command_main_mbox;
 
-static PrinterCommand command_pool_buffer[COMMAND_BUFFER_SIZE];
-static msg_t command_mbox_buffer[COMMAND_BUFFER_SIZE];
+static msg_t command_alt_mbox_buffer[COMMAND_BUFFER_SIZE];
 
-// static char axis_code[] = {' ', 'X', 'Y', 'Z'};
+static Semaphore command_alt_pool_sem;
+static Mailbox command_alt_mbox;
 
-Semaphore command_pool_sem;
-MemoryPool command_pool;
-Mailbox command_mbox;
+static PrinterCommand command_pool_buffer[COMMAND_BUFFER_SIZE * 2];
+static MemoryPool command_pool;
 
+static PrintingSource main_source;
+static PrintingSource alt_source;
+
+static PrinterCommand* curr_command;
+
+static PrinterMode mode;
 static PrinterState state;
 
-static PrinterCommand *curr_command;
-char* printer_estop_message = NULL;
+static Mutex estop_mtx;
+static const char* printer_estop_message = NULL;
+static const char* printer_message = NULL;
 
-static uint8_t active_extruder;
-
-static WORKING_AREA(waPrinterFetchSerial, 128);
-static WORKING_AREA(waPrinter, 512);
+static WORKING_AREA(waPrinter, 256);
 
 /*===========================================================================*/
 /* Local functions.                                                          */
@@ -69,143 +67,34 @@ static WORKING_AREA(waPrinter, 512);
 
 static void printerSyncCommanded(void);
 
-#include "command/gcode_decode.h"
 #include "command/move.h"
 #include "command/homing.h"
 
+#include "command/dispatch.h"
+
 static PrinterCommand* printer_new_command(void)
 {
-  chSemWait(&command_pool_sem);
+  chSemWait(&command_main_pool_sem);
   PrinterCommand* command = chPoolAlloc(&command_pool);
   return command;
 }
 
 static void printer_free_current_command(void)
 {
-  chPoolFree(&command_pool, curr_command);
-  chSemSignalI(&command_pool_sem);
+  if (curr_command->ack_mbox)
+  {
+    chMBPost(curr_command->ack_mbox, (msg_t) curr_command, TIME_INFINITE);
+    chEvtBroadcastFlags(curr_command->ack_evt, 1);
+  } else
+  {
+    printerFreeCommand(curr_command);
+  }
 }
 
-static void printer_normalize_command(void)
+void printerFreeCommand(PrinterCommand* command)
 {
-  bool_t in_comment = FALSE;
-  for (uint8_t i = 0; i < COMMAND_LENGTH; i++)
-  {
-    char c = curr_command->payload[i];
-    if (c == '\0') return;
-    if (!in_comment)
-    {
-      if (c == '(') {
-          curr_command->payload[i] = ' ';
-          in_comment = TRUE;
-      } else if (c == ';') {
-        curr_command->payload[i] = '\0';
-        return;
-      }
-    } else {
-      curr_command->payload[i] = ' ';
-      if (c == ')')
-        in_comment = FALSE;
-    }
-  }
-}
-
-static void printer_dispatch(void)
-{
-  if (code_seen('G'))
-  {
-    switch ((int)code_value()){
-    case 0:
-    case 1:
-      if (printerIsEstopped()) break;
-      commandMove();
-      break;
-    /* Dwell */
-    case 4:
-      if (code_seen('P'))
-        chThdSleepMilliseconds((int)code_value());
-      break;
-    /* Move to origin */
-    case 28:
-      printerEstopClear();
-      commandHoming();
-      break;
-    /* Set Position */
-    case 92:
-      commandSetPosition();
-    }
-  } else if (code_seen('M'))
-  {
-    switch ((int)code_value()){
-    case 80:
-      powerPsuOn();
-      break;
-    case 81:
-      powerPsuOff();
-      break;
-    case 999:
-      printerEstopClear();
-      break;
-    }
-  }
-}
-
-static msg_t threadPrinterFetchSerial(void *arg) {
-  (void)arg;
-  chRegSetThreadName("fetch-ser");
-
-  static char* ptr;
-  static char buf[COMMAND_LENGTH];
-  static char in_comment = 0;
-
-  ptr = buf;
-  while (1)
-  {
-    msg_t c = chSequentialStreamGet(radboard.hmi.comm_channel);
-    if (c < 0) {
-      /* Should never reach this */
-      chThdSleepMilliseconds(100);
-      continue;
-    }
-    if (c == '\n' || c == '\r') {
-      in_comment = 0;
-
-      if (ptr == buf) continue;
-
-      *ptr = '\0';
-      // chprintf((BaseSequentialStream*)radboard.hmi.comm_channel, "ok %d\n", strlen(buf));
-      printerAddLine(buf);
-      ptr = buf;
-      continue;
-
-      /*
-       * TODO Checksum, line number, Send ok
-       */
-    }
-
-    if ((ptr - buf) >= COMMAND_LENGTH)
-      continue;
-
-    if (in_comment == 0)
-    {
-      if (c == '(') {
-          in_comment = 1;
-          continue;
-      } else if (c == ';') {
-        in_comment = 2;
-        continue;
-      }
-    } else if (in_comment == 1 && c == ')') {
-      in_comment = 0;
-      continue;
-    } else {
-      continue;
-    }
-
-    if (c >= 'a' && c <= 'z') c -= 'a' - 'A';
-    *(ptr++) = c;
-  }
-  return 0;
+  chPoolFree(&command_pool, command);
+  chSemSignal(&command_main_pool_sem);
 }
 
 static msg_t threadPrinter(void *arg) {
@@ -214,17 +103,23 @@ static msg_t threadPrinter(void *arg) {
 
   beeperPlay(&tuneStartup);
 
+  mode.rapid = RAPIDMODE_Feed;
+  mode.distance = DISTANCEMODE_Absolute;
+  mode.unit = UNITMODE_Millimeter;
+  mode.extruder_distance = DISTANCEMODE_Absolute;
+  mode.tool = 0;
+  mode.feedrate = 30;
+
   while (1)
   {
     curr_command = NULL;
-    chMBFetch(&command_mbox, (msg_t*)&curr_command, TIME_INFINITE);
+    chMBFetch(&command_main_mbox, (msg_t*)&curr_command, TIME_INFINITE);
 
     if (curr_command == NULL) {
       /* Should never reach this */
       chThdSleepMilliseconds(100);
       continue;
     }
-    printer_normalize_command();
     printer_dispatch();
     printer_free_current_command();
   }
@@ -237,26 +132,76 @@ static msg_t threadPrinter(void *arg) {
 
 void printerInit(void)
 {
+  chMtxInit(&estop_mtx);
+
+  chSemInit(&command_main_pool_sem, COMMAND_BUFFER_SIZE);
+  chMBInit(&command_main_mbox, command_main_mbox_buffer, COMMAND_BUFFER_SIZE);
+
+  chSemInit(&command_alt_pool_sem, COMMAND_BUFFER_SIZE);
+  chMBInit(&command_alt_mbox, command_alt_mbox_buffer, COMMAND_BUFFER_SIZE);
+
   chPoolInit(&command_pool, sizeof(PrinterCommand), NULL);
   chPoolLoadArray(&command_pool, command_pool_buffer, COMMAND_BUFFER_SIZE);
-  chMBInit(&command_mbox, command_mbox_buffer, COMMAND_BUFFER_SIZE);
-  chSemInit(&command_pool_sem, COMMAND_BUFFER_SIZE);
 
   chThdCreateStatic(waPrinter, sizeof(waPrinter), NORMALPRIO, threadPrinter, NULL);
-  chThdCreateStatic(waPrinterFetchSerial, sizeof(waPrinterFetchSerial), NORMALPRIO,
-      threadPrinterFetchSerial, NULL);
+
+  dataHostInit();
 }
 
 uint8_t printerGetActiveExtruder(void)
 {
-  return active_extruder;
+  return mode.tool;
 }
 
-void printerAddLine(const char* line)
+void printerRelease(const PrintingSource source)
 {
-  PrinterCommand* cmd = printer_new_command();
-  strcpy(cmd->payload, line);
-  chMBPost(&command_mbox, (msg_t) cmd, TIME_INFINITE);
+  chSysLock();
+  if (state == PRINTERSTATE_Interrupted) {
+    if (source == alt_source)
+      alt_source = PRINTINGSOURCE_None;
+  } else if (state == PRINTERSTATE_Printing) {
+    if (source == main_source) {
+      main_source = PRINTINGSOURCE_None;
+      state = PRINTERSTATE_Standby;
+    }
+  }
+  chSysUnlock();
+}
+
+bool_t printerTryAcquire(const PrintingSource source)
+{
+  bool_t result = FALSE;
+  chSysLock();
+  if (state == PRINTERSTATE_Standby) {
+    state = PRINTERSTATE_Printing;
+    main_source = source;
+  }
+
+  if (main_source == source) {
+    result = TRUE;
+  } else {
+    if (state == PRINTERSTATE_Interrupted) {
+      if (alt_source == PRINTINGSOURCE_None) {
+        alt_source = source;
+      }
+      if (alt_source == source) {
+        result = TRUE;
+      }
+    }
+  }
+  chSysUnlock();
+  return result;
+}
+
+void printerPushCommand(const PrinterCommand* command) {
+  PrinterCommand* new_command = printer_new_command();
+  memcpy(new_command, command, sizeof(PrinterCommand));
+  chMBPost(&command_main_mbox, (msg_t) new_command, TIME_INFINITE);
+}
+
+PrinterState printerGetStateI(void)
+{
+  return state;
 }
 
 PrinterState printerGetState(void)
@@ -267,37 +212,65 @@ PrinterState printerGetState(void)
   return now_state;
 }
 
-static void printerSetState(PrinterState new_state)
+void printerSetStateI(PrinterState new_state)
 {
-  chSysLock();
   if (state == PRINTERSTATE_Estopped)
     return;
   state = new_state;
+}
+
+void printerSetState(PrinterState new_state)
+{
+  chSysLock();
+  printerSetStateI(new_state);
   chSysUnlock();
 }
 
-bool_t printerIsEstopped(void)
+const char* printerIsEstopped(void)
 {
-  return printerGetState() == PRINTERSTATE_Estopped;
+  const char* message;
+  chMtxLock(&estop_mtx);
+  message = printer_estop_message;
+  chMtxUnlock();
+  return message;
 }
 
-void printerEstop(char *message)
+void printerEstop(const char *message)
 {
+  chMtxLock(&estop_mtx);
   printerSetState(PRINTERSTATE_Estopped);
   printer_estop_message = message;
+  main_source = alt_source = PRINTINGSOURCE_None;
   beeperPlay(&tuneWarning);
   plannerEstop();
   temperatureAllZero();
   outputAllZero();
+  chMtxUnlock();
 }
 
 void printerEstopClear(void)
 {
-  printer_estop_message = NULL;
-  plannerEstopClear();
-  chSysLock();
-  state = PRINTERSTATE_Standby;
-  chSysUnlock();
+  chMtxLock(&estop_mtx);
+  if (state == PRINTERSTATE_Estopped)
+  {
+    plannerEstopClear();
+    state = PRINTERSTATE_Standby;
+    printer_estop_message = NULL;
+  }
+  chMtxUnlock();
+}
+
+void printerSetMessage(const char* message)
+{
+  printer_message = message;
+}
+
+const char* printerGetMessage(void)
+{
+  const char* m = printer_estop_message;
+  if (m == NULL)
+    m = printer_message;
+  return m;
 }
 
 /** @} */

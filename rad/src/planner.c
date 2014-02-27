@@ -112,6 +112,7 @@ void plannerAddAxisPoint(
      */
     duration = 60 * extrusion_distance / feedrate;
   }
+  segments = 1;
 
   duration /= segments;
   if (segments > 1)
@@ -248,6 +249,7 @@ void plannerSetJointVelocity(const PlannerJointMovement *velocity)
       block->v.joints[i].sv = velocity->joints[i];
     }
     block->v.joints[i].acc = jt->max_acceleration;
+    block->v.joints[i].is_stop_signalled = FALSE;
   }
 
   // Deduce extruders speed and speed limit
