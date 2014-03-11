@@ -53,33 +53,49 @@ static float code_value(decode_context_t* context)
   return val;
 }
 
-bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_context)
+void gcodeInitializeCommand(PrinterCommand* cmd)
 {
   memset(cmd, 0, sizeof(PrinterCommand));
+  cmd->line = -1;
+  cmd->r_value = NAN;
+  cmd->s_value = NAN;
+  cmd->p_value = -1;
+  cmd->printer.feedrate = NAN;
+  cmd->t_value = -1;
+  cmd->e_value = NAN;
+  for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++)
+  {
+    cmd->axes_value[i] = NAN;
+  }
+}
+
+bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_context)
+{
+  gcodeInitializeCommand(cmd);
   int value;
 
-  cmd->line = (code_seen(buf, 'N', decode_context)) ?
-      (int32_t) code_value(decode_context) : -1;
-  cmd->r_value = (code_seen(buf, 'R', decode_context)) ?
-      code_value(decode_context) : NAN;
-  cmd->s_value = (code_seen(buf, 'S', decode_context)) ?
-      code_value(decode_context) : NAN;
-  cmd->p_value = (code_seen(buf, 'P', decode_context)) ?
-      (int32_t) code_value(decode_context) : -1;
+  if (code_seen(buf, 'N', decode_context))
+    cmd->line = (int32_t) code_value(decode_context);
+  if (code_seen(buf, 'R', decode_context))
+    cmd->r_value = code_value(decode_context);
+  if (code_seen(buf, 'S', decode_context))
+    cmd->s_value = code_value(decode_context);
+  if (code_seen(buf, 'P', decode_context))
+    cmd->p_value = (int32_t) code_value(decode_context);
 
   if (code_seen(buf, 'F', decode_context))
   {
     cmd->printer.feedrate = code_value(decode_context);
     if (cmd->printer.feedrate < 1)
       return FALSE;
-    cmd->type |= COMMANDTYPE_Action;
+    cmd->type |= COMMANDTYPE_SyncAction;
   } else {
     cmd->printer.feedrate = NAN;
   }
 
   if (code_seen(buf, 'E', decode_context)) {
     cmd->e_value = code_value(decode_context);
-    cmd->type |= COMMANDTYPE_Action;
+    cmd->type |= COMMANDTYPE_SyncAction;
   } else {
     cmd->e_value = NAN;
   }
@@ -88,7 +104,7 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
   {
     if (code_seen(buf, machine.kinematics.axes[i].name, decode_context)) {
       cmd->axes_value[i] = code_value(decode_context);
-      cmd->type |= COMMANDTYPE_Action;
+      cmd->type |= COMMANDTYPE_SyncAction;
     } else {
       cmd->axes_value[i] = NAN;
     }
@@ -99,7 +115,7 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
     cmd->t_value = (int8_t) code_value(decode_context);
     if (cmd->t_value < 0 || cmd->t_value >= RAD_NUMBER_EXTRUDERS)
       return FALSE;
-    cmd->type |= COMMANDTYPE_Action;
+    cmd->type |= COMMANDTYPE_SyncAction;
   } else {
     cmd->t_value = -1;
   }
@@ -123,7 +139,7 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
           case 80: case 17: value = POWERMODE_On; break;
           case 84: case 18: value = POWERMODE_Idle; break;
           }
-          cmd->type |= COMMANDTYPE_Action;
+          cmd->type |= COMMANDTYPE_SyncAction;
           break;
 
         /* Distance */
@@ -131,32 +147,32 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
         case 83:
           if (cmd->printer.extruder_distance) return FALSE;
           cmd->printer.extruder_distance = value == 82 ? DISTANCEMODE_Absolute : DISTANCEMODE_Relative;
-          cmd->type |= COMMANDTYPE_Action;
+          cmd->type |= COMMANDTYPE_SyncAction;
           break;
 
         /* Wait */
         case 116: // Wait all temps
           if (cmd->wait) return FALSE;
           cmd->wait = WAITMODE_All;
-          cmd->type |= COMMANDTYPE_Action;
+          cmd->type |= COMMANDTYPE_SyncAction | COMMANDTYPE_TimeStart;
           break;
         case 109: // Set current tool temp and wait
           if (cmd->wait) return FALSE;
-          if (isnan(cmd->s_value)) {
+          if (!isnan(cmd->s_value)) {
             if (cmd->code) return FALSE;
             cmd->code = 10104;
           }
           cmd->wait = WAITMODE_CurrentTool;
-          cmd->type |= COMMANDTYPE_Action;
+          cmd->type |= COMMANDTYPE_SyncAction | COMMANDTYPE_TimeStart;
           break;
         case 190: // Set bed temp and wait
           if (cmd->wait) return FALSE;
-          if (isnan(cmd->s_value)) {
+          if (!isnan(cmd->s_value)) {
             if (cmd->code) return FALSE;
             cmd->code = 10140;
           }
           cmd->wait = WAITMODE_HeatedBed;
-          cmd->type |= COMMANDTYPE_Action;
+          cmd->type |= COMMANDTYPE_SyncAction | COMMANDTYPE_TimeStart;
           break;
 
         /* Code with immediate effect, handled in the fetcher */
@@ -164,24 +180,28 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
         case 112: // Estop
         case 114: // Get position
         case 115: // Capabilities
+        case 111: // Debug capabilities (Ignored for now)
           if (cmd->code) return FALSE;
           cmd->code = value + 10000;
           break;
 
         /* Code that is conflict with everything else */
-        case 110: // Line number - flush the printer queue
         case 104: // Set current tool temp
-        case 106: // Fan speed
         case 140: // Set bed temp
+        case 110: // Line number - flush the printer queue
+        case 106: // Fan speed
+        case 220: // Set feedrate multiplier (speed factor override)
+        case 221: // Set flow multiplier (extrude factor override)
         case 999: // Clear Estop
           if (cmd->code) return FALSE;
           cmd->code = value + 10000;
+          // All of the above are not sync action incidentally
           cmd->type |= COMMANDTYPE_Action;
           break;
         default:
           if (cmd->code) return FALSE;
           cmd->code = value + 10000;
-          cmd->type |= COMMANDTYPE_UnknownMcode;
+          cmd->type |= COMMANDTYPE_UnknownCode;
           break;
       }
       switch (value) {
@@ -190,6 +210,8 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
         case 109: // Set current tool temp and wait
         case 140: // Set bed temp
         case 190: // Set bed temp and wait
+        case 220: // Set feedrate multiplier (speed factor override)
+        case 221: // Set flow multiplier (extrude factor override)
           if (isnan(cmd->s_value)) return FALSE;
           break;
         case 28:
@@ -222,7 +244,7 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
           cmd->type |= COMMANDTYPE_CanHaveAxisWords;
           cmd->code = value;
           break;
-        case 0: // motion (We treat G0 as G1)
+        case 0: // Motion (We treat G0 as G1)
         case 1:
           if (cmd->printer.rapid) return FALSE;
           if (cmd->type & COMMANDTYPE_CanHaveAxisWords) return FALSE;
@@ -239,10 +261,10 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
         default:
           if (cmd->code) return FALSE;
           cmd->code = value;
-          cmd->type |= COMMANDTYPE_UnknownGcode;
+          cmd->type |= COMMANDTYPE_UnknownCode;
       }
-      if (!(cmd->type & COMMANDTYPE_UnknownGcode))
-        cmd->type |= COMMANDTYPE_Action;
+      if (!(cmd->type & COMMANDTYPE_UnknownCode))
+        cmd->type |= COMMANDTYPE_SyncAction;
     } while (code_seen_next(decode_context));
   return TRUE;
 }

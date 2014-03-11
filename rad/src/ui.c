@@ -137,7 +137,7 @@ typedef struct {
         uint8_t percent;
       } progress;
       char* status_icon;
-      uint16_t time_spent;
+      int16_t time_spent;
       uint16_t layer;
       RadStorageHost storage_state;
       float z_pos;

@@ -183,7 +183,7 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
         js->stopped, js->homed);
   }
 
-  PlannerVirtualPosition virtual = plannerGetCurrentPosition();
+  PlannerVirtualPosition virtual = stepperGetCurrentPosition();
   chprintf(chp, "Position:\r\n");
   for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++) {
     chprintf(chp, "  %c: %-4.2f ",

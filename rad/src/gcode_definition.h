@@ -62,11 +62,12 @@ typedef enum {
 } WaitMode;
 typedef enum {
   COMMANDTYPE_None = 0,
-  COMMANDTYPE_Action = 1,
-  COMMANDTYPE_CanHaveAxisWords = 0x02,
-  COMMANDTYPE_Movement = (0x02 | 0x04),
-  COMMANDTYPE_UnknownMcode = 0x08,
-  COMMANDTYPE_UnknownGcode = 0x10
+  COMMANDTYPE_Action = 0x01,
+  COMMANDTYPE_SyncAction = (0x01 | 0x02),
+  COMMANDTYPE_CanHaveAxisWords = 0x04,
+  COMMANDTYPE_Movement = (0x04 | 0x08),
+  COMMANDTYPE_TimeStart = 0x10,
+  COMMANDTYPE_UnknownCode = 0x80
 } CommandType;
 
 typedef struct {

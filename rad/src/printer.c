@@ -35,16 +35,13 @@
 /*===========================================================================*/
 
 static msg_t command_main_mbox_buffer[COMMAND_BUFFER_SIZE];
-
-static Semaphore command_main_pool_sem;
 static Mailbox command_main_mbox;
-
 static msg_t command_alt_mbox_buffer[COMMAND_BUFFER_SIZE];
-
-static Semaphore command_alt_pool_sem;
 static Mailbox command_alt_mbox;
 
-static PrinterCommand command_pool_buffer[COMMAND_BUFFER_SIZE * 2];
+#define TOTAL_COMMAND_BUFFER_SIZE (COMMAND_BUFFER_SIZE * 2 + 3)
+static PrinterCommand command_pool_buffer[TOTAL_COMMAND_BUFFER_SIZE];
+static Semaphore command_pool_sem;
 static MemoryPool command_pool;
 
 static PrintingSource main_source;
@@ -54,6 +51,9 @@ static PrinterCommand* curr_command;
 
 static PrinterMode mode;
 static PrinterState state;
+
+static systime_t time_start;
+static int32_t time_spent = -1;
 
 static Mutex estop_mtx;
 static const char* printer_estop_message = NULL;
@@ -72,13 +72,6 @@ static void printerSyncCommanded(void);
 
 #include "command/dispatch.h"
 
-static PrinterCommand* printer_new_command(void)
-{
-  chSemWait(&command_main_pool_sem);
-  PrinterCommand* command = chPoolAlloc(&command_pool);
-  return command;
-}
-
 static void printer_free_current_command(void)
 {
   if (curr_command->ack_mbox)
@@ -94,7 +87,7 @@ static void printer_free_current_command(void)
 void printerFreeCommand(PrinterCommand* command)
 {
   chPoolFree(&command_pool, command);
-  chSemSignal(&command_main_pool_sem);
+  chSemSignal(&command_pool_sem);
 }
 
 static msg_t threadPrinter(void *arg) {
@@ -120,6 +113,11 @@ static msg_t threadPrinter(void *arg) {
       chThdSleepMilliseconds(100);
       continue;
     }
+
+    if (curr_command->type & COMMANDTYPE_TimeStart)
+    {
+      printerTimeStart();
+    }
     printer_dispatch();
     printer_free_current_command();
   }
@@ -134,14 +132,12 @@ void printerInit(void)
 {
   chMtxInit(&estop_mtx);
 
-  chSemInit(&command_main_pool_sem, COMMAND_BUFFER_SIZE);
   chMBInit(&command_main_mbox, command_main_mbox_buffer, COMMAND_BUFFER_SIZE);
-
-  chSemInit(&command_alt_pool_sem, COMMAND_BUFFER_SIZE);
   chMBInit(&command_alt_mbox, command_alt_mbox_buffer, COMMAND_BUFFER_SIZE);
 
+  chSemInit(&command_pool_sem, TOTAL_COMMAND_BUFFER_SIZE);
   chPoolInit(&command_pool, sizeof(PrinterCommand), NULL);
-  chPoolLoadArray(&command_pool, command_pool_buffer, COMMAND_BUFFER_SIZE);
+  chPoolLoadArray(&command_pool, command_pool_buffer, TOTAL_COMMAND_BUFFER_SIZE);
 
   chThdCreateStatic(waPrinter, sizeof(waPrinter), NORMALPRIO, threadPrinter, NULL);
 
@@ -151,6 +147,29 @@ void printerInit(void)
 uint8_t printerGetActiveExtruder(void)
 {
   return mode.tool;
+}
+
+float printerGetFeedrateMultiplier(void)
+{
+  return feedrate_multiplier;
+}
+void printerSetFeedrateMultiplier(const float value)
+{
+  feedrate_multiplier =
+      value < 0.1 ? 0.1 :
+      value > 5 ? 5 :
+      value;
+}
+float printerGetFlowMultiplier(void)
+{
+  return flow_multiplier;
+}
+void printerSetFlowMultiplier(const float value)
+{
+  flow_multiplier =
+      value < 0.1 ? 0.1 :
+      value > 5 ? 5 :
+      value;
 }
 
 void printerRelease(const PrintingSource source)
@@ -163,6 +182,7 @@ void printerRelease(const PrintingSource source)
     if (source == main_source) {
       main_source = PRINTINGSOURCE_None;
       state = PRINTERSTATE_Standby;
+      printerTimeStopI();
     }
   }
   chSysUnlock();
@@ -193,8 +213,15 @@ bool_t printerTryAcquire(const PrintingSource source)
   return result;
 }
 
+PrinterCommand* printerAllocateCommand(void)
+{
+  chSemWait(&command_pool_sem);
+  PrinterCommand* command = chPoolAlloc(&command_pool);
+  return command;
+}
+
 void printerPushCommand(const PrinterCommand* command) {
-  PrinterCommand* new_command = printer_new_command();
+  PrinterCommand* new_command = printerAllocateCommand();
   memcpy(new_command, command, sizeof(PrinterCommand));
   chMBPost(&command_main_mbox, (msg_t) new_command, TIME_INFINITE);
 }
@@ -224,6 +251,42 @@ void printerSetState(PrinterState new_state)
   chSysLock();
   printerSetStateI(new_state);
   chSysUnlock();
+}
+
+void printerTimeStart(void)
+{
+  chSysLock();
+  printerTimeStartI();
+  chSysUnlock();
+}
+
+void printerTimeStartI(void)
+{
+  time_spent = -2;
+  time_start = chTimeNow();
+}
+
+void printerTimeStopI(void)
+{
+  time_spent = printerTimeSpent();
+}
+
+int32_t printerTimeSpent(void)
+{
+  int32_t ret;
+  chSysLock();
+  ret = printerTimeSpentI();
+  chSysUnlock();
+  return ret;
+}
+
+int32_t printerTimeSpentI(void)
+{
+  if (time_spent == -2)
+  {
+    return (chTimeNow() - time_start) / CH_FREQUENCY;
+  }
+  return time_spent;
 }
 
 const char* printerIsEstopped(void)

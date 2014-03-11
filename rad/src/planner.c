@@ -51,7 +51,8 @@ static PlannerVirtualPosition current_virtual;
 
 static void plannerAddAxisPointCore(
     const PlannerVirtualPosition *target_virtual,
-    float distance, float extrusion_distance, float duration);
+    float distance, float extrusion_distance, float flow_multiplier,
+    float duration);
 
 /*===========================================================================*/
 /* Driver exported functions.                                                */
@@ -68,19 +69,19 @@ void plannerInit(void)
   traj_max_feedrate = machine.kinematics.traj_max_feedrate(machine) * 60;
 }
 
-PlannerVirtualPosition plannerGetCurrentPosition(void)
+void plannerSyncCurrentPosition(void)
 {
   RadJointsState state = stepperGetJointsState();
-  for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++)
+  for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++)
     current_physical.joints[i] = state.joints[i].pos;
 
   machine.kinematics.forward_kinematics(&current_physical, &current_virtual);
-  return current_virtual;
 }
 
 void plannerAddAxisPoint(
     const PlannerVirtualPosition *target_virtual,
-    float feedrate)
+    float feedrate,
+    float flow_multiplier)
 {
   (void) feedrate;
   PlannerVirtualPosition delta;
@@ -112,7 +113,7 @@ void plannerAddAxisPoint(
      */
     duration = 60 * extrusion_distance / feedrate;
   }
-  segments = 1;
+  // segments = 1; // TODO: Remove this after debug
 
   duration /= segments;
   if (segments > 1)
@@ -129,7 +130,7 @@ void plannerAddAxisPoint(
       for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
         real_target_virtual.extruders[i] = current_virtual.extruders[i] + delta.extruders[i] * fraction;
       }
-      plannerAddAxisPointCore(&real_target_virtual, distance, extrusion_distance, duration);
+      plannerAddAxisPointCore(&real_target_virtual, distance, extrusion_distance, flow_multiplier, duration);
       if (j % (BLOCK_BUFFER_SIZE / 4) == 0) {
         plannerMainQueueRecalculate();
       }
@@ -138,7 +139,7 @@ void plannerAddAxisPoint(
       plannerMainQueueRecalculate();
     }
   } else {
-    plannerAddAxisPointCore(target_virtual, distance, extrusion_distance, duration);
+    plannerAddAxisPointCore(target_virtual, distance, extrusion_distance, flow_multiplier, duration);
     plannerMainQueueRecalculate();
   }
   current_virtual = *target_virtual;
@@ -146,7 +147,8 @@ void plannerAddAxisPoint(
 
 static void plannerAddAxisPointCore(
     const PlannerVirtualPosition *target_virtual,
-    float distance, float extrusion_distance, float duration)
+    float distance, float extrusion_distance, float flow_multiplier,
+    float duration)
 {
   PlannerPhysicalPosition delta;
   PlannerPhysicalPosition target_physical;
@@ -179,7 +181,8 @@ static void plannerAddAxisPointCore(
   {
     for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
       RadExtruder* ex = &machine.extruder.devices[i];
-      float d = fabs(delta.extruders[i] = target_physical.extruders[i] - current_physical.extruders[i]);
+      float d = fabs(delta.extruders[i] =
+          (target_physical.extruders[i] - current_physical.extruders[i]) * flow_multiplier);
       float fraction =  d / extrusion_distance;
       if (target_physical.extruders[i] > current_physical.extruders[i]) {
         if (d > duration * ex->max_speed)
@@ -198,6 +201,11 @@ static void plannerAddAxisPointCore(
       delta.extruders[i] = 0;
     }
   }
+
+  if (distance == 0)
+    distance = extrusion_distance;
+  if (distance == 0)
+    return;
 
   PlannerOutputBlock* block = plannerMainQueueReserveBlock();
   block->mode = BLOCK_Positional;
@@ -238,11 +246,16 @@ void plannerSetJointVelocity(const PlannerJointMovement *velocity)
   // Deduce joints speed and speed limit
   for (i = 0; i < RAD_NUMBER_JOINTS; i++) {
     jt = &machine.kinematics.joints[i];
-    if (velocity->rapid) {
+    if (isnan(velocity->joints[i]))
+    {
+      block->v.joints[i].sv = velocity->joints[i];
+    } else if (velocity->rapid)
+    {
       block->v.joints[i].sv =
           (velocity->joints[i] >= 0 ? 1 : -1) *
             fmin(fabs(velocity->joints[i]), jt->max_speed);
-    } else {
+    } else
+    {
       if (fabs(velocity->joints[i]) > jt->max_speed) {
         speed_factor = fmin(speed_factor, jt->max_speed / fabs(velocity->joints[i]));
       }
@@ -255,12 +268,17 @@ void plannerSetJointVelocity(const PlannerJointMovement *velocity)
   // Deduce extruders speed and speed limit
   for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
     ex = &machine.extruder.devices[i];
-    if (velocity->rapid) {
+    if (isnan(velocity->extruders[i]))
+    {
+      block->v.extruders[i].sv = velocity->extruders[i];
+    } else if (velocity->rapid)
+    {
       block->v.extruders[i].sv =
           velocity->extruders[i] >= 0 ?
               fmin(velocity->extruders[i], ex->max_speed) :
               fmax(velocity->extruders[i], -ex->max_retract_speed);
-    } else {
+    } else
+    {
       if (velocity->extruders[i] >= 0) {
         if (velocity->extruders[i] > ex->max_speed) {
           speed_factor = fmin(speed_factor, ex->max_speed / velocity->extruders[i]);
@@ -281,9 +299,13 @@ void plannerSetJointVelocity(const PlannerJointMovement *velocity)
   // Scale down if in non-rapid mode
   if (!velocity->rapid) {
     for (i = 0; i < RAD_NUMBER_JOINTS; i++) {
+      if (isnan(block->v.joints[i].sv))
+        continue;
       block->v.joints[i].sv *= speed_factor;
     }
     for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
+      if (isnan(block->v.extruders[i].sv))
+        continue;
       block->v.extruders[i].sv *= speed_factor;
     }
   }

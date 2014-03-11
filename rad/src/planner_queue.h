@@ -46,45 +46,49 @@ typedef enum {
 } PlannerOutputBlockMode;
 
 typedef struct {
+  struct {
+    float sv;
+    float acc;
+    bool_t is_stop_signalled;
+  } joints[RAD_NUMBER_JOINTS];
+  struct {
+    float sv;
+    float acc;
+  } extruders[RAD_NUMBER_EXTRUDERS];
+} PlannerOutputBlockSectionV;
+
+typedef struct {
+  bool_t is_max_exit_speed_valid;
+  bool_t is_nominal_length;
+
+  bool_t is_profile_valid;
+  PlannerPhysicalPosition target;
+  PlannerPhysicalPosition delta;
+  struct {
+    uint32_t joint_dir_mask;
+    uint32_t extruder_dir_mask;
+    uint32_t joints[RAD_NUMBER_JOINTS];
+    uint32_t extruders[RAD_NUMBER_EXTRUDERS];
+    uint32_t total;
+  } step;
+  float duration;
+  float acc;
+  float distance;
+
+  float nominal_speed;
+  float exit_speed;
+
+  float max_exit_speed;
+  float decelerate_after;
+} PlannerOutputBlockSectionP;
+
+typedef struct {
   PlannerOutputBlockMode mode;
   bool_t busy;
   bool_t stop_on_limit_changes;
   union {
-    struct {
-      struct {
-        float sv;
-        float acc;
-        bool_t is_stop_signalled;
-      } joints[RAD_NUMBER_JOINTS];
-      struct {
-        float sv;
-        float acc;
-      } extruders[RAD_NUMBER_EXTRUDERS];
-    } v;
-    struct {
-      bool_t is_max_exit_speed_valid;
-      bool_t is_nominal_length;
-
-      bool_t is_profile_valid;
-      PlannerPhysicalPosition target;
-      PlannerPhysicalPosition delta;
-      struct {
-        uint32_t joint_dir_mask;
-        uint32_t extruder_dir_mask;
-        uint32_t joints[RAD_NUMBER_JOINTS];
-        uint32_t extruders[RAD_NUMBER_EXTRUDERS];
-        uint32_t total;
-      } step;
-      float duration;
-      float acc;
-      float distance;
-
-      float nominal_speed;
-      float exit_speed;
-
-      float max_exit_speed;
-      float decelerate_after;
-    } p;
+    PlannerOutputBlockSectionV v;
+    PlannerOutputBlockSectionP p;
   };
 } PlannerOutputBlock;
 

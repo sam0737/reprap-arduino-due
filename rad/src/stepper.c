@@ -70,7 +70,7 @@ typedef struct {
 typedef struct {
   union {
     struct {
-      float last_tick_pace;
+      uint32_t last_tick_pace;
       float last_block_speed;
       float tick_speed_sq;
 
@@ -190,10 +190,8 @@ static void stepper_wait_timer(void)
     }
     chSysUnlock();
     RAD_DEBUG_PRINTF("|%.3f A %.3f\n",
-        step_state.unit_tick_pace / step_state.last_tick_pace,
-        step_state.step_max > 0 ?
-            active_block.p.distance / step_state.step_max / timer_interval * clock.tick_frequency :
-            0
+        (double) step_state.unit_tick_pace / step_state.last_tick_pace,
+        (double) active_block.p.distance / step_state.step_max / timer_interval * clock.tick_frequency
         );
   }
   #endif
@@ -230,31 +228,32 @@ static void stepper_enable_all(void)
   pexSysUnlock();
 }
 
-static void stepper_disable_all(void)
+static void stepper_reset_velocity(void)
 {
-  RadStepperChannel *ch;
-  uint8_t i;
-
-  pexSysLock();
-  if (palHasSig(radboard.stepper.main_enable))
-    palDisableSig(radboard.stepper.main_enable);
-
-  for (i = 0; i < RAD_NUMBER_JOINTS; i++) {
+  for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
     uint8_t ch_id = machine.kinematics.joints[i].stepper_id;
-    ch = &radboard.stepper.channels[ch_id];
+    RadStepperChannel *ch = &radboard.stepper.channels[ch_id];
     if (palHasSig(ch->enable))
       palDisableSig(ch->enable);
     step_state.last_velocity.joints[i] = 0;
     step_state.channels[ch_id].step = 0;
   }
-  for (i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
+  for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
     uint8_t ch_id = machine.extruder.devices[i].stepper_id;
-    ch = &radboard.stepper.channels[ch_id];
+    RadStepperChannel *ch = &radboard.stepper.channels[ch_id];
     if (palHasSig(ch->enable))
       palDisableSig(ch->enable);
     step_state.last_velocity.extruders[i] = 0;
     step_state.channels[ch_id].step = 0;
   }
+}
+
+static void stepper_disable_all(void)
+{
+  pexSysLock();
+  if (palHasSig(radboard.stepper.main_enable))
+    palDisableSig(radboard.stepper.main_enable);
+  stepper_reset_velocity();
   pexSysUnlock();
 }
 
@@ -299,6 +298,10 @@ static void stepper_idle(void)
 static void stepper_fetch_new_block(void)
 {
   bool_t new_block = FALSE;
+  bool_t prev_is_velocity = active_block.mode == BLOCK_Velocity;
+  PlannerOutputBlockSectionV prev_block_v;
+  if (prev_is_velocity)
+    prev_block_v = active_block.v;
   while (1)
   {    chSysLock();
     new_block = plannerMainQueueFetchBlockI(&active_block, active_block.mode);
@@ -313,17 +316,36 @@ static void stepper_fetch_new_block(void)
 
   step_state.total_step_spent = 0;
   if (active_block.mode == BLOCK_Velocity) {
+    if (!prev_is_velocity)
+    {
+      // The control data is shared with other block mode
+      // Reset all the fields to stop if this wasn't velocity mode and
+      //   hence were stopped previously
+      stepper_reset_velocity();
+    }
     stepper_enable_all();
     step_state.step_max = STEPPER_VELOCITY_STEP_FREQ;
+    RAD_DEBUG_PRINTF("STEPPER: NEW BLOCK - velocity");
     for (uint8_t i = 0; i < RAD_NUMBER_STEPPERS; i++) {
       StepperStepStateChannel *ss = &step_state.channels[i];
-      ss->current = - ((int32_t)step_state.step_max) / 2;
+      ss->current = -((int32_t)step_state.step_max) / 2;
       ss->limit_hit = 0;
     }
+    for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
+      RAD_DEBUG_PRINTF(" #%d=%f", i, active_block.v.joints[i].sv);
+      if (isnan(active_block.v.joints[i].sv))
+        active_block.v.joints[i].sv = prev_is_velocity ? prev_block_v.joints[i].sv : 0;
+    }
+    for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
+      RAD_DEBUG_PRINTF(" E#%d=%f", i, active_block.v.extruders[i].sv);
+      if (isnan(active_block.v.extruders[i].sv))
+        active_block.v.extruders[i].sv = prev_is_velocity ? prev_block_v.extruders[i].sv : 0;
+    }
+    RAD_DEBUG_PRINTF("\n");
     stepper_set_timer(clock.tick_frequency / 2 / STEPPER_VELOCITY_STEP_FREQ);
   } else if (active_block.mode == BLOCK_Positional) {
     stepper_enable_all();
-    step_state.step_max = 0;
+    step_state.step_max = 1;
     pexSysLock();
 
     RAD_DEBUG_PRINTF("STEPPER: NEW BLOCK - delta");
@@ -331,7 +353,7 @@ static void stepper_fetch_new_block(void)
       RadJoint *j = &machine.kinematics.joints[i];
       StepperStepStateChannel *ss = &step_state.channels[j->stepper_id];
       int32_t delta = active_block.p.target.joints[i] * j->scale - ss->pos;
-      RAD_DEBUG_PRINTF(" #%d=%d", j->stepper_id, delta);
+      RAD_DEBUG_PRINTF(" #%d=%d(%f)", j->stepper_id, delta, active_block.p.target.joints[i]);
       ss->dir = delta > 0 ? 1 : -1;
       ss->step = fabs(delta);
       if ((uint32_t)ss->step > step_state.step_max) step_state.step_max = (uint32_t)ss->step;
@@ -345,7 +367,7 @@ static void stepper_fetch_new_block(void)
       RadExtruder *j = &machine.extruder.devices[i];
       StepperStepStateChannel *ss = &step_state.channels[j->stepper_id];
       int32_t delta = active_block.p.target.extruders[i] * j->scale - ss->pos;
-      RAD_DEBUG_PRINTF(" #%d=%d", j->stepper_id, delta);
+      RAD_DEBUG_PRINTF(" #%d=%d(%f)", j->stepper_id, delta, active_block.p.target.extruders[i]);
       ss->dir = delta > 0 ? 1 : -1;
       ss->step = fabs(delta);
       if ((uint32_t)ss->step > step_state.step_max) step_state.step_max = (uint32_t)ss->step;
@@ -357,21 +379,17 @@ static void stepper_fetch_new_block(void)
     }
     pexSysUnlock();
 
-    RAD_DEBUG_PRINTF("\nSTEPPER: NEW BLOCK - step_max: %d, distance: %.3fmm, duration: %.5fs\n",
-        step_state.step_max, active_block.p.distance, active_block.p.duration);
+    RAD_DEBUG_PRINTF("\nSTEPPER: NEW BLOCK - step_max: %d, distance: %.3fmm, d-after: %.3fmm, duration: %.5fs\n",
+        step_state.step_max, active_block.p.distance, active_block.p.decelerate_after, active_block.p.duration);
 
     step_state.acc_per_tick =
-        step_state.step_max ?
-        2 * active_block.p.acc * active_block.p.distance / step_state.step_max :
-        0;
+        2 * active_block.p.acc * active_block.p.distance / step_state.step_max;
     step_state.unit_tick_pace =
-        step_state.step_max ?
-        active_block.p.distance * clock.tick_frequency / step_state.step_max :
-        clock.tick_frequency * clock.tick_frequency;
+        active_block.p.distance * clock.tick_frequency / step_state.step_max;
     step_state.decelerate_after_step = active_block.p.decelerate_after / active_block.p.distance * step_state.step_max + 0.5;
     for (uint8_t i = 0; i < RAD_NUMBER_STEPPERS; i++) {
       StepperStepStateChannel *ss = &step_state.channels[i];
-      ss->current = - ((int32_t)step_state.step_max) / 2;
+      ss->current = -((int32_t)step_state.step_max) / 2;
     }
 
     RAD_DEBUG_PRINTF("STEPPER: NEW BLOCK - speed: %.3f,%.3f,%.3f(%.3f). acc %.3f, d-after %d\n",
@@ -390,17 +408,12 @@ static void stepper_fetch_new_block(void)
             clock.minimum_tick_pace :
             step_state.unit_tick_pace / active_block.p.exit_speed + 1;
 
-    if (step_state.decelerate_after_step >= step_state.step_max)
-    {
-      step_state.nominal_tick_pace = step_state.exit_tick_pace;
-    } else {
-      step_state.nominal_tick_pace =
-          (step_state.unit_tick_pace > clock.minimum_tick_pace * active_block.p.nominal_speed) ?
-              clock.minimum_tick_pace :
-              step_state.unit_tick_pace / active_block.p.nominal_speed;
-    }
+    step_state.nominal_tick_pace =
+      (step_state.unit_tick_pace > clock.minimum_tick_pace * active_block.p.nominal_speed) ?
+          clock.minimum_tick_pace :
+          step_state.unit_tick_pace / active_block.p.nominal_speed;
 
-    RAD_DEBUG_PRINTF("STEPPER: NEW BLOCK - pace: unit %d, min %d. %d, %d, %d\n",
+    RAD_DEBUG_PRINTF("STEPPER: NEW BLOCK - pace: unit %d, min %d. last %d, nom %d, exit %d\n",
         step_state.unit_tick_pace, clock.minimum_tick_pace,
         step_state.last_tick_pace, step_state.nominal_tick_pace, step_state.exit_tick_pace);
   }
@@ -489,6 +502,7 @@ static void stepper_velocity_profile(void)
         (!active_block.stop_on_limit_changes &&
             js->limit_state != LIMIT_Normal)
       )) {
+      RAD_DEBUG_PRINTF("STEPPER: %d limit hit: changed %d, now %d\n", ch_id, js->changed_limit_state, js->limit_state);
       *sv = 0;
       ss->limit_hit = 1;
       stepperResetOldLimitState(i);
@@ -611,9 +625,7 @@ static msg_t threadStepper(void *arg) {
             stepper_velocity_profile();
           }
         }
-        step_state.total_step_spent = step_state.step_max > 0 ?
-            (step_state.total_step_spent + 1) % step_state.step_max :
-            0;
+        step_state.total_step_spent = (step_state.total_step_spent + 1) % step_state.step_max;
         pexSysUnlock();
       } while (active_block.mode == BLOCK_Idle);
     } else
@@ -640,10 +652,11 @@ static msg_t threadStepper(void *arg) {
     // Is positional finished?
     if (active_block.mode == BLOCK_Positional &&
         step_state.total_step_spent == 0 && phase == 0) {
-      RAD_DEBUG_PRINTF("STEPPER: Next block?");
-      RAD_DEBUG_WAITLINE();
       step_state.last_block_speed = step_state.unit_tick_pace / step_state.last_tick_pace;
       active_block.mode = BLOCK_Idle;
+      RAD_DEBUG_PRINTF("STEPPER: Next block? unit %d, last %d\n",
+          step_state.unit_tick_pace, step_state.last_tick_pace);
+      RAD_DEBUG_WAITLINE();
     }
   }
   return 0;
@@ -687,6 +700,7 @@ void stepperSetHome(uint8_t joint_id, int32_t home_step, float home_pos)
   uint8_t ch_id = j->stepper_id;
   StepperStepStateChannel *ss = &step_state.channels[ch_id];
   ss->pos = (ss->pos - home_step) + home_pos * j->scale;
+  RAD_DEBUG_PRINTF("STEPPER: Set Home: Joint %d Step %d Pos %f, new pos = %d\n", joint_id, home_step, home_pos, ss->pos);
 }
 
 RadJointsState stepperGetJointsState()
@@ -734,6 +748,18 @@ void stepperSetHomed(uint8_t joint_id)
   chSysLock();
   joints_state.joints[joint_id].homed = TRUE;
   chSysUnlock();
+}
+
+PlannerVirtualPosition stepperGetCurrentPosition(void)
+{
+  PlannerVirtualPosition virtual_pos;
+  PlannerPhysicalPosition physical_pos;
+  RadJointsState state = stepperGetJointsState();
+  for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++)
+    physical_pos.joints[i] = state.joints[i].pos;
+
+  machine.kinematics.forward_kinematics(&physical_pos, &virtual_pos);
+  return virtual_pos;
 }
 
 /** @} */

@@ -60,6 +60,7 @@ extern "C" {
   void stepperResetOldLimitState(uint8_t joint_id);
   void stepperClearStopped(uint8_t joint_id);
   void stepperSetHomed(uint8_t joint_id);
+  PlannerVirtualPosition stepperGetCurrentPosition(void);
 #ifdef __cplusplus
 }
 #endif

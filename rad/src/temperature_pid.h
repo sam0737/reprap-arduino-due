@@ -119,9 +119,9 @@ void temperatureAutoTune(uint8_t temp_id, float target, uint8_t total_cycles)
             Ku = (4.0 * d) / (3.14159 * (pvHigh-pvLow)/2.0);
             Tu = ((float)(tLow + tHigh) / CH_FREQUENCY);
             chSysLock();
-            state->Kp = 0.6*Ku;
-            state->Ki = 2*state->Kp/Tu;
-            state->Kd = state->Kp*Tu/8;
+            state->config.Kp = 0.6*Ku;
+            state->config.Ki = 2*state->config.Kp/Tu;
+            state->config.Kd = state->config.Kp*Tu/8;
             chSysUnlock();
           }
         }
@@ -159,14 +159,14 @@ void temperatureAutoTune(uint8_t temp_id, float target, uint8_t total_cycles)
 
     if (state->tuning_cycle_remains == 0)
     {
-      RAD_DEBUG_PRINTF("Autotune: done: Kp=%f, Ki=%f, Kd=%f\n", state->Kp, state->Ki, state->Kd);
+      RAD_DEBUG_PRINTF("Autotune: done: Kp=%f, Ki=%f, Kd=%f\n", state->config.Kp, state->config.Ki, state->config.Kd);
       outputSet(cht->heating_pwm_id, 0);
       return;
     }
 
     if (printerIsEstopped())
     {
-      break;;
+      break;
     }
     chThdSleepMilliseconds(50);
   } // while(1)
@@ -189,13 +189,14 @@ static void temperature_pid_loop(uint8_t temp_id, float sv, float pv)
   int32_t limit = 255;
 
   state->error = sv - pv;
-  float pTerm = state->Kp * state->error;
+  float pTerm = state->config.Kp * state->error;
   state->i_error += state->error;
-  state->i_error = fmax(fmin(state->i_error, limit / state->Ki), 0);
+  if (state->config.Ki > 0)
+    state->i_error = fmax(fmin(state->i_error, limit / state->config.Ki), 0);
   // TODO: i_error minimum is 0? or negative?
-  float iTerm = state->Ki * state->i_error;
+  float iTerm = state->config.Ki * state->i_error;
   float dTerm = state->d_state =
-      state->Kd * (pv - state->d_pv) * 0.05 + state->d_state * 0.95;
+      state->config.Kd * (pv - state->d_pv) * 0.05 + state->d_state * 0.95;
   state->d_pv = pv;
 
   uint8_t output = fmin(fmax(pTerm + iTerm - dTerm, 0), limit);

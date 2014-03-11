@@ -29,6 +29,7 @@ typedef char* decode_context_t;
 extern "C" {
 #endif
   void gcodeResetParseContext(parse_context_t* context);
+  void gcodeInitializeCommand(PrinterCommand* cmd);
   char gcodeFilterCharacter(char c, parse_context_t* context);
   bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_context);
 #ifdef __cplusplus

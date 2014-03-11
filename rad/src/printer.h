@@ -59,7 +59,13 @@ typedef enum {
 extern "C" {
 #endif
   void printerInit(void);
+
   uint8_t printerGetActiveExtruder(void);
+  float printerGetFeedrateMultiplier(void);
+  void printerSetFeedrateMultiplier(const float value);
+  float printerGetFlowMultiplier(void);
+  void printerSetFlowMultiplier(const float value);
+
   void printerRelease(const PrintingSource source);
   bool_t printerTryAcquire(const PrintingSource source);
   void printerPushCommand(const PrinterCommand* command);
@@ -68,6 +74,11 @@ extern "C" {
   PrinterState printerGetState(void);
   void printerSetStateI(PrinterState new_state);
   void printerSetState(PrinterState new_state);
+  void printerTimeStart(void);
+  void printerTimeStartI(void);
+  void printerTimeStopI(void);
+  int32_t printerTimeSpent(void);
+  int32_t printerTimeSpentI(void);
   const char* printerIsEstopped(void);
   void printerEstop(const char* message);
   void printerEstopClear(void);

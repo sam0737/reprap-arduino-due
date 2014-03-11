@@ -23,10 +23,10 @@
 
 #define COMMAND_LENGTH 128
 #define hostprintf(...) \
-  printf(__VA_ARGS__); \
+  RAD_DEBUG_PRINTF(__VA_ARGS__); \
   chprintf((BaseSequentialStream*)c->channel, __VA_ARGS__);
 
-#define REPORT_INTERVAL (S2ST(2))
+#define REPORT_INTERVAL (S2ST(0.2))
 #define IDLE_INTERVAL (MS2ST(500))
 
 typedef struct {
@@ -44,7 +44,7 @@ typedef struct {
   PrinterCommand command;
   systime_t last_report_time;
   systime_t last_busy_time;
-  bool_t busy;
+  uint8_t busy;
 
   int32_t last_received_line;
 } HostContext;
@@ -75,7 +75,7 @@ static void process_new_line(HostContext* c)
       return;
     } else {
       // Current status?
-      hostprintf(c->busy ? "busy\n" : "ok\n");
+      hostprintf(c->busy ? "busy (1)\n" : "ok\n");
       return;
     }
   }
@@ -89,6 +89,7 @@ static void process_new_line(HostContext* c)
     hostprintf("ok\n!! %s\n", message);
     return;
   }
+  RAD_DEBUG_PRINTF("HOST: %s\n", c->ptr);
 
   switch (cmd->code)
   {
@@ -105,6 +106,7 @@ static void process_new_line(HostContext* c)
       hostprintf("ok\n");
       break;
     case 10105:
+    case 10114:
       c->last_report_time = chTimeNow() - REPORT_INTERVAL;
       hostprintf("ok\n");
       break;
@@ -114,12 +116,13 @@ static void process_new_line(HostContext* c)
           RAD_NUMBER_EXTRUDERS);
       break;
     default:
-      if (cmd->type & COMMANDTYPE_UnknownGcode)
+      if (cmd->type & COMMANDTYPE_UnknownCode)
       {
-        hostprintf("!! Unknown G code - %d\n", cmd->code);
-      } else if (cmd->type & COMMANDTYPE_UnknownMcode)
-      {
-        hostprintf("!! Unknown M code - %d\n", cmd->code - 10000);
+        if (cmd->code < 10000) {
+          hostprintf("!! Unknown G code - %d\n", cmd->code);
+        } else {
+          hostprintf("!! Unknown M code - %d\n", cmd->code - 10000);
+        }
       }
       if (!(cmd->type & COMMANDTYPE_Action))
       {
@@ -129,39 +132,39 @@ static void process_new_line(HostContext* c)
 
   if (cmd->type & COMMANDTYPE_Action)
   {
-    if (c->busy)
+    if ((cmd->type & COMMANDTYPE_SyncAction) == COMMANDTYPE_SyncAction)
     {
-      hostprintf("busy\n");
-      return;
+      if (c->busy)
+      {
+        hostprintf("busy (2)\n");
+        return;
+      }
+      if (!printerTryAcquire(PRINTINGSOURCE_Host))
+      {
+        switch (printerGetState())
+        {
+          case PRINTERSTATE_Printing:
+            hostprintf("!! Please pause first\n");
+            break;
+          case PRINTERSTATE_Interrupting:
+          case PRINTERSTATE_Interrupted:
+            hostprintf("!! Printer is under manual control\n");
+            break;
+          case PRINTERSTATE_Estopped:
+            hostprintf("!! %s\n", printerGetMessage());
+            break;
+        }
+        hostprintf("ok\n");
+        return;
+      }
     }
 
-    if (printerTryAcquire(PRINTINGSOURCE_Host))
-    {
-      c->busy = TRUE;
-      c->last_busy_time = 0;
-      hostprintf("busy\n");
-      cmd->ack_mbox = &c->ack_mbox;
-      cmd->ack_evt = &c->ack_evt;
-      printerPushCommand(cmd);
-    } else {
-      switch (printerGetState())
-      {
-        case PRINTERSTATE_Printing:
-          hostprintf("!! Please pause first\n");
-          break;
-        case PRINTERSTATE_Interrupting:
-        case PRINTERSTATE_Interrupted:
-          hostprintf("!! Incorrect source\n");
-          break;
-        case PRINTERSTATE_Estopped:
-          hostprintf("!! %s\n", printerGetMessage());
-          break;
-        default:
-          hostprintf("!! Incorrect source\n");
-          break;
-      }
-      hostprintf("ok\n");
-    }
+    c->busy++;
+    c->last_busy_time = 0;
+    hostprintf("ack %d %d\n", cmd->line, cmd->code);
+    cmd->ack_mbox = &c->ack_mbox;
+    cmd->ack_evt = &c->ack_evt;
+    printerPushCommand(cmd);
   }
   /*
    * TODO Checksum, line number
@@ -184,6 +187,12 @@ static void send_report(HostContext* c) {
     uint8_t duty = outputGet(machine.temperature.devices[temp_id].heating_pwm_id);
     hostprintf("B:%d /%d B@:%d ",
         (int)(s.pv+0.5), (int)(s.sv+0.5), duty*100/255);
+  }
+  hostprintf("C:");
+  PlannerVirtualPosition pos = stepperGetCurrentPosition();
+  for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++)
+  {
+    hostprintf(" %c:%f", machine.kinematics.axes[i].name, pos.axes[i]);
   }
   hostprintf("\n");
 }
@@ -213,8 +222,8 @@ static msg_t threadDataHost(void* arg) {
       {
         hostprintf("ok\n");
         printerFreeCommand(ack_command);
+        c->busy--;
       }
-      c->busy = 0;
       c->last_busy_time = chTimeNow();
     }
     if (events & 2) {
@@ -222,6 +231,7 @@ static msg_t threadDataHost(void* arg) {
       if (flags & CHN_CONNECTED) {
         c->last_report_time = 0;
         c->last_busy_time = 0;
+        printerRelease(PRINTINGSOURCE_Host);
         hostprintf("start\n");
       }
       if (flags & CHN_INPUT_AVAILABLE)

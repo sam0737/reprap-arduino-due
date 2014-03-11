@@ -34,8 +34,17 @@ typedef struct {
   float last_pos;
 } HomingState;
 
+static void movement_set_single_joint(PlannerJointMovement* m, uint8_t joint_id, float velocity)
+{
+  for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++)
+  {
+    m->joints[i] = i == joint_id ? velocity : NAN;
+  }
+}
+
 static void actionHoming(uint32_t joint_mask)
 {
+  RAD_DEBUG_PRINTF("HOMING: Mask: %d\n", joint_mask);
   HomingState state[RAD_NUMBER_JOINTS];
   int8_t sequence = -1;
   uint8_t count;
@@ -71,6 +80,8 @@ static void actionHoming(uint32_t joint_mask)
       }
     }
 
+    RAD_DEBUG_PRINTF("HOMING: Sequence: %d, No of joints to home: %d\n", sequence, count);
+
     sequence++;
     /* Go to the next sequence */
     if (count == 0) continue;
@@ -101,7 +112,7 @@ static void actionHoming(uint32_t joint_mask)
           if (!js->stopped) continue;
           stepperClearStopped(i);
           if (js->limit_state == LIMIT_Normal && js->changed_limit_state == LIMIT_Normal) {
-            m.joints[i] = j->home_search_vel;
+            movement_set_single_joint(&m, i, j->home_search_vel);
             plannerSetJointVelocity(&m);
           } else {
             if ((j->home_search_vel < 0 && ((js->changed_limit_state | js->limit_state) & LIMIT_MinHit)) ||
@@ -115,16 +126,17 @@ static void actionHoming(uint32_t joint_mask)
           }
           break;
         case HOMING_SEARCH_AT_LIMIT:
+          stepperClearStopped(i);
           stepperResetOldLimitState(i);
           state[i].last_pos = js->pos;
           if ((j->home_search_vel > 0 && j->home_latch_vel > 0) ||
               (j->home_search_vel < 0 && j->home_latch_vel < 0))
           {
             state[i].stage = HOMING_SEARCH_BACKOFF;
-            m.joints[i] = -j->home_search_vel;
+            movement_set_single_joint(&m, i, -j->home_search_vel);
           } else {
             state[i].stage = HOMING_LATCH_RELEASE;
-            m.joints[i] = j->home_latch_vel;
+            movement_set_single_joint(&m, i, j->home_latch_vel);
           }
           plannerSetJointVelocity(&m);
           break;
@@ -137,7 +149,7 @@ static void actionHoming(uint32_t joint_mask)
           stepperClearStopped(i);
           if (js->limit_state == LIMIT_Normal) {
             state[i].stage = HOMING_LATCH_HIT;
-            m.joints[i] = j->home_latch_vel;
+            movement_set_single_joint(&m, i, j->home_latch_vel);
             stepperResetOldLimitState(i);
             plannerSetJointVelocity(&m);
           } else {
@@ -152,7 +164,7 @@ static void actionHoming(uint32_t joint_mask)
           if (!js->stopped) continue;
           stepperClearStopped(i);
           if (js->limit_state == LIMIT_Normal) {
-            m.joints[i] = 0;
+            movement_set_single_joint(&m, i, 0);
             stepperSetHome(i,
                 js->limit_step,
                 j->home_search_vel < 0 ? j->min_limit : j->max_limit);
@@ -172,7 +184,7 @@ static void actionHoming(uint32_t joint_mask)
             if ((j->home_latch_vel < 0 && js->limit_state == LIMIT_MinHit) ||
                 (j->home_latch_vel > 0 && js->limit_state == LIMIT_MaxHit))
             {
-              m.joints[i] = 0;
+              movement_set_single_joint(&m, i, 0);
               stepperSetHome(i,
                   js->limit_step,
                   j->home_search_vel < 0 ? j->min_limit : j->max_limit);
@@ -187,6 +199,7 @@ static void actionHoming(uint32_t joint_mask)
           break;
         case HOMING_PRE_FINAL:
           count--;
+          RAD_DEBUG_PRINTF("HOMING: Remaining no of joints to home: %d\n", count);
           state[i].stage = HOMING_FINAL;
           stepperSetHomed(i);
           break;
@@ -196,6 +209,7 @@ static void actionHoming(uint32_t joint_mask)
       } /* per axis processing */
     } /* while current stage not finished */
   } /* sequence */
+  RAD_DEBUG_PRINTF("HOMING: Done\n");
 } /* commandHoming */
 
 

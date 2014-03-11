@@ -37,6 +37,12 @@ typedef uint16_t adcsample_t;
 #endif
 
 typedef struct {
+  float   Kp;
+  float   Ki;
+  float   Kd;
+} RadTempConfig;
+
+typedef struct {
   float               sv;
   float               pv;
   adcsample_t         raw;
@@ -46,9 +52,7 @@ typedef struct {
 } RadTempState;
 
 typedef struct {
-  float   Kp;
-  float   Ki;
-  float   Kd;
+  RadTempConfig config;
   float   error;
   float   i_error;
   float   d_state;

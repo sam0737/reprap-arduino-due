@@ -31,9 +31,12 @@
 MAKE_THERMISTOR_CONVERTER(adccBedConverter, TEMP_R2, 4013, 101, 4675);
 
 static RadTemp temps[] = {
-  { .adc_id = 1, .heating_pwm_id = 2, .cooling_pwm_id = -1, .converter = adccType1 },
-  { .adc_id = 2, .heating_pwm_id = 3, .cooling_pwm_id = -1, .converter = adccType1 },
-  { .adc_id = 0, .heating_pwm_id = 1, .cooling_pwm_id = -1, .converter = adccBedConverter },
+  { .adc_id = 1, .heating_pwm_id = 2, .cooling_pwm_id = -1, .converter = adccType1,
+    .config = { .Kp=2.8, .Ki=0.55, .Kd=3.53 } },
+  { .adc_id = 2, .heating_pwm_id = 3, .cooling_pwm_id = -1, .converter = adccType1,
+    .config = { .Kp=2.8, .Ki=0.55, .Kd=3.53 } },
+  { .adc_id = 0, .heating_pwm_id = 1, .cooling_pwm_id = -1, .converter = adccBedConverter,
+    .config = { .Kp=2.8, .Ki=0.55, .Kd=3.53 } },
   { .adc_id = 3, .heating_pwm_id = -1, .cooling_pwm_id = 4, .converter = adccSAM3XATempSensor }
 };
 
@@ -62,16 +65,16 @@ const machine_t machine =
           {
             .stepper_id = 0, .min_endstop_id = 0, .max_endstop_id = -1,
             .min_limit = -15, .max_limit = 175,
-            .max_speed = 100, .max_acceleration = 100, .scale = 100, //45.7142,
-            // .max_speed = 400, .max_acceleration = 800, .scale = 100, //45.7142,
+            //.max_speed = 100, .max_acceleration = 100, .scale = 100, //45.7142,
+            .max_speed = 400, .max_acceleration = 800, .scale = 100, //45.7142,
             .home_search_vel = -20, .home_latch_vel = -2,
             .home_sequence = 1, .home_axis_name = AXIS_X
           },
           {
             .stepper_id = 1, .min_endstop_id = 1, .max_endstop_id = -1,
             .min_limit = 0, .max_limit = 255,
-            .max_speed = 100, .max_acceleration = 100, .scale = 100, //45.7142,
-            // .max_speed = 400, .max_acceleration = 2500, .scale = 100, //45.7142,
+            //.max_speed = 100, .max_acceleration = 100, .scale = 100, //45.7142,
+            .max_speed = 400, .max_acceleration = 2500, .scale = 100, //45.7142,
             .home_search_vel = -20, .home_latch_vel = -2,
             .home_sequence = 1, .home_axis_name = AXIS_Y
           },

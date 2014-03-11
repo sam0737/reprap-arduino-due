@@ -114,6 +114,7 @@ typedef struct {
   int8_t              cooling_pwm_id;
   systime_t           residency_time;
   adcconverter_t      converter;
+  RadTempConfig       config;
 } RadTemp;
 
 typedef struct {

@@ -103,6 +103,10 @@ RadTempState temperatureGet(uint8_t temp_id)
 
 void temperatureInit()
 {
+  for (uint8_t i = 0; i < RAD_NUMBER_TEMPERATURES; i++)
+  {
+    pid_states[i].config = machine.temperature.devices[i].config;
+  }
   temperature_core_init();
   chThdCreateStatic(waTemp, sizeof(waTemp), NORMALPRIO, threadTemp, NULL);
 }

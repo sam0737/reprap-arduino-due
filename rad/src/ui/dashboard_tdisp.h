@@ -56,9 +56,15 @@ static void ui_dashboard_renderer(void) {
     {
       tdispSetCursor(0, 2);
       tdispDrawChar('T');
-      tdispDrawString(itostr2(uiState.dashboard.time_spent / 60));
-      tdispDrawChar(':');
-      tdispDrawString(itostr2(uiState.dashboard.time_spent % 60));
+      if (uiState.dashboard.time_spent < 0)
+      {
+        tdispDrawString("--:--");
+      } else
+      {
+        tdispDrawString(itostr2(uiState.dashboard.time_spent / 60));
+        tdispDrawChar(':');
+        tdispDrawString(itostr2(uiState.dashboard.time_spent % 60));
+      }
     }
 
     if (uiState.changed_parts & DASHBOARD_ZPos)

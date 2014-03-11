@@ -163,6 +163,12 @@ static void printer_dispatch(void)
       if (pwm_id >= 0)
         outputSet(pwm_id, curr_command->s_value);
       break;
+    case 10220: // Set feedrate multiplier (speed factor override)
+      printerSetFeedrateMultiplier(curr_command->s_value / 100.0f);
+      break;
+    case 10221: // Set flow multiplier (extrude factor override)
+      printerSetFlowMultiplier(curr_command->s_value / 100.0f);
+      break;
   }
 
   // Motion

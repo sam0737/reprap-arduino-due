@@ -28,11 +28,7 @@ static void ui_prepare_check(void)
 
 static void ui_prepare_back(void)
 {
-  chSysLock();
-  if (printerGetStateI() == PRINTERSTATE_Interrupted) {
-    printerSetStateI(PRINTERSTATE_Standby);
-  }
-  chSysUnlock();
+  printerRelease(PRINTINGSOURCE_LCD);
   uiChangePage(ui_mainmenu_viewmodel);
 }
 
@@ -42,7 +38,13 @@ static void ui_prepare_back_action(void* state)
   ui_prepare_back();
 }
 
-static void ui_prepare_do_homing(void* state) { }
+static void ui_prepare_do_homing(void* state)
+{
+  PrinterCommand cmd;
+  gcodeInitializeCommand(&cmd);
+  cmd.code = 28;
+  printerPushCommand(&cmd);
+}
 
 static const UiStandardMenu ui_prepare =
 {
@@ -63,16 +65,16 @@ static const UiStandardMenu ui_prepare =
 
 static void ui_prepare_viewmodel(void) {
   uiState.viewmodel = ui_menu_viewmodel;
-  chSysLock();
-  if (printerGetStateI() == PRINTERSTATE_Standby) {
-    printerSetStateI(PRINTERSTATE_Interrupted);
+  if (!printerTryAcquire(PRINTINGSOURCE_LCD))
+  {
+    uiChangePage(ui_mainmenu_viewmodel);
+    return;
   }
-  chSysUnlock();
   uiState.menu.check_cb = ui_prepare_check;
   uiState.menu.get_cb = uiStandardMenuGet;
   uiState.menu.count_cb = uiStandardMenuCount;
   uiState.menu.get_next_cb = uiStandardMenuGetNext;
   uiState.menu.close_cb = NULL;
-  uiState.menu.back_cb = ui_menu_goto_mainmenu;
+  uiState.menu.back_cb = ui_prepare_back;
   uiState.menu.standard.menu = &ui_prepare;
 }

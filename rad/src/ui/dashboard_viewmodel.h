@@ -95,11 +95,28 @@ static void ui_dashboard_viewmodel(void) {
     }
   }
 
+  int32_t time_spent = printerTimeSpent();
+  if (time_spent < 0)
+  {
+    if (uiState.dashboard.time_spent >= 0)
+    {
+      uiState.changed_parts |= DASHBOARD_TimeSpent;
+      uiState.dashboard.time_spent = -1;
+    }
+  } else
+  {
+    time_spent /= 60;
+    if (uiState.dashboard.time_spent != time_spent)
+    {
+      uiState.changed_parts |= DASHBOARD_TimeSpent;
+      uiState.dashboard.time_spent = time_spent;
+    }
+  }
   // TODO: layer
 
   if (axis_z_id >= 0)
   {
-    PlannerVirtualPosition pos = plannerGetCurrentPosition();
+    PlannerVirtualPosition pos = stepperGetCurrentPosition();
     if (uiState.dashboard.z_pos != pos.axes[axis_z_id]) {
       uiState.changed_parts |= DASHBOARD_ZPos;
       uiState.dashboard.z_pos = pos.axes[axis_z_id];
@@ -150,7 +167,6 @@ static void ui_dashboard_viewmodel(void) {
     }
   }
 
-  // TODO: time_spent
   uint8_t active_extruder = printerGetActiveExtruder();
   if (uiState.dashboard.active_extruder != active_extruder)
   {

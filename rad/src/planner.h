@@ -76,8 +76,8 @@ extern PlannerQueue queueMain;
 extern "C" {
 #endif
   void plannerInit(void);
-  PlannerVirtualPosition plannerGetCurrentPosition(void);
-  void plannerAddAxisPoint(const PlannerVirtualPosition *target, float feedrate);
+  void plannerSyncCurrentPosition(void);
+  void plannerAddAxisPoint(const PlannerVirtualPosition *target, float feedrate, float flow_multiplier);
   void plannerSetJointVelocity(const PlannerJointMovement *velocity);
   void plannerSetPosition(const PlannerVirtualPosition *virtual);
   void plannerEstop(void);

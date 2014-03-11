@@ -19,7 +19,8 @@
 */
 
 static PlannerVirtualPosition commanded;
-static float feedrate_multiplier = 1;
+static float feedrate_multiplier = 1.0f;
+static float flow_multiplier = 1.0f;
 
 static void commandMove(void)
 {
@@ -47,7 +48,8 @@ static void commandMove(void)
   if (axis_involved || extruder_involved)
     plannerAddAxisPoint(
         &commanded,
-        axis_involved ? mode.feedrate * feedrate_multiplier : mode.feedrate);
+        axis_involved ? mode.feedrate * feedrate_multiplier : mode.feedrate,
+        flow_multiplier);
 }
 
 static void commandSetPosition(void)
@@ -66,5 +68,6 @@ static void commandSetPosition(void)
 
 static void printerSyncCommanded(void)
 {
-  commanded = plannerGetCurrentPosition();
+  plannerSyncCurrentPosition();
+  commanded = stepperGetCurrentPosition();
 }
