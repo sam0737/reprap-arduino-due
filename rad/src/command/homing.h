@@ -66,7 +66,6 @@ static void actionHoming(uint32_t joint_mask)
 
       if (sequence == -1 || (joint_mask & (1 << i))) {
         count++;
-        stepperClearStopped(i);
         stepperResetOldLimitState(i);
         if ((j->home_search_vel < 0 && (js->limit_state & LIMIT_MinHit)) ||
             (j->home_search_vel > 0 && (js->limit_state & LIMIT_MaxHit)))
@@ -99,7 +98,8 @@ static void actionHoming(uint32_t joint_mask)
       {
         RadJoint* j = &machine.kinematics.joints[i];
         RadJointState* js = &joints_state.joints[i];
-        switch (state[i].stage)
+        HomingStage oldStage = state[i].stage;
+        switch (oldStage)
         {
         case HOMING_NONE:
           continue;
@@ -110,7 +110,6 @@ static void actionHoming(uint32_t joint_mask)
             return;
           }
           if (!js->stopped) continue;
-          stepperClearStopped(i);
           if (js->limit_state == LIMIT_Normal && js->changed_limit_state == LIMIT_Normal) {
             movement_set_single_joint(&m, i, j->home_search_vel);
             plannerSetJointVelocity(&m);
@@ -126,7 +125,6 @@ static void actionHoming(uint32_t joint_mask)
           }
           break;
         case HOMING_SEARCH_AT_LIMIT:
-          stepperClearStopped(i);
           stepperResetOldLimitState(i);
           state[i].last_pos = js->pos;
           if ((j->home_search_vel > 0 && j->home_latch_vel > 0) ||
@@ -146,7 +144,6 @@ static void actionHoming(uint32_t joint_mask)
             printerEstop(L_HOMING_TRAVEL_LIMIT);
           }
           if (!js->stopped) continue;
-          stepperClearStopped(i);
           if (js->limit_state == LIMIT_Normal) {
             state[i].stage = HOMING_LATCH_HIT;
             movement_set_single_joint(&m, i, j->home_latch_vel);
@@ -162,7 +159,6 @@ static void actionHoming(uint32_t joint_mask)
             printerEstop(L_HOMING_TRAVEL_LIMIT);
           }
           if (!js->stopped) continue;
-          stepperClearStopped(i);
           if (js->limit_state == LIMIT_Normal) {
             movement_set_single_joint(&m, i, 0);
             stepperSetHome(i,
@@ -179,7 +175,6 @@ static void actionHoming(uint32_t joint_mask)
             printerEstop(L_HOMING_TRAVEL_LIMIT);
           }
           if (!js->stopped) continue;
-          stepperClearStopped(i);
           if (js->limit_state != LIMIT_Normal) {
             if ((j->home_latch_vel < 0 && js->limit_state == LIMIT_MinHit) ||
                 (j->home_latch_vel > 0 && js->limit_state == LIMIT_MaxHit))
@@ -206,6 +201,8 @@ static void actionHoming(uint32_t joint_mask)
         case HOMING_FINAL:
           break;
         } /* stage case switch */
+        if (oldStage != state[i].stage)
+          RAD_DEBUG_PRINTF("HOMING: Joint %d stage changed to %d\n", i, state[i].stage);
       } /* per axis processing */
     } /* while current stage not finished */
   } /* sequence */

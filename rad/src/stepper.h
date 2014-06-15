@@ -58,7 +58,6 @@ extern "C" {
   RadJointsState stepperGetJointsState(void);
   void stepperSetLimitState(uint8_t joint_id, RadLimitState limit);
   void stepperResetOldLimitState(uint8_t joint_id);
-  void stepperClearStopped(uint8_t joint_id);
   void stepperSetHomed(uint8_t joint_id);
   PlannerVirtualPosition stepperGetCurrentPosition(void);
 #ifdef __cplusplus

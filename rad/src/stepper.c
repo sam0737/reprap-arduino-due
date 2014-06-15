@@ -332,14 +332,22 @@ static void stepper_fetch_new_block(void)
       ss->limit_hit = 0;
     }
     for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++) {
-      RAD_DEBUG_PRINTF(" #%d=%f", i, active_block.v.joints[i].sv);
-      if (isnan(active_block.v.joints[i].sv))
+      if (isnan(active_block.v.joints[i].sv)) {
         active_block.v.joints[i].sv = prev_is_velocity ? prev_block_v.joints[i].sv : 0;
+      } else {
+        // Note: look ma, no chSysLock(), we probably don't need it, hopefully
+        joints_state.joints[i].stopped = FALSE;
+      }
+      RAD_DEBUG_PRINTF(" #%d=%f", i, active_block.v.joints[i].sv);
     }
     for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
-      RAD_DEBUG_PRINTF(" E#%d=%f", i, active_block.v.extruders[i].sv);
-      if (isnan(active_block.v.extruders[i].sv))
+      if (isnan(active_block.v.extruders[i].sv)) {
         active_block.v.extruders[i].sv = prev_is_velocity ? prev_block_v.extruders[i].sv : 0;
+      } else {
+        // Note: look ma, no chSysLock(), we probably don't need it, hopefully
+        joints_state.joints[i].stopped = FALSE;
+      }
+      RAD_DEBUG_PRINTF(" E#%d=%f", i, active_block.v.extruders[i].sv);
     }
     RAD_DEBUG_PRINTF("\n");
     stepper_set_timer(clock.tick_frequency / 2 / STEPPER_VELOCITY_STEP_FREQ);
@@ -509,10 +517,10 @@ static void stepper_velocity_profile(void)
       js->limit_step = ss->pos;
     }
 
-    if (!active_block.v.joints[i].is_stop_signalled) {
+    if (!js->stopped) {
       if (*pv == 0 && *sv == 0) {
         js->stopped = TRUE;
-        active_block.v.joints[i].is_stop_signalled = TRUE;
+        RAD_DEBUG_PRINTF("STEPPER: Joint %d stopped\n", i);
       } else {
         all_stopped = FALSE;
       }
@@ -733,13 +741,6 @@ void stepperResetOldLimitState(uint8_t joint_id)
   RadJointState* js = &joints_state.joints[joint_id];
   js->base_limit_state = js->limit_state;
   js->changed_limit_state = LIMIT_Normal;
-  chSysUnlock();
-}
-
-void stepperClearStopped(uint8_t joint_id)
-{
-  chSysLock();
-  joints_state.joints[joint_id].stopped = FALSE;
   chSysUnlock();
 }
 

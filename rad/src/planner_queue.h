@@ -49,7 +49,6 @@ typedef struct {
   struct {
     float sv;
     float acc;
-    bool_t is_stop_signalled;
   } joints[RAD_NUMBER_JOINTS];
   struct {
     float sv;
