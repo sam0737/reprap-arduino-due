@@ -18,7 +18,7 @@
 					<folderInfo id="org.eclipse.cdt.cross.arm.gnu.sourcery.windows.toolchain.base.1500149857.1176653089" name="/" resourcePath="">
 						<toolChain id="org.eclipse.cdt.build.core.prefbase.toolchain.234423324" name="No ToolChain" superClass="org.eclipse.cdt.build.core.prefbase.toolchain">
 							<targetPlatform id="org.eclipse.cdt.build.core.prefbase.toolchain.234423324.900484304" name=""/>
-							<builder id="cdt.managedbuild.target.gnu.builder.base.343581173" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" parallelBuildOn="false" superClass="cdt.managedbuild.target.gnu.builder.base"/>
+							<builder id="cdt.managedbuild.target.gnu.builder.base.343581173" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="cdt.managedbuild.target.gnu.builder.base"/>
 							<tool id="org.eclipse.cdt.build.core.settings.holder.libs.836215878" name="holder for library settings" superClass="org.eclipse.cdt.build.core.settings.holder.libs"/>
 						</toolChain>
 					</folderInfo>
@@ -57,11 +57,11 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="MinGW"/>
+		<configuration configurationName="ARM"/>
 		<configuration configurationName="Default">
 			<resource resourceType="PROJECT" workspacePath="/rad"/>
 		</configuration>
-		<configuration configurationName="MinGW"/>
-		<configuration configurationName="ARM"/>
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>

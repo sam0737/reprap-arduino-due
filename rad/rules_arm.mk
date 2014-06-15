@@ -2,6 +2,8 @@ include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
 
 MAKE_ALL_RULE_HOOK: $(BUILDDIR)/$(PROJECT).lst $(BUILDDIR)/$(PROJECT).siz 
 
+$(OBJS): | $(BUILDDIR) $(OBJDIR) $(LSTDIR)
+
 %.lst: %.elf
 	@echo 'Creating listing: $@'
 	@$(OD) -h -S $< > $@
