@@ -39,6 +39,11 @@
   "S05-Paused"
 #endif
 
+#ifndef L_UI_STATUS_INTERRUPTING
+#define L_UI_STATUS_INTERRUPTING \
+  "S03-Pausing"
+#endif
+
 #ifndef L_PRINTER_STATUS_HEATING
 #define L_PRINTER_STATUS_HEATING \
   "S02-Heating up"

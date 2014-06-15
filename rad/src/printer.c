@@ -50,6 +50,7 @@ static PrintingSource alt_source;
 static PrinterCommand* curr_command;
 
 static PrinterMode mode;
+static PrinterMode mode_backup;
 static PrinterState state;
 
 static systime_t time_start;
@@ -106,11 +107,14 @@ static msg_t threadPrinter(void *arg) {
   while (1)
   {
     curr_command = NULL;
-    chMBFetch(&command_main_mbox, (msg_t*)&curr_command, TIME_INFINITE);
+    if (state != PRINTERSTATE_Interrupted)
+    {
+      chMBFetch(&command_main_mbox, (msg_t*)&curr_command, MS2ST(100));
+    } else {
+      chMBFetch(&command_alt_mbox, (msg_t*)&curr_command, MS2ST(100));
+    }
 
     if (curr_command == NULL) {
-      /* Should never reach this */
-      chThdSleepMilliseconds(100);
       continue;
     }
 
@@ -119,6 +123,17 @@ static msg_t threadPrinter(void *arg) {
       printerTimeStart();
     }
     printer_dispatch();
+
+    if (curr_command->type & COMMANDTYPE_PrinterInterrupt)
+    {
+      state = PRINTERSTATE_Interrupted;
+      mode_backup = mode;
+    } else if (curr_command->type & COMMANDTYPE_PrinterResume)
+    {
+      state = PRINTERSTATE_Printing;
+      mode = mode_backup;
+    }
+
     printer_free_current_command();
   }
   return 0;
@@ -175,7 +190,8 @@ void printerSetFlowMultiplier(const float value)
 void printerRelease(const PrintingSource source)
 {
   chSysLock();
-  if (state == PRINTERSTATE_Interrupted) {
+  if (state == PRINTERSTATE_Interrupting ||
+      state == PRINTERSTATE_Interrupted) {
     if (source == alt_source)
       alt_source = PRINTINGSOURCE_None;
   } else if (state == PRINTERSTATE_Printing) {
@@ -200,7 +216,8 @@ bool_t printerTryAcquire(const PrintingSource source)
   if (main_source == source) {
     result = TRUE;
   } else {
-    if (state == PRINTERSTATE_Interrupted) {
+    if (state == PRINTERSTATE_Interrupting ||
+        state == PRINTERSTATE_Interrupted) {
       if (alt_source == PRINTINGSOURCE_None) {
         alt_source = source;
       }
@@ -220,10 +237,45 @@ PrinterCommand* printerAllocateCommand(void)
   return command;
 }
 
-void printerPushCommand(const PrinterCommand* command) {
+void printerInterrupt(const PrintingSource source)
+{
+  chSysLock();
+  if ((state == PRINTERSTATE_Printing || state == PRINTERSTATE_Standby) &&
+      source != main_source)
+  {
+    state = PRINTERSTATE_Interrupting;
+    alt_source = PRINTINGSOURCE_None;
+
+    PrinterCommand cmd;
+    gcodeInitializeCommand(&cmd);
+    cmd.type = COMMANDTYPE_PrinterInterrupt;
+    printerPushCommand(main_source, &cmd);
+  }
+  chSysUnlock();
+}
+
+void printerResume(const PrintingSource source)
+{
+  chSysLock();
+  if (state == PRINTERSTATE_Interrupted &&
+      (source == alt_source || alt_source == PRINTINGSOURCE_None))
+  {
+    PrinterCommand cmd;
+    gcodeInitializeCommand(&cmd);
+    cmd.type = COMMANDTYPE_PrinterResume;
+    printerPushCommand(PRINTINGSOURCE_None, &cmd);
+  }
+  chSysUnlock();
+}
+
+void printerPushCommand(const PrintingSource source, const PrinterCommand* command) {
   PrinterCommand* new_command = printerAllocateCommand();
   memcpy(new_command, command, sizeof(PrinterCommand));
-  chMBPost(&command_main_mbox, (msg_t) new_command, TIME_INFINITE);
+  if (state != PRINTERSTATE_Interrupted) {
+    chMBPost(&command_main_mbox, (msg_t) new_command, TIME_INFINITE);
+  } else {
+    chMBPost(&command_alt_mbox, (msg_t) new_command, TIME_INFINITE);
+  }
 }
 
 PrinterState printerGetStateI(void)
@@ -333,6 +385,25 @@ const char* printerGetMessage(void)
   const char* m = printer_estop_message;
   if (m == NULL)
     m = printer_message;
+  if (m == NULL)
+  {
+    switch (printerGetState())
+    {
+      case PRINTERSTATE_Standby:
+        m = L_UI_STATUS_READY;
+        break;
+      case PRINTERSTATE_Printing:
+        m = L_UI_STATUS_PRINTING;
+        break;
+      case PRINTERSTATE_Interrupting:
+        m = L_UI_STATUS_INTERRUPTING;
+        break;
+      case PRINTERSTATE_Interrupted:
+      default:
+        m = L_UI_STATUS_INTERRUPTED;
+        break;
+    }
+  }
   return m;
 }
 

@@ -193,7 +193,7 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   chprintf(chp, "\r\nStorage: %d. Queue: %d\r\n", storageGetHostState(), plannerQueueGetLength(&queueMain));
   const char* message = printerGetMessage();
-  chprintf(chp, "Status: %s\r\n", message ? message : L_UI_STATUS_READY);
+  chprintf(chp, "Status: %s\r\n", message ? message : "<NULL>");
 }
 
 static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {

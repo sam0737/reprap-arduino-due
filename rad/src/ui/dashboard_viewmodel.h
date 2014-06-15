@@ -37,23 +37,6 @@ static void ui_dashboard_viewmodel(void) {
 
   const char* message = printerGetMessage();
 
-  if (message == NULL)
-  {
-    switch (printerGetState())
-    {
-      case PRINTERSTATE_Standby:
-        message = L_UI_STATUS_READY;
-        break;
-      case PRINTERSTATE_Printing:
-      case PRINTERSTATE_Interrupting:
-        message = L_UI_STATUS_PRINTING;
-        break;
-      case PRINTERSTATE_Interrupted:
-        message = L_UI_STATUS_INTERRUPTED;
-        break;
-    }
-  }
-
   bool change_subscreen = FALSE;
   if (uiState.changed_parts & DASHBOARD_Reset)
   {

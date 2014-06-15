@@ -18,14 +18,6 @@
 
 */
 
-static void ui_prepare_check(void)
-{
-  if (printerGetState() != PRINTERSTATE_Interrupted)
-  {
-    uiChangePage(ui_mainmenu_viewmodel);
-  }
-}
-
 static void ui_prepare_back(void)
 {
   printerRelease(PRINTINGSOURCE_LCD);
@@ -43,7 +35,7 @@ static void ui_prepare_do_homing(void* state)
   PrinterCommand cmd;
   gcodeInitializeCommand(&cmd);
   cmd.code = 28;
-  printerPushCommand(&cmd);
+  printerPushCommand(PRINTINGSOURCE_LCD, &cmd);
 }
 
 static const UiStandardMenu ui_prepare =
@@ -70,7 +62,6 @@ static void ui_prepare_viewmodel(void) {
     uiChangePage(ui_mainmenu_viewmodel);
     return;
   }
-  uiState.menu.check_cb = ui_prepare_check;
   uiState.menu.get_cb = uiStandardMenuGet;
   uiState.menu.count_cb = uiStandardMenuCount;
   uiState.menu.get_next_cb = uiStandardMenuGetNext;

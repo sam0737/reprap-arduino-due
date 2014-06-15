@@ -58,8 +58,8 @@ typedef enum {
   WAITMODE_CurrentTool = 1,
   WAITMODE_HeatedBed = 2,
   WAITMODE_All = 3
-
 } WaitMode;
+
 typedef enum {
   COMMANDTYPE_None = 0,
   COMMANDTYPE_Action = 0x01,
@@ -67,26 +67,38 @@ typedef enum {
   COMMANDTYPE_CanHaveAxisWords = 0x04,
   COMMANDTYPE_Movement = (0x04 | 0x08),
   COMMANDTYPE_TimeStart = 0x10,
-  COMMANDTYPE_UnknownCode = 0x80
+  COMMANDTYPE_UnknownCode = 0x80,
+  COMMANDTYPE_PrinterInterrupt = 0x1000,
+  COMMANDTYPE_PrinterResume = 0x2000
 } CommandType;
 
+/** Printer command **/
 typedef struct {
   PrinterMode printer;
   PowerMode power;
   WaitMode wait;
 
   CommandType type;
+
+  /** G or M code **/
   uint16_t code;
 
+  /** Line number **/
   int32_t line;
 
-  float r_value;
-  float s_value;
-  int32_t p_value;
-
+  /** Parameter: Tool **/
   int8_t t_value;
 
+  /** Parameter: R **/
+  float r_value;
+  /** Parameter: S **/
+  float s_value;
+  /** Parameter: P **/
+  int32_t p_value;
+
+  /** Motion parameter: Extruder **/
   float e_value;
+  /** Motion parameter: Axes **/
   float axes_value[RAD_NUMBER_AXES];
 
   Mailbox* ack_mbox;

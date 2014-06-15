@@ -153,7 +153,6 @@ static void ui_print_close(void)
 
 static void ui_print_viewmodel_core(void) {
   uiState.viewmodel = ui_menu_viewmodel;
-  uiState.menu.check_cb = NULL;
   uiState.menu.get_cb = ui_print_get;
   uiState.menu.count_cb = ui_print_count;
   uiState.menu.get_next_cb = ui_print_get_next;

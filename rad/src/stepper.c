@@ -755,9 +755,21 @@ PlannerVirtualPosition stepperGetCurrentPosition(void)
 {
   PlannerVirtualPosition virtual_pos;
   PlannerPhysicalPosition physical_pos;
-  RadJointsState state = stepperGetJointsState();
-  for (uint8_t i = 0; i < RAD_NUMBER_JOINTS; i++)
-    physical_pos.joints[i] = state.joints[i].pos;
+
+  chSysLock();
+  for (uint8_t i = 0; i <RAD_NUMBER_JOINTS; i++) {
+    RadJoint *j = &machine.kinematics.joints[i];
+    uint8_t ch_id = j->stepper_id;
+    StepperStepStateChannel *ss = &step_state.channels[ch_id];
+    physical_pos.joints[i] = ss->pos / j->scale;
+  }
+  for (uint8_t i = 0; i < RAD_NUMBER_EXTRUDERS; i++) {
+    RadExtruder *ex = &machine.extruder.devices[i];
+    uint8_t ch_id = ex->stepper_id;
+    StepperStepStateChannel *ss = &step_state.channels[ch_id];
+    physical_pos.extruders[i] = ss->pos / ex->scale;
+  }
+  chSysUnlock();
 
   machine.kinematics.forward_kinematics(&physical_pos, &virtual_pos);
   return virtual_pos;

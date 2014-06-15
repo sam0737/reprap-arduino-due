@@ -89,15 +89,11 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
     if (cmd->printer.feedrate < 1)
       return FALSE;
     cmd->type |= COMMANDTYPE_SyncAction;
-  } else {
-    cmd->printer.feedrate = NAN;
   }
 
   if (code_seen(buf, 'E', decode_context)) {
     cmd->e_value = code_value(decode_context);
     cmd->type |= COMMANDTYPE_SyncAction;
-  } else {
-    cmd->e_value = NAN;
   }
 
   for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++)

@@ -94,7 +94,7 @@ typedef void (*display_renderer_t)(void);
 
 typedef uint8_t (*menu_visible_t)(void);
 typedef void (*menu_action_t)(void*);
-typedef void (*menu_event_t)(void);;
+typedef void (*menu_event_t)(void);
 
 typedef struct {
   char* name;
@@ -158,7 +158,6 @@ typedef struct {
           int16_t directory_opened;
         } print;
       };
-      menu_event_t check_cb;
       menu_get_t get_cb;
       menu_count_t count_cb;
       menu_get_next_t get_next_cb;

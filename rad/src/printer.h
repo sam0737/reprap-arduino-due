@@ -49,7 +49,7 @@ typedef enum {
 } PrinterState;
 
 typedef enum {
-  PRINTINGSOURCE_None = 1,
+  PRINTINGSOURCE_None = 0,
   PRINTINGSOURCE_SD = 1,
   PRINTINGSOURCE_Host = 2,
   PRINTINGSOURCE_LCD = 3,
@@ -68,7 +68,11 @@ extern "C" {
 
   void printerRelease(const PrintingSource source);
   bool_t printerTryAcquire(const PrintingSource source);
-  void printerPushCommand(const PrinterCommand* command);
+
+  void printerInterrupt(const PrintingSource source);
+  void printerResume(const PrintingSource source);
+
+  void printerPushCommand(const PrintingSource source, const PrinterCommand* command);
   void printerFreeCommand(PrinterCommand* command);
   PrinterState printerGetStateI(void);
   PrinterState printerGetState(void);

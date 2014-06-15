@@ -74,8 +74,8 @@ static void process_new_line(HostContext* c)
       hostprintf("rs %d Resend:%d\n", c->last_received_line + 1, c->last_received_line + 1);
       return;
     } else {
-      // Current status?
-      hostprintf(c->busy ? "busy (1)\n" : "ok\n");
+      // Check current status?
+      hostprintf(c->busy ? "busy\n" : "ok\n");
       return;
     }
   }
@@ -99,18 +99,20 @@ static void process_new_line(HostContext* c)
       break;
   }
 
+  /* Host specific Gcode */
   switch (cmd->code)
   {
-    case 10112:
+    case 10112: // EStop
       printerEstop(L_PRINTER_STOPPED_BY_HOST);
       hostprintf("ok\n");
       break;
-    case 10105:
-    case 10114:
+    case 10105: // Get temperature
+    case 10114: // Get position
+      // Once these commands are received, we will send temp/position report ever now and then
       c->last_report_time = chTimeNow() - REPORT_INTERVAL;
       hostprintf("ok\n");
       break;
-    case 10115:
+    case 10115: // Host capability report
       hostprintf(
           "ok FIRMWARE_NAME:RAD(marlin) FIRMWARE_URL:http%%3A//rad.hellosam.net/ EXTRUDER_COUNT:%d\n",
           RAD_NUMBER_EXTRUDERS);
@@ -126,7 +128,7 @@ static void process_new_line(HostContext* c)
       }
       if (!(cmd->type & COMMANDTYPE_Action))
       {
-        hostprintf("ok\n");
+        hostprintf("ok #%d [%d] {-}\n", cmd->line, cmd->code);
       }
   }
 
@@ -136,7 +138,7 @@ static void process_new_line(HostContext* c)
     {
       if (c->busy)
       {
-        hostprintf("busy (2)\n");
+        hostprintf("busy. Please enable ping-pong.\n", cmd->line);
         return;
       }
       if (!printerTryAcquire(PRINTINGSOURCE_Host))
@@ -153,7 +155,11 @@ static void process_new_line(HostContext* c)
           case PRINTERSTATE_Estopped:
             hostprintf("!! %s\n", printerGetMessage());
             break;
+          default:
+            // Impossible to be here
+            break;
         }
+        chThdSleepMilliseconds(1000); // Delay to avoid host bursting us
         hostprintf("ok\n");
         return;
       }
@@ -161,10 +167,10 @@ static void process_new_line(HostContext* c)
 
     c->busy++;
     c->last_busy_time = 0;
-    hostprintf("ack %d %d\n", cmd->line, cmd->code);
+    hostprintf("ack #%d [%d]\n", cmd->line, cmd->code);
     cmd->ack_mbox = &c->ack_mbox;
     cmd->ack_evt = &c->ack_evt;
-    printerPushCommand(cmd);
+    printerPushCommand(PRINTINGSOURCE_Host, cmd);
   }
   /*
    * TODO Checksum, line number
@@ -178,7 +184,10 @@ static void send_report(HostContext* c) {
     RadTempState s = temperatureGet(temp_id);
     uint8_t duty = outputGet(machine.temperature.devices[temp_id].heating_pwm_id);
     hostprintf("T%d:%d /%d @%d:%d ",
-        i, (int)(s.pv+0.5), (int)(s.sv+0.5), i, duty);
+        i, (int)(s.pv+0.5), (int)(s.sv+0.5), i,
+        // Firmware identifies itself as marlin,
+        //   the duty is reported in the range of 0-127
+        duty / 2);
   }
   for (uint8_t i = 0; i < machine.heated_bed.count; i++)
   {
@@ -186,7 +195,10 @@ static void send_report(HostContext* c) {
     RadTempState s = temperatureGet(temp_id);
     uint8_t duty = outputGet(machine.temperature.devices[temp_id].heating_pwm_id);
     hostprintf("B:%d /%d B@:%d ",
-        (int)(s.pv+0.5), (int)(s.sv+0.5), duty*100/255);
+        (int)(s.pv+0.5), (int)(s.sv+0.5),
+        // Firmware identifies itself as marlin,
+        //   the duty is reported in the range of 0-127
+        duty / 2);
   }
   hostprintf("C:");
   PlannerVirtualPosition pos = stepperGetCurrentPosition();
@@ -220,7 +232,7 @@ static msg_t threadDataHost(void* arg) {
       PrinterCommand* ack_command;
       while (chMBFetch(&c->ack_mbox, (msg_t*) &ack_command, TIME_IMMEDIATE) == RDY_OK)
       {
-        hostprintf("ok\n");
+        hostprintf("ok #%d [%d] {+}\n", ack_command->line, ack_command->code);
         printerFreeCommand(ack_command);
         c->busy--;
       }
