@@ -80,16 +80,19 @@ static void process_new_line(HostContext* c)
     }
   }
 
+  RAD_DEBUG_PRINTF("HOST: %s\n", c->ptr);
   if (!valid)
   {
     const char* message;
     if (!(message = printerIsEstopped()))
       printerEstop((message = L_PRINTER_HOST_GCODE_ERROR));
 
-    hostprintf("ok\n!! %s\n", message);
+    hostprintf("ok\n!! %s.", message, cmd->line);
+    if (cmd->line > 0)
+      hostprintf(" Line %d\n", cmd->line);
+    hostprintf("\n");
     return;
   }
-  RAD_DEBUG_PRINTF("HOST: %s\n", c->ptr);
 
   switch (cmd->code)
   {
@@ -170,7 +173,10 @@ static void process_new_line(HostContext* c)
     hostprintf("ack #%d [%d]\n", cmd->line, cmd->code);
     cmd->ack_mbox = &c->ack_mbox;
     cmd->ack_evt = &c->ack_evt;
-    printerPushCommand(PRINTINGSOURCE_Host, cmd);
+    printerPushCommand(
+        (cmd->type & COMMANDTYPE_SyncAction) == COMMANDTYPE_SyncAction ?
+            PRINTINGSOURCE_Host : PRINTINGSOURCE_None,
+        cmd);
   }
   /*
    * TODO Checksum, line number
