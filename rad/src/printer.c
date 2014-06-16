@@ -271,7 +271,7 @@ void printerResume(const PrintingSource source)
 void printerPushCommand(const PrintingSource source, const PrinterCommand* command) {
   PrinterCommand* new_command = printerAllocateCommand();
   memcpy(new_command, command, sizeof(PrinterCommand));
-  if (state != PRINTERSTATE_Interrupted) {
+  if (state != PRINTERSTATE_Interrupted || source == main_source) {
     chMBPost(&command_main_mbox, (msg_t) new_command, TIME_INFINITE);
   } else {
     chMBPost(&command_alt_mbox, (msg_t) new_command, TIME_INFINITE);
