@@ -195,10 +195,10 @@ static void stepper_wait_timer(void)
         );
   }
   #endif
-  while (past_timer >= (clock.tick_frequency / 40))
+  while (past_timer >= 25000)
   {
-    past_timer -= (clock.tick_frequency / 40);
-    chThdSleepMilliseconds(20);
+    past_timer -= 25000;
+    chThdSleepMicroseconds(25000);
   }
 }
 #endif
@@ -410,6 +410,8 @@ static void stepper_fetch_new_block(void)
         (step_state.unit_tick_pace > clock.minimum_tick_pace * step_state.last_block_speed) ?
             clock.minimum_tick_pace :
             step_state.unit_tick_pace / step_state.last_block_speed;
+    if (step_state.last_tick_pace == 0)
+      step_state.last_tick_pace = 1;
 
     step_state.exit_tick_pace =
         (step_state.unit_tick_pace > clock.minimum_tick_pace * active_block.p.exit_speed) ?
@@ -487,6 +489,8 @@ static void positional_calculation(void)
       }
     }
   }
+  if (step_state.last_tick_pace == 0)
+    step_state.last_tick_pace = 1;
   stepper_set_timer(step_state.last_tick_pace);
 }
 
