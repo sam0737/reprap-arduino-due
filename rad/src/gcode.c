@@ -177,6 +177,7 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
         case 114: // Get position
         case 115: // Capabilities
         case 111: // Debug capabilities (Ignored for now)
+        case 999: // Clear Estop
           if (cmd->code) return FALSE;
           cmd->code = value + 10000;
           break;
@@ -188,7 +189,6 @@ bool_t gcodeDecode(PrinterCommand* cmd, char* buf, decode_context_t* decode_cont
         case 106: // Fan speed
         case 220: // Set feedrate multiplier (speed factor override)
         case 221: // Set flow multiplier (extrude factor override)
-        case 999: // Clear Estop
           if (cmd->code) return FALSE;
           cmd->code = value + 10000;
           // All of the above are not sync action incidentally

@@ -20,7 +20,7 @@
 
 static void ui_prepare_back(void)
 {
-  printerRelease(PRINTINGSOURCE_LCD);
+  printerRelease(PRINTINGSOURCE_Lcd);
   uiChangePage(ui_mainmenu_viewmodel);
 }
 
@@ -35,7 +35,7 @@ static void ui_prepare_do_homing(void* state)
   PrinterCommand cmd;
   gcodeInitializeCommand(&cmd);
   cmd.code = 28;
-  printerPushCommand(PRINTINGSOURCE_LCD, &cmd);
+  printerPushCommand(PRINTINGSOURCE_Lcd, &cmd);
 }
 
 static const UiStandardMenu ui_prepare =
@@ -57,7 +57,7 @@ static const UiStandardMenu ui_prepare =
 
 static void ui_prepare_viewmodel(void) {
   uiState.viewmodel = ui_menu_viewmodel;
-  if (!printerTryAcquire(PRINTINGSOURCE_LCD))
+  if (!printerTryAcquire(PRINTINGSOURCE_Lcd))
   {
     uiChangePage(ui_mainmenu_viewmodel);
     return;

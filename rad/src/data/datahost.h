@@ -18,8 +18,8 @@
 
 */
 
-#ifndef _RAD_DATA_SERIAL_H_
-#define _RAD_DATA_SERIAL_H_
+#ifndef _RAD_DATA_HOST_H_
+#define _RAD_DATA_HOST_H_
 
 /*===========================================================================*/
 /* External declarations.                                                    */
@@ -33,4 +33,4 @@ extern "C" {
 }
 #endif
 
-#endif  /* _RAD_DATA_SERIAL_H_ */
+#endif  /* _RAD_DATA_HOST_H_ */

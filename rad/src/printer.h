@@ -36,6 +36,7 @@
 #define COMMAND_BUFFER_SIZE 4
 
 #include "data/datahost.h"
+#include "data/datastorage.h"
 
 typedef enum {
   PRINTERSTATE_Standby = 0x00,
@@ -50,9 +51,9 @@ typedef enum {
 
 typedef enum {
   PRINTINGSOURCE_None = 0,
-  PRINTINGSOURCE_SD = 1,
+  PRINTINGSOURCE_Storage = 1,
   PRINTINGSOURCE_Host = 2,
-  PRINTINGSOURCE_LCD = 3,
+  PRINTINGSOURCE_Lcd = 3,
 } PrintingSource;
 
 #ifdef __cplusplus

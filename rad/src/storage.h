@@ -50,6 +50,9 @@ typedef enum {
   STORAGE_Local = 2
 } RadStorageHost;
 
+#define STORAGE_ERROR -2
+#define STORAGE_EOF -1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -58,10 +61,13 @@ extern "C" {
   void storageUsbUnmount(void);
   RadStorageHost storageGetHostState(void);
 
-  void storageChangeDir(const TCHAR *path);
+  void storageChangeDir(const char* path);
   void storageOpenDir(void);
-  bool_t storageReadFile(RadFileInfo* file);
+  bool_t storageFetchFileInfo(RadFileInfo* file);
   void storageCloseDir(void);
+
+  bool_t storageOpenFile(const char* filename);
+  int storageReadLine(char* buf, int len);
 
   bool_t storageDumpConfig(void);
 #ifdef __cplusplus

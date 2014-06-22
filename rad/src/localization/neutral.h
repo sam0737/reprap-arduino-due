@@ -64,6 +64,16 @@
   "E02-Stopped by menu"
 #endif
 
+#ifndef L_PRINTER_STOPPED_BY_HOST
+#define L_PRINTER_STOPPED_BY_HOST \
+  "E03-Stopped by host"
+#endif
+
+#ifndef L_PRINTER_STOPPED_BY_STORAGE
+#define L_PRINTER_STOPPED_BY_STORAGE \
+  "E04-Stopped by gcode"
+#endif
+
 #ifndef L_HOMING_INCORRECT_INIT_STATE
 #define L_HOMING_INCORRECT_INIT_STATE \
   "E10-Incorrect initial limit switch state for homing"
@@ -79,6 +89,11 @@
   "E12-Incorrect limit switch is hit when homing"
 #endif
 
+#ifndef L_PRINTER_LINE_TOO_LONG
+#define L_PRINTER_LINE_TOO_LONG \
+  "E12-Line too long"
+#endif
+
 #ifndef L_TEMPERATURE_AUTOTUNE_OVERHEATED
 #define L_TEMPERATURE_AUTOTUNE_OVERHEATED \
   "E20-Autotune overheated"
@@ -88,6 +103,33 @@
 #define L_TEMPERATURE_AUTOTUNE_TIMEOUT \
   "E21-Autotune timeout"
 #endif
+
+#ifndef L_STORAGE_NOT_IN_STANDBY
+#define L_STORAGE_NOT_IN_STANDBY \
+  "E30-Cannot start SD print in non-standby mode"
+#endif
+
+#ifndef L_STORAGE_FILE_OPEN_ERROR
+#define L_STORAGE_FILE_OPEN_ERROR \
+  "E31-Failed to open file and print"
+#endif
+
+#ifndef L_STORAGE_FILE_READ_ERROR
+#define L_STORAGE_FILE_READ_ERROR \
+  "E32-Failed to read file while printing"
+#endif
+
+#ifndef L_PRINTER_STORAGE_GCODE_ERROR
+#define L_PRINTER_STORAGE_GCODE_ERROR \
+  "E33-Invalid GCode in file"
+#endif
+
+#ifndef L_PRINTER_HOST_GCODE_ERROR
+#define L_PRINTER_HOST_GCODE_ERROR \
+  "E50-Invalid GCode from host"
+#endif
+
+// ---- Menu ----
 
 #ifndef L_UI_BACK
 #define L_UI_BACK \
@@ -162,14 +204,4 @@
 #ifndef L_UI_PREPARE_HOMING
 #define L_UI_PREPARE_HOMING \
   "Homing"
-#endif
-
-#ifndef L_PRINTER_HOST_GCODE_ERROR
-#define L_PRINTER_HOST_GCODE_ERROR \
-  "E50-Invalid GCode from host"
-#endif
-
-#ifndef L_PRINTER_STOPPED_BY_HOST
-#define L_PRINTER_STOPPED_BY_HOST \
-  "E03-Stopped by host"
 #endif

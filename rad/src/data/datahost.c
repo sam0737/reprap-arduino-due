@@ -22,9 +22,9 @@
 #include "rad.h"
 
 #define COMMAND_LENGTH 128
-#define hostprintf(...) \
+#define hostprintf(c, ...) \
   RAD_DEBUG_PRINTF(__VA_ARGS__); \
-  chprintf((BaseSequentialStream*)c->channel, __VA_ARGS__);
+  chprintf((BaseSequentialStream*)((c)->channel), __VA_ARGS__);
 
 #define REPORT_INTERVAL (S2ST(0.2))
 #define IDLE_INTERVAL (MS2ST(500))
@@ -51,12 +51,7 @@ typedef struct {
 
 static WORKING_AREA(waDataHost, 128 + sizeof(HostContext));
 
-static void process_new_line(HostContext* c)
-{
-  if (c->ptr == c->buf) return;
-
-  *c->ptr = '\0';
-  c->ptr = c->buf;
+static void process_new_line(HostContext* c) {
   PrinterCommand* cmd = &c->command;
 
   bool_t valid = gcodeDecode(cmd, c->buf, &c->decode_context);
@@ -71,26 +66,26 @@ static void process_new_line(HostContext* c)
     } else if (cmd->line > c->last_received_line + 1)
     {
       // Out of order lines received
-      hostprintf("rs %d Resend:%d\n", c->last_received_line + 1, c->last_received_line + 1);
+      hostprintf(c, "rs %d Resend:%d\n", c->last_received_line + 1, c->last_received_line + 1);
       return;
     } else {
       // Check current status?
-      hostprintf(c->busy ? "busy\n" : "ok\n");
+      hostprintf(c, c->busy ? "busy\n" : "ok\n");
       return;
     }
   }
 
-  RAD_DEBUG_PRINTF("HOST: %s\n", c->ptr);
+  RAD_DEBUG_PRINTF("HOST: %s\n", c->buf);
   if (!valid)
   {
     const char* message;
     if (!(message = printerIsEstopped()))
       printerEstop((message = L_PRINTER_HOST_GCODE_ERROR));
 
-    hostprintf("ok\n!! %s.", message, cmd->line);
+    hostprintf(c, "ok\n!! %s.", message, cmd->line);
     if (cmd->line > 0)
-      hostprintf(" Line %d\n", cmd->line);
-    hostprintf("\n");
+      hostprintf(c, " Line %d\n", cmd->line);
+    hostprintf(c, "\n");
     return;
   }
 
@@ -107,16 +102,16 @@ static void process_new_line(HostContext* c)
   {
     case 10112: // EStop
       printerEstop(L_PRINTER_STOPPED_BY_HOST);
-      hostprintf("ok\n");
+      hostprintf(c, "ok\n");
       break;
     case 10105: // Get temperature
     case 10114: // Get position
       // Once these commands are received, we will send temp/position report ever now and then
       c->last_report_time = chTimeNow() - REPORT_INTERVAL;
-      hostprintf("ok\n");
+      hostprintf(c, "ok\n");
       break;
     case 10115: // Host capability report
-      hostprintf(
+      hostprintf(c,
           "ok FIRMWARE_NAME:RAD(marlin) FIRMWARE_URL:http%%3A//rad.hellosam.net/ EXTRUDER_COUNT:%d\n",
           RAD_NUMBER_EXTRUDERS);
       break;
@@ -124,59 +119,58 @@ static void process_new_line(HostContext* c)
       if (cmd->type & COMMANDTYPE_UnknownCode)
       {
         if (cmd->code < 10000) {
-          hostprintf("!! Unknown G code - %d\n", cmd->code);
+          hostprintf(c, "!! Unknown G code - %d\n", cmd->code);
         } else {
-          hostprintf("!! Unknown M code - %d\n", cmd->code - 10000);
+          hostprintf(c, "!! Unknown M code - %d\n", cmd->code - 10000);
         }
       }
       if (!(cmd->type & COMMANDTYPE_Action))
       {
-        hostprintf("ok #%d [%d] {-}\n", cmd->line, cmd->code);
+        hostprintf(c, "ok #%d [%d] {-}\n", cmd->line, cmd->code);
       }
   }
 
   if (cmd->type & COMMANDTYPE_Action)
   {
-    if ((cmd->type & COMMANDTYPE_SyncAction) == COMMANDTYPE_SyncAction)
+    if ((cmd->type & COMMANDTYPE_SyncAction) == COMMANDTYPE_SyncAction) 
     {
       if (c->busy)
       {
-        hostprintf("busy. Please enable ping-pong.\n", cmd->line);
+        hostprintf(c, "busy. Please enable ping-pong.\n", cmd->line);
         return;
       }
-      if (!printerTryAcquire(PRINTINGSOURCE_Host))
+      if (!printerTryAcquire(PRINTINGSOURCE_Host)) 
       {
-        switch (printerGetState())
+        switch (printerGetState()) 
         {
           case PRINTERSTATE_Printing:
-            hostprintf("!! Please pause first\n");
+            hostprintf(c, "!! Please pause first\n");
             break;
           case PRINTERSTATE_Interrupting:
           case PRINTERSTATE_Interrupted:
-            hostprintf("!! Printer is under manual control\n");
+            hostprintf(c, "!! Printer is under manual control\n");
             break;
           case PRINTERSTATE_Estopped:
-            hostprintf("!! %s\n", printerGetMessage());
+            hostprintf(c, "!! %s\n", printerGetMessage());
             break;
           default:
             // Impossible to be here
             break;
         }
         chThdSleepMilliseconds(1000); // Delay to avoid host bursting us
-        hostprintf("ok\n");
+        hostprintf(c, "ok\n");
         return;
       }
     }
 
     c->busy++;
     c->last_busy_time = 0;
-    hostprintf("ack #%d [%d]\n", cmd->line, cmd->code);
+    hostprintf(c, "ack #%d [%d]\n", cmd->line, cmd->code);
     cmd->ack_mbox = &c->ack_mbox;
     cmd->ack_evt = &c->ack_evt;
     printerPushCommand(
         (cmd->type & COMMANDTYPE_SyncAction) == COMMANDTYPE_SyncAction ?
-            PRINTINGSOURCE_Host : PRINTINGSOURCE_None,
-        cmd);
+            PRINTINGSOURCE_Host : PRINTINGSOURCE_None, cmd);
   }
   /*
    * TODO Checksum, line number
@@ -189,7 +183,7 @@ static void send_report(HostContext* c) {
     uint8_t temp_id = machine.extruder.devices[i].temp_id;
     RadTempState s = temperatureGet(temp_id);
     uint8_t duty = outputGet(machine.temperature.devices[temp_id].heating_pwm_id);
-    hostprintf("T%d:%d /%d @%d:%d ",
+    hostprintf(c, "T%d:%d /%d @%d:%d ", 
         i, (int)(s.pv+0.5), (int)(s.sv+0.5), i,
         // Firmware identifies itself as marlin,
         //   the duty is reported in the range of 0-127
@@ -200,89 +194,97 @@ static void send_report(HostContext* c) {
     uint8_t temp_id = machine.heated_bed.devices[i].temp_id;
     RadTempState s = temperatureGet(temp_id);
     uint8_t duty = outputGet(machine.temperature.devices[temp_id].heating_pwm_id);
-    hostprintf("B:%d /%d B@:%d ",
+    hostprintf(c, "B:%d /%d B@:%d ", 
         (int)(s.pv+0.5), (int)(s.sv+0.5),
         // Firmware identifies itself as marlin,
         //   the duty is reported in the range of 0-127
         duty / 2);
   }
-  hostprintf("C:");
+  hostprintf(c, "C:");
   PlannerVirtualPosition pos = stepperGetCurrentPosition();
   for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++)
   {
-    hostprintf(" %c:%f", machine.kinematics.axes[i].name, pos.axes[i]);
+    hostprintf(c, " %c:%f", machine.kinematics.axes[i].name, pos.axes[i]);
   }
-  hostprintf("\n");
+  hostprintf(c, "\n");
 }
 
 static msg_t threadDataHost(void* arg) {
   chRegSetThreadName("data-host");
 
-  HostContext context;
-  HostContext* c = &context;
-  memset(c, 0, sizeof(HostContext));
-  c->channel = (BaseAsynchronousChannel*) arg;
+  HostContext c;
+  memset(&c, 0, sizeof(HostContext));
+  c.channel = (BaseAsynchronousChannel*) arg;
 
-  chMBInit(&c->ack_mbox, c->ack_mbox_buffer, COMMAND_BUFFER_SIZE + 1);
-  chEvtInit(&c->ack_evt);
-  chEvtRegisterMask(&c->ack_evt, &c->ack_listener, 1);
-  chEvtRegisterMaskWithFlags(&c->channel->event,
-      &c->host_listener, 2, CHN_CONNECTED | CHN_INPUT_AVAILABLE);
-  gcodeResetParseContext(&c->parse_context);
+  chMBInit(&c.ack_mbox, c.ack_mbox_buffer, COMMAND_BUFFER_SIZE + 1);
+  chEvtInit(&c.ack_evt);
+  chEvtRegisterMask(&c.ack_evt, &c.ack_listener, 1);
+  chEvtRegisterMaskWithFlags(&c.channel->event,
+      &c.host_listener, 2, CHN_CONNECTED | CHN_INPUT_AVAILABLE);
+  gcodeResetParseContext(&c.parse_context);
 
-  c->ptr = c->buf;
+  c.ptr = c.buf;
   while (1)
   {
     eventmask_t events = chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(200));
     if (events & 1) {
       PrinterCommand* ack_command;
-      while (chMBFetch(&c->ack_mbox, (msg_t*) &ack_command, TIME_IMMEDIATE) == RDY_OK)
+      while (chMBFetch(&c.ack_mbox, (msg_t*) &ack_command, TIME_IMMEDIATE) == RDY_OK)
       {
-        hostprintf("ok #%d [%d] {+}\n", ack_command->line, ack_command->code);
+        hostprintf(&c, "ok #%d [%d] {+}\n", ack_command->line, ack_command->code);
         printerFreeCommand(ack_command);
-        c->busy--;
+        c.busy--;
       }
-      c->last_busy_time = chTimeNow();
+      c.last_busy_time = chTimeNow();
     }
     if (events & 2) {
-      flagsmask_t flags = chEvtGetAndClearFlags(&c->host_listener);
+      flagsmask_t flags = chEvtGetAndClearFlags(&c.host_listener);
       if (flags & CHN_CONNECTED) {
-        c->last_report_time = 0;
-        c->last_busy_time = 0;
+        c.last_report_time = 0;
+        c.last_busy_time = 0;
         printerRelease(PRINTINGSOURCE_Host);
-        hostprintf("start\n");
+        hostprintf(&c, "start\n");
       }
       if (flags & CHN_INPUT_AVAILABLE)
       {
         while (1)
         {
-          msg_t i = chnGetTimeout(c->channel, TIME_IMMEDIATE);
+          msg_t i = chnGetTimeout(c.channel, TIME_IMMEDIATE);
           if (i < 0) break;
 
           // End of line
-          if (i == '\n' || i == '\r') {
-            gcodeResetParseContext(&c->parse_context);
-            process_new_line(c);
+          if (i == '\n' || i == '\r')
+          {
+            gcodeResetParseContext(&c.parse_context);
+            if (c.ptr == c.buf) continue;
+
+            *c.ptr = '\0';
+            process_new_line(&c);
+            c.ptr = c.buf;
             continue;
           }
 
-          if ((c->ptr - c->buf) >= COMMAND_LENGTH)
+          if ((c.ptr - c.buf) >= COMMAND_LENGTH)
+          {
+            printerEstop(L_PRINTER_LINE_TOO_LONG);
             continue;
+          }
 
-          i = gcodeFilterCharacter(i, &c->parse_context);
-          if (i) *(c->ptr++) = i;
+          i = gcodeFilterCharacter(i, &c.parse_context);
+          if (i)
+            *(c.ptr++) = i;
         }
       }
     }
-    if (c->last_report_time > 0 && chTimeNow() - c->last_report_time >= REPORT_INTERVAL)
+    if (c.last_report_time > 0&& chTimeNow() - c.last_report_time >= REPORT_INTERVAL)
     {
-      send_report(c);
-      c->last_report_time += REPORT_INTERVAL;
+      send_report(&c);
+      c.last_report_time += REPORT_INTERVAL;
     }
-    if (c->last_busy_time > 0 && chTimeNow() - c->last_busy_time >= IDLE_INTERVAL)
+    if (c.last_busy_time > 0 && chTimeNow() - c.last_busy_time >= IDLE_INTERVAL)
     {
       printerRelease(PRINTINGSOURCE_Host);
-      c->last_busy_time = 0;
+      c.last_busy_time = 0;
     }
   }
   return 0;

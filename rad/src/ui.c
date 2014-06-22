@@ -154,7 +154,6 @@ typedef struct {
         } standard;
         struct {
           UiMenuItem item;
-          uint16_t depth;
           int16_t directory_opened;
         } print;
       };

@@ -20,17 +20,19 @@
 
 static void ui_print_viewmodel_core(void);
 
+uint8_t dir_depth = 0;
+
 void ui_print_up(void)
 {
-  if (uiState.menu.print.depth == 0)
+  if (dir_depth == 0)
   {
     uiChangePage(ui_mainmenu_viewmodel);
     return;
   }
 
-  uiState.menu.print.depth--;
+  dir_depth--;
   storageChangeDir("..");
-  uiChangePage((display_viewmodel_t)ui_print_viewmodel_core);
+  uiChangePage(ui_print_viewmodel_core);
 }
 
 void ui_print_up_action(void* state)
@@ -41,10 +43,16 @@ void ui_print_up_action(void* state)
 
 void ui_print_change_directory(void* filename)
 {
-  uiState.menu.print.depth++;
-  storageChangeDir((TCHAR*)filename);
-  uiChangePage((display_viewmodel_t)ui_print_viewmodel_core);
-  uiState.menu.back_cb = ui_print_up;
+  dir_depth++;
+  storageChangeDir((char*)filename);
+  uiChangePage(ui_print_viewmodel_core);
+}
+
+void ui_print_file(void* filename)
+{
+  dataStorageSelect((char*)filename);
+  dataStoragePrintStart();
+  uiChangePage(ui_dashboard_viewmodel);
 }
 
 static const UiMenuItem* ui_print_file_to_menu(RadFileInfo *file)
@@ -52,9 +60,9 @@ static const UiMenuItem* ui_print_file_to_menu(RadFileInfo *file)
   uiState.menu.print.item = (UiMenuItem)
     {
       .name = file->filename,
-      .action_cb =
-          file->type == FILETYPE_Directory ? ui_print_change_directory :
-              NULL,
+      .action_cb = file->type == FILETYPE_Directory ?
+          ui_print_change_directory :
+          ui_print_file,
       .suffix = file->type == FILETYPE_Directory ? '>' : 0,
       .state = file->filename
     };
@@ -69,7 +77,7 @@ int16_t ui_print_count(void)
   storageOpenDir();
   for (;;)
   {
-    if (!storageReadFile(&file))
+    if (!storageFetchFileInfo(&file))
       break;
 
     if (!(strcmp(file.filename, ".") == 0 ||
@@ -79,18 +87,18 @@ int16_t ui_print_count(void)
 
   storageCloseDir();
   return (i < 1 ? 1 : i) +
-      (ui_menu_shows_back_item() || uiState.menu.print.depth != 0);
+      (ui_menu_shows_back_item() || dir_depth != 0);
 }
 
 const UiMenuItem* ui_print_get(int16_t index)
 {
-  if (ui_menu_shows_back_item() || uiState.menu.print.depth != 0)
+  if (ui_menu_shows_back_item() || dir_depth != 0)
   {
     if (index == 0)
     {
       uiState.menu.print.item = (UiMenuItem)
         {
-            .name = uiState.menu.print.depth == 0 ? L_UI_BACK : L_UI_PRINT_UP,
+            .name = dir_depth == 0 ? L_UI_BACK : L_UI_PRINT_UP,
             .suffix = '^',
             .action_cb = ui_print_up_action
         };
@@ -106,7 +114,7 @@ const UiMenuItem* ui_print_get(int16_t index)
   for (int16_t i = 0; i <= index; i++)
   {
     do {
-      if (!storageReadFile(&file)) {
+      if (!storageFetchFileInfo(&file)) {
         if (i == 0 && index == 0) {
           uiState.menu.print.item = (UiMenuItem)
             {
@@ -134,7 +142,7 @@ static const UiMenuItem* ui_print_get_next(void)
 
   RadFileInfo file;
   do {
-    if (!storageReadFile(&file))
+    if (!storageFetchFileInfo(&file))
       return NULL;
   } while (
       strcmp(file.filename, ".") == 0 ||
@@ -157,11 +165,11 @@ static void ui_print_viewmodel_core(void) {
   uiState.menu.count_cb = ui_print_count;
   uiState.menu.get_next_cb = ui_print_get_next;
   uiState.menu.close_cb = ui_print_close;
-  if (uiState.menu.print.depth == 0)
-    uiState.menu.back_cb = ui_menu_goto_mainmenu;
+  uiState.menu.back_cb = dir_depth == 0 ?
+      ui_menu_goto_mainmenu :
+      ui_print_up;
 }
 
 static void ui_print_viewmodel(void) {
-  uiState.menu.print.depth = 0;
   ui_print_viewmodel_core();
 }

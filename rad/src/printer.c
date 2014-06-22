@@ -118,20 +118,24 @@ static msg_t threadPrinter(void *arg) {
       continue;
     }
 
-    if (curr_command->type & COMMANDTYPE_TimeStart)
+    if (!printerIsEstopped())
     {
-      printerTimeStart();
-    }
-    printer_dispatch();
+      if (curr_command->type & COMMANDTYPE_TimeStart)
+      {
+        printerTimeStart();
+      }
+      printer_dispatch();
 
-    if (curr_command->type & COMMANDTYPE_PrinterInterrupt)
-    {
-      state = PRINTERSTATE_Interrupted;
-      mode_backup = mode;
-    } else if (curr_command->type & COMMANDTYPE_PrinterResume)
-    {
-      state = PRINTERSTATE_Printing;
-      mode = mode_backup;
+      if (curr_command->type & COMMANDTYPE_PrinterInterrupt)
+      {
+        printerSetState(PRINTERSTATE_Interrupted);
+        mode_backup = mode;
+      } else if (curr_command->type & COMMANDTYPE_PrinterResume)
+      {
+        // TODO: Restore axis position
+        printerSetState(PRINTERSTATE_Printing);
+        mode = mode_backup;
+      }
     }
 
     printer_free_current_command();
@@ -157,6 +161,7 @@ void printerInit(void)
   chThdCreateStatic(waPrinter, sizeof(waPrinter), NORMALPRIO, threadPrinter, NULL);
 
   dataHostInit();
+  dataStorageInit();
 }
 
 uint8_t printerGetActiveExtruder(void)
@@ -190,16 +195,13 @@ void printerSetFlowMultiplier(const float value)
 void printerRelease(const PrintingSource source)
 {
   chSysLock();
-  if (state == PRINTERSTATE_Interrupting ||
-      state == PRINTERSTATE_Interrupted) {
-    if (source == alt_source)
-      alt_source = PRINTINGSOURCE_None;
-  } else if (state == PRINTERSTATE_Printing) {
-    if (source == main_source) {
-      main_source = PRINTINGSOURCE_None;
+  if (source == main_source) {
+    main_source = PRINTINGSOURCE_None;
+    if (state == PRINTERSTATE_Printing)
       state = PRINTERSTATE_Standby;
-      printerTimeStopI();
-    }
+    printerTimeStopI();
+  } else if (source == alt_source) {
+    alt_source = PRINTINGSOURCE_None;
   }
   chSysUnlock();
 }
@@ -271,6 +273,7 @@ void printerResume(const PrintingSource source)
 void printerPushCommand(const PrintingSource source, const PrinterCommand* command) {
   PrinterCommand* new_command = printerAllocateCommand();
   memcpy(new_command, command, sizeof(PrinterCommand));
+
   if (state != PRINTERSTATE_Interrupted || source == main_source) {
     chMBPost(&command_main_mbox, (msg_t) new_command, TIME_INFINITE);
   } else {
@@ -295,7 +298,11 @@ void printerSetStateI(PrinterState new_state)
 {
   if (state == PRINTERSTATE_Estopped)
     return;
-  state = new_state;
+
+  if (state == PRINTERSTATE_Printing && main_source == PRINTINGSOURCE_None)
+    state = PRINTERSTATE_Standby;
+  else
+    state = new_state;
 }
 
 void printerSetState(PrinterState new_state)
@@ -314,8 +321,11 @@ void printerTimeStart(void)
 
 void printerTimeStartI(void)
 {
-  time_spent = -2;
-  time_start = chTimeNow();
+  if (time_spent != -2)
+  {
+    time_spent = -2;
+    time_start = chTimeNow();
+  }
 }
 
 void printerTimeStopI(void)
@@ -360,6 +370,14 @@ void printerEstop(const char *message)
   plannerEstop();
   temperatureAllZero();
   outputAllZero();
+
+  chSysLock();
+  printerTimeStopI();
+  chSysUnlock();
+
+  chMBReset(&command_main_mbox);
+  chMBReset(&command_alt_mbox);
+
   chMtxUnlock();
 }
 
