@@ -78,11 +78,12 @@ static void process_new_line(HostContext* c) {
   RAD_DEBUG_PRINTF("HOST: %s\n", c->buf);
   if (!valid)
   {
-    const char* message;
-    if (!(message = printerIsEstopped()))
-      printerEstop((message = L_PRINTER_HOST_GCODE_ERROR));
+    if (!printerIsEstopped())
+      printerEstop(L_PRINTER_HOST_GCODE_ERROR);
 
-    hostprintf(c, "ok\n!! %s.", message, cmd->line);
+    printerGetMessage(0, c->buf, sizeof(c->buf));
+
+    hostprintf(c, "ok\n!! %s.", c->buf, cmd->line);
     if (cmd->line > 0)
       hostprintf(c, " Line %d\n", cmd->line);
     hostprintf(c, "\n");
@@ -151,7 +152,8 @@ static void process_new_line(HostContext* c) {
             hostprintf(c, "!! Printer is under manual control\n");
             break;
           case PRINTERSTATE_Estopped:
-            hostprintf(c, "!! %s\n", printerGetMessage());
+            printerGetMessage(0, c->buf, sizeof(c->buf));
+            hostprintf(c, "!! %s\n", c->buf);
             break;
           default:
             // Impossible to be here

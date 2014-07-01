@@ -124,7 +124,8 @@ typedef struct {
     struct {
       systime_t subscreen_time;
       struct {
-        const char* text;
+        uint8_t version;
+        char text[64];
         struct {
           systime_t time;
           int16_t offset;
@@ -208,7 +209,7 @@ static void uiChangePage(display_viewmodel_t viewmodel)
 
 static msg_t threadDisplay(void *arg) {
   (void)arg;
-  const char* old_estop_state = NULL;
+  bool_t old_estop_state = FALSE;
   systime_t next;
   systime_t now;
 
@@ -220,7 +221,7 @@ static msg_t threadDisplay(void *arg) {
     next = chTimeNow() + MS2ST(100); // 10 fps
     do
     {
-      if (!old_estop_state && (old_estop_state = printerIsEstopped()) != NULL)
+      if (!old_estop_state && (old_estop_state = printerIsEstopped()) != FALSE)
       {
         uiChangePage(ui_dashboard_viewmodel);
       }

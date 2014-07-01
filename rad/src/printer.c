@@ -57,8 +57,8 @@ static systime_t time_start;
 static int32_t time_spent = -1;
 
 static Mutex estop_mtx;
-static const char* printer_estop_message = NULL;
-static const char* printer_message = NULL;
+static uint8_t message_version = 1;
+static char printer_message[64];
 
 static WORKING_AREA(waPrinter, 256);
 
@@ -195,6 +195,8 @@ void printerSetFlowMultiplier(const float value)
 void printerRelease(const PrintingSource source)
 {
   chSysLock();
+  if (++message_version == 0)
+    message_version = 1;
   if (source == main_source) {
     main_source = PRINTINGSOURCE_None;
     if (state == PRINTERSTATE_Printing)
@@ -210,6 +212,8 @@ bool_t printerTryAcquire(const PrintingSource source)
 {
   bool_t result = FALSE;
   chSysLock();
+  if (++message_version == 0)
+    message_version = 1;
   if (state == PRINTERSTATE_Standby) {
     state = PRINTERSTATE_Printing;
     main_source = source;
@@ -296,6 +300,9 @@ PrinterState printerGetState(void)
 
 void printerSetStateI(PrinterState new_state)
 {
+  if (++message_version == 0)
+    message_version = 1;
+
   if (state == PRINTERSTATE_Estopped)
     return;
 
@@ -351,20 +358,23 @@ int32_t printerTimeSpentI(void)
   return time_spent;
 }
 
-const char* printerIsEstopped(void)
+bool_t printerIsEstopped(void)
 {
-  const char* message;
+  bool_t r;
   chMtxLock(&estop_mtx);
-  message = printer_estop_message;
+  r = state == PRINTERSTATE_Estopped;
   chMtxUnlock();
-  return message;
+  return r;
 }
 
-void printerEstop(const char *message)
+
+static void printerEstopCore(void)
 {
-  chMtxLock(&estop_mtx);
   printerSetState(PRINTERSTATE_Estopped);
-  printer_estop_message = message;
+
+  if (++message_version == 0)
+    message_version = 1;
+
   main_source = alt_source = PRINTINGSOURCE_None;
   beeperPlay(&tuneWarning);
   plannerEstop();
@@ -377,7 +387,32 @@ void printerEstop(const char *message)
 
   chMBReset(&command_main_mbox);
   chMBReset(&command_alt_mbox);
+}
 
+void printerEstop(const char *message)
+{
+  chMtxLock(&estop_mtx);
+
+  if (message == NULL) {
+    printer_message[0] = '\0';
+  } else {
+    strncpy(printer_message, message, sizeof(printer_message));
+    printer_message[sizeof(printer_message) - 1] = '\0';
+  }
+  printerEstopCore();
+  chMtxUnlock();
+}
+
+void printerEstopFormatted(const char *fmt, ...)
+{
+  chMtxLock(&estop_mtx);
+  va_list arg;
+
+  va_start(arg, fmt);
+  vsnprintf(printer_message, sizeof(printer_message), fmt, arg);
+  va_end(arg);
+
+  printerEstopCore();
   chMtxUnlock();
 }
 
@@ -388,22 +423,37 @@ void printerEstopClear(void)
   {
     plannerEstopClear();
     state = PRINTERSTATE_Standby;
-    printer_estop_message = NULL;
+    printer_message[0] = '\0';
+
+    if (++message_version == 0)
+      message_version = 1;
   }
   chMtxUnlock();
 }
 
 void printerSetMessage(const char* message)
 {
-  printer_message = message;
+  chMtxLock(&estop_mtx);
+  if (message == NULL) {
+    printer_message[0] = '\0';
+  } else {
+    strncpy(printer_message, message, sizeof(printer_message));
+    printer_message[sizeof(printer_message) - 1] = '\0';
+  }
+  chMtxUnlock();
 }
 
-const char* printerGetMessage(void)
+uint8_t printerGetMessage(uint8_t version, char* buffer, size_t size)
 {
-  const char* m = printer_estop_message;
-  if (m == NULL)
-    m = printer_message;
-  if (m == NULL)
+  chMtxLock(&estop_mtx);
+  if (version != 0 && message_version == version)
+  {
+    chMtxUnlock();
+    return message_version;
+  }
+
+  const char* m = printer_message;
+  if (m[0] == '\0')
   {
     switch (printerGetState())
     {
@@ -422,7 +472,11 @@ const char* printerGetMessage(void)
         break;
     }
   }
-  return m;
+  strncpy(buffer, m, size);
+  buffer[size - 1] = '\0';
+
+  chMtxUnlock();
+  return message_version;
 }
 
 /** @} */

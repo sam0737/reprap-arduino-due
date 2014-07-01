@@ -84,11 +84,12 @@ extern "C" {
   void printerTimeStopI(void);
   int32_t printerTimeSpent(void);
   int32_t printerTimeSpentI(void);
-  const char* printerIsEstopped(void);
+  bool_t printerIsEstopped(void);
   void printerEstop(const char* message);
+  void printerEstopFormatted(const char *fmt, ...);
   void printerEstopClear(void);
   void printerSetMessage(const char* message);
-  const char* printerGetMessage(void);
+  uint8_t printerGetMessage(uint8_t version, char* buffer, size_t size);
 #ifdef __cplusplus
 }
 #endif

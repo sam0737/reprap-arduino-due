@@ -37,7 +37,7 @@ typedef struct {
   decode_context_t decode_context;
   parse_context_t parse_context;
 
-  bool_t enabled;
+  uint32_t line;
 
   char buf[COMMAND_LENGTH];
   PrinterCommand command;
@@ -53,7 +53,7 @@ static void process_new_line(StorageContext* c) {
 
   RAD_DEBUG_PRINTF("STORAGE: %s\n", c->buf);
   if (!valid) {
-    printerEstop(L_PRINTER_STORAGE_GCODE_ERROR);
+    printerEstopFormatted(L_PRINTER_STORAGE_GCODE_ERROR, c->line);
     return;
   }
 
@@ -85,7 +85,7 @@ static msg_t threadDataStorage(void* arg) {
       STORAGE_START | STORAGE_STOP);
 
   while (1) {
-    eventmask_t events = chEvtWaitAnyTimeout(ALL_EVENTS, c.enabled ? TIME_IMMEDIATE : MS2ST(500));
+    eventmask_t events = chEvtWaitAnyTimeout(ALL_EVENTS, c.line > 0 ? MS2ST(50) : MS2ST(500));
     if (events & 1) {
       PrinterCommand* ack_command;
       while (chMBFetch(&c.ack_mbox, (msg_t*) &ack_command, TIME_IMMEDIATE)
@@ -98,39 +98,39 @@ static msg_t threadDataStorage(void* arg) {
       if (flags & STORAGE_START) {
         if (printerTryAcquire(PRINTINGSOURCE_Storage))
         {
-          c.enabled = TRUE;
+          c.line = 1;
           printerTimeStart();
         }
       }
       if (flags & STORAGE_STOP) {
-        c.enabled = FALSE;
+        c.line = 0;
         printerRelease(PRINTINGSOURCE_Storage);
       }
     }
-    if (c.enabled)
+    if (c.line)
     {
       if (printerIsEstopped()) {
-        c.enabled = FALSE;
+        c.line = 0;
         continue;
       }
 
       int len = storageReadLine(c.buf, COMMAND_LENGTH);
       if (len == STORAGE_ERROR) {
-        c.enabled = FALSE;
-        printerEstop(L_STORAGE_FILE_READ_ERROR);
+        printerEstopFormatted(L_STORAGE_FILE_READ_ERROR, c.line);
         continue;
       }
       if (len == STORAGE_EOF) {
-        c.enabled = FALSE;
         printerRelease(PRINTINGSOURCE_Storage);
         continue;
       }
       gcodeResetParseContext(&c.parse_context);
       if (strlen(c.buf) == COMMAND_LENGTH - 1)
       {
-        printerEstop(L_PRINTER_LINE_TOO_LONG);
+        printerEstopFormatted(L_PRINTER_LINE_TOO_LONG, c.line);
         continue;
       }
+
+      c.line++;
       char* ptr = c.buf;
       while (*ptr != 0) {
         char i = gcodeFilterCharacter(*ptr, &c.parse_context);

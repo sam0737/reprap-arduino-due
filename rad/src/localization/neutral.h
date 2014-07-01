@@ -71,7 +71,7 @@
 
 #ifndef L_PRINTER_STOPPED_BY_STORAGE
 #define L_PRINTER_STOPPED_BY_STORAGE \
-  "E04-Stopped by gcode"
+  "E04-Stopped by Gcode"
 #endif
 
 #ifndef L_HOMING_INCORRECT_INIT_STATE
@@ -91,7 +91,7 @@
 
 #ifndef L_PRINTER_LINE_TOO_LONG
 #define L_PRINTER_LINE_TOO_LONG \
-  "E12-Line too long"
+  "E12-Line %d too long"
 #endif
 
 #ifndef L_TEMPERATURE_AUTOTUNE_OVERHEATED
@@ -116,17 +116,17 @@
 
 #ifndef L_STORAGE_FILE_READ_ERROR
 #define L_STORAGE_FILE_READ_ERROR \
-  "E32-Failed to read file while printing"
+  "E32-Failed to read file while printing at line %d"
 #endif
 
 #ifndef L_PRINTER_STORAGE_GCODE_ERROR
 #define L_PRINTER_STORAGE_GCODE_ERROR \
-  "E33-Invalid GCode in file"
+  "E33-Invalid Gcode at line %d"
 #endif
 
 #ifndef L_PRINTER_HOST_GCODE_ERROR
 #define L_PRINTER_HOST_GCODE_ERROR \
-  "E50-Invalid GCode from host"
+  "E50-Invalid Gcode from host"
 #endif
 
 // ---- Menu ----

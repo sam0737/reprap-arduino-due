@@ -145,6 +145,8 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
+  char message[64];
+
   for (uint8_t i = 0; i < 24; i++) {
     if (i % 4 == 0 && i > 0) chprintf(chp, "\r\n");
     if (i % 8 == 0 && i > 0) chprintf(chp, "\r\n");
@@ -192,7 +194,7 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
 
   chprintf(chp, "\r\nStorage: %d. Queue: %d\r\n", storageGetHostState(), plannerQueueGetLength(&queueMain));
-  const char* message = printerGetMessage();
+  printerGetMessage(0, message, sizeof(message));
   chprintf(chp, "Status: %s\r\n", message ? message : "<NULL>");
 }
 

@@ -32,10 +32,9 @@ static void ui_dashboard_init(void) {
 
 static void ui_mainmenu_viewmodel(void);
 
-static void ui_dashboard_viewmodel(void) {
+static void ui_dashboard_viewmodel_core(void)
+{
   uiState.renderer = ui_dashboard_renderer;
-
-  const char* message = printerGetMessage();
 
   bool change_subscreen = FALSE;
   if (uiState.changed_parts & DASHBOARD_Reset)
@@ -55,10 +54,14 @@ static void ui_dashboard_viewmodel(void) {
     }
   }
 
-  if (message != uiState.dashboard.status.text)
+  uint8_t version;
+  version = printerGetMessage(uiState.dashboard.status.version,
+      uiState.dashboard.status.text, sizeof(uiState.dashboard.status.text));
+
+  if (version != uiState.dashboard.status.version)
   {
     uiState.changed_parts |= DASHBOARD_Status;
-    uiState.dashboard.status.text = message;
+    uiState.dashboard.status.version = version;
     uiState.dashboard.status.marquee.time = chTimeNow();
     uiState.dashboard.status.marquee.length = 0;
     uiState.dashboard.status.marquee.offset = 0;
@@ -158,4 +161,9 @@ static void ui_dashboard_viewmodel(void) {
   }
 
   // TODO: 2 Line Change
+}
+
+static void ui_dashboard_viewmodel(void) {
+  uiState.viewmodel = ui_dashboard_viewmodel_core;
+  uiState.dashboard.status.version = 0;
 }
