@@ -31,22 +31,56 @@ static void ui_menu_renderer(void) {
       const UiMenuItem* item =
           i > 0 ? uiState.menu.get_next_cb() :
           uiMenuGetItem(i);
-      char suffix[2] = " ";
+
+      bool_t active = i == uiState.menu.pos;
+
+      gdispFillArea(
+          0, DISPLAY_MENU_LINE_HEIGHT * i,
+          5, DISPLAY_MENU_LINE_HEIGHT,
+          active ? HighlightBg : Bg);
+      gdispFillArea(
+          GDISP_SCREEN_WIDTH - 15, DISPLAY_MENU_LINE_HEIGHT * i,
+          15, DISPLAY_MENU_LINE_HEIGHT,
+          active ? HighlightBg : Bg);
+
       gdispFillStringBox(
           5, DISPLAY_MENU_LINE_HEIGHT * i,
-          GDISP_SCREEN_WIDTH - 10, DISPLAY_MENU_LINE_HEIGHT,
+          GDISP_SCREEN_WIDTH - 15, DISPLAY_MENU_LINE_HEIGHT,
           item != NULL ? item->name : "", fontText,
-          i == uiState.menu.pos ? White : Black,
-          i == uiState.menu.pos ? Black : White,
+          active ? HighlightFg : Fg,
+          active ? HighlightBg : Bg,
           justifyLeft);
-      if (item)
-        suffix[0] = item->suffix;
-      gdispDrawStringBox(
-          5, DISPLAY_MENU_LINE_HEIGHT * i,
-          GDISP_SCREEN_WIDTH - 10, DISPLAY_MENU_LINE_HEIGHT,
-          suffix, fontText,
-          i == uiState.menu.pos ? White : Black,
-          justifyRight);
+
+      if (item == NULL)
+        continue;
+
+      switch (item->suffix)
+      {
+      case '>':
+        gdispFillConvexPoly(GDISP_SCREEN_WIDTH - 10, DISPLAY_MENU_LINE_HEIGHT * i,
+              (point[]) {
+                { .x = 0, .y = DISPLAY_MENU_LINE_HEIGHT / 2 - 5 },
+                { .x = 8, .y = DISPLAY_MENU_LINE_HEIGHT / 2 },
+                { .x = 0, .y = DISPLAY_MENU_LINE_HEIGHT / 2 + 5 }
+              },
+              3,
+              active ? HighlightFg : Fg
+          );
+        break;
+      case '^':
+        gdispFillConvexPoly(GDISP_SCREEN_WIDTH - 10, DISPLAY_MENU_LINE_HEIGHT * i,
+              (point[]) {
+                { .x = -2, .y = DISPLAY_MENU_LINE_HEIGHT / 2 + 3 },
+                { .x = 3, .y = DISPLAY_MENU_LINE_HEIGHT / 2 - 3 },
+                { .x = 8, .y = DISPLAY_MENU_LINE_HEIGHT / 2 + 3 }
+              },
+              3,
+              active ? HighlightFg : Fg
+          );
+        break;
+      default:
+        break;
+      }
     }
     if (uiState.menu.close_cb != NULL)
       uiState.menu.close_cb();

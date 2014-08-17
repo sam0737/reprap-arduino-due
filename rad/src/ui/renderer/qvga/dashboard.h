@@ -18,6 +18,9 @@
 
 */
 
+static int8_t axis_ids[];
+static int8_t joint_ids[];
+
 static void _draw_clock(coord_t x, coord_t y)
 {
   gdispFillCircle(x, y, 11, Fg);

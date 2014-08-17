@@ -38,9 +38,9 @@ include rad_storage_Win32.mk
 # -- HD44780 20x4 character-based
 # include $(RAD)/displays/HD44780/display.mk
 # -- Virtual - 20x4 character-based
-include $(RAD)/displays/Virtual20x4/display.mk
+# include $(RAD)/displays/Virtual20x4/display.mk
 # -- Virtual QVGA (Win32)
-# include $(RAD)/displays/Win32QVGA/display.mk
+include $(RAD)/displays/Win32QVGA/display.mk
 
 # ==== USB Mass Storage Device ====
 # include rad_msd.mk
