@@ -40,7 +40,7 @@ typedef enum {
 } RadFileType;
 
 typedef struct {
-  TCHAR* filename;
+  char* filename;
   RadFileType type;
 } RadFileInfo;
 
@@ -66,8 +66,8 @@ extern "C" {
   bool_t storageFetchFileInfo(RadFileInfo* file);
   void storageCloseDir(void);
 
-  bool_t storageOpenFile(const char* filename);
-  int storageReadLine(char* buf, int len);
+  bool_t storageOpenFile(const char* filename, uint32_t* sizep);
+  int storageReadChar(void);
 
   bool_t storageDumpConfig(void);
 #ifdef __cplusplus

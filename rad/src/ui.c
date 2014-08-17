@@ -68,17 +68,18 @@ typedef enum {
 
 typedef enum {
   DASHBOARD_Status = 0x01,
-  DASHBOARD_StatusIcon = 0x02,
-  DASHBOARD_TimeSpent = 0x04,
-  DASHBOARD_Layer = 0x08,
-  DASHBOARD_StorageState = 0x10,
-  DASHBOARD_ZPos = 0x20,
+  DASHBOARD_TimeSpent = 0x02,
+  DASHBOARD_Layer = 0x04,
+  DASHBOARD_StorageState = 0x08,
+  DASHBOARD_Pos = 0x10,
+  DASHBOARD_Source = 0x20,
   DASHBOARD_Progress = 0x40,
   DASHBOARD_Temperatures = 0x80,
-  DASHBOARD_ActiveExtruder = 0x100,
-  DASHBOARD_Line1 = 0x100,
-  DASHBOARD_Line2 = 0x200,
-  DASHBOARD_Reset = 0x400,
+  DASHBOARD_TemperaturesChangeScreen = 0x100,
+  DASHBOARD_ActiveExtruder = 0x200,
+  DASHBOARD_Line1 = 0x1000,
+  DASHBOARD_Line2 = 0x2000,
+  DASHBOARD_Reset = 0x4000,
   MENU_Changed = 0x800,
   UI_PARTS_All = 0xFFFF
 } UiParts;
@@ -88,6 +89,12 @@ typedef struct {
   int16_t pv;
   int16_t sv;
 } DashboardTempData;
+
+typedef struct {
+  float pos;
+  bool_t homed;
+  RadLimitState limit_state;
+} DashboardAxis;
 
 typedef void (*display_viewmodel_t)(void);
 typedef void (*display_renderer_t)(void);
@@ -119,6 +126,7 @@ typedef struct {
   display_viewmodel_t   viewmodel;
   display_renderer_t  renderer;
   UiParts changed_parts;
+  char filename[20];
   union
   {
     struct {
@@ -126,6 +134,7 @@ typedef struct {
       struct {
         uint8_t version;
         char text[64];
+        bool_t estopped;
         struct {
           systime_t time;
           int16_t offset;
@@ -133,16 +142,15 @@ typedef struct {
           uint8_t delay;
         } marquee;
       } status;
+      PrintingSource source;
       struct {
-        char filename[10];
-        uint8_t percent;
+        uint32_t total;
+        uint32_t processed;
       } progress;
       char* status_icon;
       int16_t time_spent;
-      uint16_t layer;
+      DashboardAxis axes[3];
       RadStorageHost storage_state;
-      float z_pos;
-
       DashboardTempData temps[RAD_NUMBER_TEMPERATURES];
       uint8_t active_extruder;
       uint8_t temps_screen;
@@ -190,22 +198,7 @@ static void uiChangePage(display_viewmodel_t viewmodel)
 
 #include "ui/menu.h"
 #include "ui/display_format.h"
-#if GFX_USE_TDISP
-#include "tdisp_lld_control.h"
-#include "ui/display_tdisp.h"
-#include "ui/dashboard_tdisp.h"
-#include "ui/menu_tdisp.h"
-#endif
-#if GFX_USE_GDISP
-#include "ui/display_gdisp.h"
-#include "ui/dashboard_gdisp.h"
-#endif
-
-#include "ui/menu_viewmodel.h"
-#include "ui/dashboard_viewmodel.h"
-#include "ui/print_viewmodel.h"
-#include "ui/prepare_viewmodel.h"
-#include "ui/mainmenu_viewmodel.h"
+#include "display.h"
 
 static msg_t threadDisplay(void *arg) {
   (void)arg;
@@ -215,7 +208,6 @@ static msg_t threadDisplay(void *arg) {
 
   chRegSetThreadName("ui");
   display_ui_init();
-  ui_dashboard_init();
 
   while (TRUE) {
     next = chTimeNow() + MS2ST(100); // 10 fps
@@ -280,4 +272,11 @@ void uiSetContrast(float contrast)
 #endif
 }
 
+void uiStateSetActiveFilename(const char* filename)
+{
+  // this variable is read only after printer source change event.
+  // should have no race condition issue
+  uiState.filename[19] = 0;
+  strncpy(uiState.filename, filename, 19);
+}
 /** @} */

@@ -5,26 +5,14 @@
  *              http://ugfx.org/license.html
  */
 
-#ifndef _TDISP_LLD_CONTROL_H
-#define _TDISP_LLD_CONTROL_H
+#ifndef _DISPLAY_CONTROL_H
+#define _DISPLAY_CONTROL_H
 
 #include "ch.h"
 #include "hal.h"
-#include "httpmmap.h"
-
-void* display_state;
-size_t display_state_size;
-
-HttpMmapObject hmo = { .name = "display" };
 
 static void display_control_init(void)
 {
-  if (display_state != NULL && display_state_size != 0)
-  {
-    hmo.buffer = display_state;
-    hmo.size = display_state_size;
-    httpmmapAdd(&hmd, &hmo);
-  }
 }
 
 /*
@@ -36,6 +24,8 @@ static void display_lld_set_power(bool_t power)
 
 static void display_lld_set_contrast(float contrast)
 {
+  (void) contrast;
+  // gdispControl(GDISP_CONTROL_CONTRAST, (void*)(size_t)(contrast * 100));
 }
 
 /*
@@ -45,4 +35,4 @@ static void display_lld_set_brightness(float brightness)
 }
 */
 
-#endif /* _TDISP_LLD_CONTROL_H */
+#endif /* _DISPLAY_CONTROL_H */

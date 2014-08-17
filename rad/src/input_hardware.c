@@ -44,6 +44,7 @@
 void inputButtonFetcher(RadInputConfig* config, RadInputState* state)
 {
   if (state->is_enabled == 1) {
+    // Initialization
     palSetSigMode(config->button.pin, PAL_MODE_INPUT_PULLUP);
     state->is_enabled = 2;
   }
@@ -67,12 +68,42 @@ void inputEncoderFetcher(RadInputConfig* config, RadInputState* state)
 }
 #endif
 
-#ifdef HAS_HTTPMMAP
+#if GINPUT_NEED_MOUSE
+void inputGinputFetcher(RadInputConfig* config, RadInputState* state)
+{
+  if (state->is_enabled == 1) {
+    // Initialization
+    ginputGetMouse(0);
+    state->is_enabled = 2;
+    state->encoder.last_time = chTimeNow();
+  }
+
+  ginputGetMouseStatus(0, &config->ginput.event);
+
+  uint8_t is_down = (config->ginput.event.current_buttons & config->ginput.button_mask) ? 1 : 0;
+  state->encoder.value = config->ginput.event.x / 2;
+  if (abs((int)state->encoder.value - state->encoder.last_value) > 50)
+    state->encoder.last_value = state->encoder.value;
+
+  // Modifying the state of the next channel: button channel
+  RadInputState* state_button = state + 1;
+  if (is_down)
+  {
+    if (!state_button->button.is_down) {
+      state_button->button.is_down = 1;
+      state_button->button.times++;
+    }
+  } else {
+    state_button->button.is_down = 0;
+  }
+}
+#elif HAS_HTTPMMAP
 #include <httpmmap.h>
 extern HttpMmapDriver hmd;
 void inputVirtualEncoderFetcher(RadInputConfig* config, RadInputState* state)
 {
   if (state->is_enabled == 1) {
+    // Initialization
     httpmmapAdd(&hmd, config->virtual_encoder.hmo);
     state->is_enabled = 2;
     state->encoder.last_time = chTimeNow();
@@ -81,6 +112,7 @@ void inputVirtualEncoderFetcher(RadInputConfig* config, RadInputState* state)
   state->encoder.value = *(uint16_t*)config->virtual_encoder.hmo->buffer;
   uint8_t is_down = *(uint8_t*)&config->virtual_encoder.hmo->buffer[4];
 
+  // Modifying the state of the next channel: button channel
   RadInputState* state_button = state + 1;
   if (is_down)
   {

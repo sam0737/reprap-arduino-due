@@ -22,6 +22,33 @@
 #define DISPLAY_DASHBOARD_TEMPS 2
 #define DISPLAY_MENU_VISIBLE_MAX TDISP_ROWS
 
+#include "display_control.h"
+#include "ui/renderer/text/dashboard.h"
+#include "ui/renderer/text/menu.h"
+
+#include "ui/viewmodel/common/dashboard_viewmodel.h"
+#include "ui/viewmodel/common/menu_viewmodel.h"
+#include "ui/viewmodel/common/print_viewmodel.h"
+#include "ui/viewmodel/common/prepare_viewmodel.h"
+#include "ui/viewmodel/common/mainmenu_viewmodel.h"
+
 static void display_ui_init(void) {
+  for (uint8_t i = 0; i < RAD_NUMBER_AXES; i++)
+  {
+    switch (machine.kinematics.axes[i].name)
+    {
+    case AXIS_X:
+      axis_ids[0] = i;
+      break;
+    case AXIS_Y:
+      axis_ids[1] = i;
+      break;
+    case AXIS_Z:
+      axis_ids[2] = i;
+      break;
+    default:
+      break;
+    }
+  }
   display_control_init();
 }

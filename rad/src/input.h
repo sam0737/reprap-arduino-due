@@ -31,7 +31,9 @@
 
 
 #include "radpex.h"
-#ifdef HAS_HTTPMMAP
+#if GINPUT_NEED_MOUSE
+#include "gfx.h"
+#elif HAS_HTTPMMAP
 #include <httpmmap.h>
 #endif
 
@@ -49,7 +51,12 @@ typedef union {
     signal_t pin;
   } button;
 #endif
-#ifdef HAS_HTTPMMAP
+#ifdef GINPUT_NEED_MOUSE
+  struct {
+    uint16_t button_mask;
+    GEventMouse event;
+  } ginput;
+#elif HAS_HTTPMMAP
   struct {
     HttpMmapObject* hmo;
   } virtual_encoder;

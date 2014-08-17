@@ -37,6 +37,7 @@ extern "C" {
 #endif
 void uiInit(void);
 void uiSetContrast(float contrast);
+void uiStateSetActiveFilename(const char* filename);
 #ifdef __cplusplus
 }
 #endif

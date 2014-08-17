@@ -32,6 +32,8 @@ extern "C" {
 #endif
   void dataStorageInit(void);
   void dataStorageSelect(const char* file);
+  uint32_t dataStorageGetCurrentFileSize(void);
+  uint32_t dataStorageGetCurrentProcessed(void);
   void dataStoragePrintStart(void);
   void dataStoragePrintStop(void);
 #ifdef __cplusplus

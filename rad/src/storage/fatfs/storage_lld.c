@@ -135,7 +135,7 @@ void storageOpenDir(void)
   f_opendir(&dir, ".");
 }
 
-bool_t storageReadFile(RadFileInfo* file)
+bool_t storageFetchFileInfo(RadFileInfo* file)
 {
   FILINFO fno;
   do
@@ -153,6 +153,26 @@ bool_t storageReadFile(RadFileInfo* file)
 void storageCloseDir(void)
 {
   // No-op
+}
+
+bool_t storageOpenFile(const char* filename, uint32_t* sizep)
+{
+  f_close(&file);
+  if (f_open(&file, filename, FA_READ) != FR_OK)
+    return FALSE;
+  *sizep = f_size(&file);
+  return TRUE;
+}
+
+int storageReadChar(void)
+{
+  char c;
+  UINT br;
+  if (f_read(&file, &c, 1, &br) != FR_OK)
+    return STORAGE_ERROR;
+  if (br == 0)
+    return STORAGE_EOF;
+  return c;
 }
 
 bool_t storageDumpConfig(void) {

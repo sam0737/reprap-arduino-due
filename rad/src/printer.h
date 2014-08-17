@@ -69,6 +69,7 @@ extern "C" {
 
   void printerRelease(const PrintingSource source);
   bool_t printerTryAcquire(const PrintingSource source);
+  PrintingSource printerGetMainSource(void);
 
   void printerInterrupt(const PrintingSource source);
   void printerResume(const PrintingSource source);

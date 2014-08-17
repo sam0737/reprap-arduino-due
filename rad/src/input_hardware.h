@@ -39,7 +39,9 @@ extern "C" {
 #endif
   void inputButtonFetcher(RadInputConfig* config, RadInputState* state);
   void inputEncoderFetcher(RadInputConfig* config, RadInputState* state);
-#ifdef HAS_HTTPMMAP
+#if GINPUT_NEED_MOUSE
+  void inputGinputFetcher(RadInputConfig* config, RadInputState* state);
+#elif HAS_HTTPMMAP
   void inputVirtualEncoderFetcher(RadInputConfig* config, RadInputState* state);
 #endif
   RadInputValue inputButtonProcessor(RadInputState* state);

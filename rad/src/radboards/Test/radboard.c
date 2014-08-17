@@ -80,18 +80,33 @@ const radboard_t radboard =
     },
     .input = {
         .channels = (RadInputChannel[]) {
+#if GINPUT_NEED_MOUSE
+          {
+            .fetcher = inputGinputFetcher,
+            .config = { .ginput = { .button_mask = GINPUT_MOUSE_BTN_LEFT } },
+            .processor = inputEncoderProcessor
+          },
+          { .processor = inputButtonProcessor },
+          {
+            .fetcher = inputGinputFetcher,
+            .config = { .ginput = { .button_mask = GINPUT_MOUSE_BTN_RIGHT } },
+            .processor = inputEncoderProcessor
+          },
+          { .processor = inputButtonProcessor },
+#elif HAS_HTTPMMAP
           {
             .fetcher = inputVirtualEncoderFetcher,
-            .config = {  .virtual_encoder = { .hmo = &hmo_control1 } },
+            .config = { .virtual_encoder = { .hmo = &hmo_control1 } },
             .processor = inputEncoderProcessor
           },
           { .processor = inputButtonProcessor },
           {
             .fetcher = inputVirtualEncoderFetcher,
-            .config = {  .virtual_encoder = { .hmo = &hmo_control2 } },
+            .config = { .virtual_encoder = { .hmo = &hmo_control2 } },
             .processor = inputEncoderProcessor
           },
           { .processor = inputButtonProcessor },
+#endif
         }
     },
     .output = {

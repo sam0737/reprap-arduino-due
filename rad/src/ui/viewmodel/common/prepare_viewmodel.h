@@ -32,6 +32,7 @@ static void ui_prepare_back_action(void* state)
 
 static void ui_prepare_do_homing(void* state)
 {
+  (void) state;
   PrinterCommand cmd;
   gcodeInitializeCommand(&cmd);
   cmd.code = 28;

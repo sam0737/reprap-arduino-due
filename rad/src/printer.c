@@ -236,6 +236,15 @@ bool_t printerTryAcquire(const PrintingSource source)
   return result;
 }
 
+PrintingSource printerGetMainSource(void)
+{
+  PrintingSource s;
+  chSysLock();
+  s = main_source;
+  chSysUnlock();
+  return s;
+}
+
 PrinterCommand* printerAllocateCommand(void)
 {
   chSemWait(&command_pool_sem);

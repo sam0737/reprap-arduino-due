@@ -91,7 +91,12 @@
 
 #ifndef L_PRINTER_LINE_TOO_LONG
 #define L_PRINTER_LINE_TOO_LONG \
-  "E12-Line %d too long"
+  "E13-Gcode too long"
+#endif
+
+#ifndef L_PRINTER_FILE_LINE_TOO_LONG
+#define L_PRINTER_FILE_LINE_TOO_LONG \
+  "E14-Line %d too long"
 #endif
 
 #ifndef L_TEMPERATURE_AUTOTUNE_OVERHEATED

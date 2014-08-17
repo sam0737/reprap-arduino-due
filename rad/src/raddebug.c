@@ -195,7 +195,7 @@ static void cmd_status(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   chprintf(chp, "\r\nStorage: %d. Queue: %d\r\n", storageGetHostState(), plannerQueueGetLength(&queueMain));
   printerGetMessage(0, message, sizeof(message));
-  chprintf(chp, "Status: %s\r\n", message ? message : "<NULL>");
+  chprintf(chp, "Status: %s\r\n", message[0] ? message : "<NULL>");
 }
 
 static void cmd_out(BaseSequentialStream *chp, int argc, char *argv[]) {

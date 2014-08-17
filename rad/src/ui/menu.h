@@ -65,8 +65,6 @@ int16_t uiStandardMenuCount(void)
 
 const UiMenuItem* uiMenuGetItem(int8_t offset)
 {
-  const UiMenuItem* ret;
-
   int16_t count = uiState.menu.count_cb();
   if (uiState.menu.current >= count)
   {

@@ -67,11 +67,11 @@ static void ui_dashboard_renderer(void) {
       }
     }
 
-    if (uiState.changed_parts & DASHBOARD_ZPos)
+    if (uiState.changed_parts & DASHBOARD_Pos)
     {
       tdispSetCursor(7, 2);
       tdispDrawChar('Z');
-      tdispDrawString(ftostr42(uiState.dashboard.z_pos));
+      tdispDrawString(ftostr42(uiState.dashboard.axes[2].pos));
     }
 
     if (uiState.changed_parts & DASHBOARD_StorageState)

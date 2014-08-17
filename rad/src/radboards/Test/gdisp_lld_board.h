@@ -8,8 +8,8 @@
 #ifndef _GDISP_LLD_BOARD_H
 #define _GDISP_LLD_BOARD_H
 
-#ifdef RAD_DISPLAY_VIRTUAL
-  #include "gdisp_board_virtual.h"
+#ifdef RAD_DISPLAY_WIN32QVGA
+  #include "gdisp_board_win32qvga.h"
 #else
   #error "Unsupported displays (GDISP)"
 #endif

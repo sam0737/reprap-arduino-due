@@ -82,36 +82,35 @@ void storageCloseDir()
   dirHandle = INVALID_HANDLE_VALUE;
 }
 
-
-bool_t storageOpenFile(const char* filename)
+bool_t storageOpenFile(const char* filename, uint32_t* sizep)
 {
   if (fileHandle != NULL)
     fclose(fileHandle);
   fileHandle = fopen(filename, "r");
   if (fileHandle == NULL)
     return FALSE;
+
+  if (fileHandle != NULL)
+  {
+    struct stat stat_buf;
+    if (fstat(fileno(fileHandle), &stat_buf) == 0)
+      *sizep = stat_buf.st_size;
+  }
+
   return fileHandle != NULL;
 }
 
-int storageReadLine(char* buf, int len)
+int storageReadChar(void)
 {
   if (fileHandle == NULL)
     return STORAGE_ERROR;
   if (feof(fileHandle))
     return STORAGE_EOF;
-  if (fgets(buf, len, fileHandle) == NULL)
-    return STORAGE_ERROR;
 
-  int newlen = strlen(buf);
-  if (newlen == len - 1 && buf[newlen] != '\n')
-  {
-    int c;
-    do
-    {
-      c = fgetc(fileHandle);
-    } while (c >= 0 && c != '\n');
-  }
-  return newlen;
+  int c = fgetc(fileHandle);
+  if (c == EOF) return STORAGE_EOF;
+
+  return c;
 }
 
 bool_t storageDumpConfig(void){ return TRUE; }

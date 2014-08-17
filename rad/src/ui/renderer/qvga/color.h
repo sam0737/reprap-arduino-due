@@ -18,33 +18,22 @@
 
 */
 
-/**
- * @file    ui/display_format.h
- * @brief   User interface Display format header
- *
- * @addtogroup UI
- * @{
- */
-#ifndef _RAD_UI_DISPLAY_FORMAT_H
-#define _RAD_UI_DISPLAY_FORMAT_H
+#define Bg           HTML2COLOR(0xFFFFFF)
+#define Fg           HTML2COLOR(0x000000)
+#define HighlightBg  HTML2COLOR(0x009100)
+#define HighlightBg2 HTML2COLOR(0x910800)
+#define HighlightFg  HTML2COLOR(0xFFFFFF)
+#define AuxBg        HTML2COLOR(0x3f5200)
+#define AuxBorder    HTML2COLOR(0x888888)
+#define LimitBg      HTML2COLOR(0xda8198)
+#define HomedBg      HTML2COLOR(0x81da81)
 
-/*===========================================================================*/
-/* External declarations.                                                    */
-/*===========================================================================*/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-char *itostr3(const int x);
-char *itostr3left(const int xx);
-char *itostr2(const int xx);
-char *ftostr42(const float x);
-char *ftostr42best(const float x);
-char *itospace(uint8_t space, int xx);
-#ifdef __cplusplus
-}
-#endif
-
-#endif  /* _RAD_UI_DISPLAY_FORMAT_H */
+#define TempBorder   HTML2COLOR(0xcdcdcd)
+#define TempIdle     HTML2COLOR(0xffffff)
+#define TempHeating  HTML2COLOR(0xff2626)
+#define TempHigh     HTML2COLOR(0xeb3c26)
+#define TempLow      HTML2COLOR(0x676059)
+#define TempHighPoint 200
+#define TempLowPoint  30
 
 /** @} */

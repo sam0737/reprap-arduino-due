@@ -7,7 +7,7 @@
 
 #include "hal.h"
 #include "ch.h"
-#include "httpmmap.h"
+
 
 /**
  * @brief   Initialize the board for the display.
@@ -15,7 +15,6 @@
  * @notapi
  */
 static inline void init_board(void) {
-
 }
 
 /** @} */

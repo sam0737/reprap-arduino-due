@@ -8,4 +8,4 @@ UDEFS += -DHAL_USE_GFX=TRUE
 DISPLAYSRC = \
 
 # Required include directories
-DISPLAYINC = ${RAD}/displays/Virtual20x4
+DISPLAYINC = ${RAD}/displays/Virtual20x4 ${RAD}/ui/viewmodel/text

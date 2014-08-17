@@ -34,6 +34,21 @@ void storageInit(void) {}
 void storageUsbMount(void) {}
 void storageUsbUnmount(void) {}
 RadStorageHost storageGetHostState(void){ return STORAGE_None; }
+
+void storageChangeDir(const char* path) { (void) path; }
+void storageOpenDir(void) { }
+bool_t storageFetchFileInfo(RadFileInfo* file) { (void) file; return FALSE; }
+void storageCloseDir(void) { }
+
+bool_t storageOpenFile(const char* filename, uint32_t* sizep)
+{
+  (void) filename;
+  (void) sizep;
+  return FALSE;
+}
+
+int storageReadChar(void) { return STORAGE_ERROR; }
+
 bool_t storageDumpConfig(void){ return TRUE; }
 
 /** @} */

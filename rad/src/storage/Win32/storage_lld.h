@@ -22,5 +22,6 @@
 #define _RAD_STORAGE_LLD_H
 
 #include <Windows.h>
+#include <sys/stat.h>
 
 #endif

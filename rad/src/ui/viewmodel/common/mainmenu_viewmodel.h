@@ -21,6 +21,7 @@
 static uint8_t ui_mainmenu_can_estop_clear(void) {
   return printerIsEstopped() != 0;
 }
+
 static void ui_mainmenu_do_estop_clear(void* state) {
   (void) state;
   printerEstopClear();
@@ -30,6 +31,7 @@ static uint8_t ui_mainmenu_can_resume(void) {
   return printerGetState() == PRINTERSTATE_Interrupted;
 }
 static void ui_mainmenu_do_resume_now(void* state) {
+  (void) state;
   printerResume(PRINTINGSOURCE_Lcd);
 }
 
@@ -41,6 +43,7 @@ static uint8_t ui_mainmenu_can_interrupt_now(void) {
   return printerGetState() & PRINTERSTATE_Printing;
 }
 static void ui_mainmenu_do_interrupt_now(void* state) {
+  (void) state;
   printerInterrupt(PRINTINGSOURCE_Lcd);
 }
 
@@ -69,6 +72,7 @@ static uint8_t ui_mainmenu_can_estop(void) {
   return !printerIsEstopped();
 }
 static void ui_mainmenu_do_estop(void* state) {
+  (void) state;
   printerEstop (L_DEBUG_STOPPED_BY_MENU);
 }
 static uint8_t ui_mainmenu_can_power_off(void) {
@@ -77,6 +81,7 @@ static uint8_t ui_mainmenu_can_power_off(void) {
           || printerGetState() == PRINTERSTATE_Estopped);
 }
 static void ui_mainmenu_do_power_off(void* state) {
+  (void) state;
   powerPsuOff();
 }
 

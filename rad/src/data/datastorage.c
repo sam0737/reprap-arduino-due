@@ -38,10 +38,15 @@ typedef struct {
   parse_context_t parse_context;
 
   uint32_t line;
+  uint32_t processed_len;
 
+  char* ptr;
   char buf[COMMAND_LENGTH];
   PrinterCommand command;
 } StorageContext;
+
+uint32_t file_size;
+uint32_t processed_len;
 
 static WORKING_AREA(waDataStorage, 256 + sizeof(StorageContext));
 
@@ -86,7 +91,7 @@ static msg_t threadDataStorage(void* arg) {
       STORAGE_START | STORAGE_STOP);
 
   while (1) {
-    eventmask_t events = chEvtWaitAnyTimeout(ALL_EVENTS, c.line > 0 ? MS2ST(50) : MS2ST(500));
+    eventmask_t events = chEvtWaitAnyTimeout(ALL_EVENTS, c.line > 0 ? MS2ST(5) : MS2ST(500));
     if (events & 1) {
       PrinterCommand* ack_command;
       while (chMBFetch(&c.ack_mbox, (msg_t*) &ack_command, TIME_IMMEDIATE)
@@ -99,7 +104,10 @@ static msg_t threadDataStorage(void* arg) {
       if (flags & STORAGE_START) {
         if (printerTryAcquire(PRINTINGSOURCE_Storage))
         {
+          c.processed_len = 0;
           c.line = 1;
+          c.ptr = c.buf;
+          gcodeResetParseContext(&c.parse_context);
           printerTimeStart();
         }
       }
@@ -115,30 +123,46 @@ static msg_t threadDataStorage(void* arg) {
         continue;
       }
 
-      int len = storageReadLine(c.buf, COMMAND_LENGTH);
-      if (len == STORAGE_ERROR) {
-        printerEstopFormatted(L_STORAGE_FILE_READ_ERROR, c.line);
-        continue;
-      }
-      if (len == STORAGE_EOF) {
-        printerRelease(PRINTINGSOURCE_Storage);
-        continue;
-      }
-      gcodeResetParseContext(&c.parse_context);
-      if (strlen(c.buf) == COMMAND_LENGTH - 1)
+      while (1)
       {
-        printerEstopFormatted(L_PRINTER_LINE_TOO_LONG, c.line);
-        continue;
+        int i = storageReadChar();
+
+        if (i == STORAGE_ERROR) {
+        printerEstopFormatted(L_STORAGE_FILE_READ_ERROR, c.line);
+          break;
+      }
+        if (i == STORAGE_EOF) {
+        printerRelease(PRINTINGSOURCE_Storage);
+          break;
+      }
+        c.processed_len++;
+
+        // End of line
+        if (i == '\n' || i == '\r')
+        {
+          c.line++;
+      gcodeResetParseContext(&c.parse_context);
+          if (c.ptr == c.buf) continue;
+
+          *c.ptr = '\0';
+          process_new_line(&c);
+          c.ptr = c.buf;
+          break;
+        }
+
+        if ((c.ptr - c.buf) >= COMMAND_LENGTH)
+      {
+          printerEstopFormatted(L_PRINTER_FILE_LINE_TOO_LONG, c.line);
+          break;
       }
 
-      c.line++;
-      char* ptr = c.buf;
-      while (*ptr != 0) {
-        char i = gcodeFilterCharacter(*ptr, &c.parse_context);
-        *ptr = i == 0 ? ' ' : i;
-        ptr++;
+        i = gcodeFilterCharacter(i, &c.parse_context);
+        if (i)
+          *(c.ptr++) = i;
       }
-      process_new_line(&c);
+      chSysLock();
+      processed_len = c.processed_len;
+      chSysUnlock();
     }
   }
   return 0;
@@ -151,10 +175,32 @@ void dataStorageSelect(const char* filename)
     printerEstop(L_STORAGE_NOT_IN_STANDBY);
     return;
   }
-  if (!storageOpenFile(filename)) {
+  chSysLock();
+  if (!storageOpenFile(filename, &file_size)) {
     printerEstop(L_STORAGE_FILE_OPEN_ERROR);
+    chSysUnlock();
     return;
   }
+  chSysUnlock();
+  uiStateSetActiveFilename(filename);
+}
+
+uint32_t dataStorageGetCurrentFileSize(void)
+{
+  uint32_t s;
+  chSysLock();
+  s = file_size;
+  chSysUnlock();
+  return s;
+}
+
+uint32_t dataStorageGetCurrentProcessed(void)
+{
+  uint32_t s;
+  chSysLock();
+  s = processed_len;
+  chSysUnlock();
+  return s;
 }
 
 void dataStoragePrintStart(void)
