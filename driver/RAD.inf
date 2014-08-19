@@ -8,7 +8,8 @@ Signature="$Windows NT$"
 Class=Ports
 ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318}
 Provider=%MFGNAME%
-DriverVer=7/1/2012,10.0.0.0
+DriverVer=07/01/2012,10.0.0.0
+CatalogFile=RAD.cat
 
 [Manufacturer]
 %MFGNAME%=DeviceList, NTx86, NTamd64, NTia64
