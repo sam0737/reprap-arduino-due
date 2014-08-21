@@ -8,8 +8,10 @@
 #ifndef _GDISP_LLD_BOARD_H
 #define _GDISP_LLD_BOARD_H
 
-#ifdef RAD_DISPLAY_ST7565
+#if defined RAD_DISPLAY_ST7565
   #include "gdisp_board_st7565.h"
+#elif defined RAD_DISPLAY_ILI9341
+  #include "gdisp_board_ili9341.h"
 #else
   #error "Unsupported displays (GDISP)"
 #endif

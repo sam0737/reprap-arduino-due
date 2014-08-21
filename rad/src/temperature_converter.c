@@ -55,4 +55,11 @@ float adccDummy(const adcsample_t sample, const uint8_t resolution)
   return sample;
 }
 
+float adccFixedDummy(const adcsample_t sample, const uint8_t resolution)
+{
+  (void) resolution;
+  (void) sample;
+  return 50;
+}
+
 /** @} */

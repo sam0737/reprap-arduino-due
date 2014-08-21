@@ -25,7 +25,12 @@ font_t fontText;
 font_t fontSmall;
 
 #define DISPLAY_MARQUEE_DELAY (MS2ST(1500 / GDISP_SCREEN_WIDTH))
-#define DISPLAY_DASHBOARD_TEMPS 4
+#define DISPLAY_DASHBOARD_TEMPS   4
+#define DISPLAY_MENU_LINE_HEIGHT  32
+#define DISPLAY_MENU_ICON_WIDTH   64
+
+#define DISPLAY_WIDTH       (GDISP_SCREEN_HEIGHT > GDISP_SCREEN_WIDTH ? GDISP_SCREEN_HEIGHT : GDISP_SCREEN_WIDTH)
+#define DISPLAY_HEIGHT      (GDISP_SCREEN_HEIGHT > GDISP_SCREEN_WIDTH ? GDISP_SCREEN_WIDTH : GDISP_SCREEN_HEIGHT)
 
 #ifdef DISPLAY_MENU_LINE_HEIGHT
   #define DISPLAY_MENU_VISIBLE_LINE_MAX ((GDISP_SCREEN_HEIGHT) / (DISPLAY_MENU_LINE_HEIGHT))
@@ -52,6 +57,11 @@ font_t fontSmall;
 #include "ui/viewmodel/common/mainmenu_viewmodel.h"
 
 static void display_ui_init(void) {
+  gdispSetBacklight(100);
+#if GDISP_SCREEN_HEIGHT > GDISP_SCREEN_WIDTH
+  gdispSetOrientation(GDISP_ROTATE_90);
+#endif
+
   fontTitle = gdispOpenFont("DejaVuSans32");
   fontText = gdispOpenFont("DejaVuSans24");
   fontSmall = gdispOpenFont("DejaVuSans16");
@@ -68,6 +78,8 @@ static void display_ui_init(void) {
       break;
     case AXIS_Z:
       axis_ids[2] = i;
+      break;
+    default:
       break;
     }
   }
@@ -92,6 +104,8 @@ static void display_ui_init(void) {
     case AXIS_Z:
       joint_ids[2] = i;
       break;
+    default:
+      break;
     }
   }
   if (always_homing_joint_id >= 0) {
@@ -99,7 +113,6 @@ static void display_ui_init(void) {
     joint_ids[1] = always_homing_joint_id;
     joint_ids[2] = always_homing_joint_id;
   }
-  gdispClear(Black);
   display_control_init();
 }
 

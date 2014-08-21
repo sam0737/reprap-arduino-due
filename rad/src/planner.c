@@ -227,6 +227,7 @@ static void plannerAddAxisPointCore(
   block->p.is_profile_valid = FALSE;
   plannerMainQueueAddBlock();
 
+  // TODO: Machine boundary
   // TODO: Min Feedrate
   // TODO: Drop segment
   // TODO: Slow down on empty queue

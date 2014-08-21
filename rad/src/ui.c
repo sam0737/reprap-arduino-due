@@ -43,7 +43,7 @@
 #define HAS_DISPLAY  (GFX_USE_TDISP || GFX_USE_GDISP)
 
 #if HAS_DISPLAY
-static WORKING_AREA(waDisplay, 512);
+static WORKING_AREA(waDisplay, 1024);
 
 #define ENABLE_INPUT(TYPE) \
   do { \
@@ -274,9 +274,13 @@ void uiSetContrast(float contrast)
 
 void uiStateSetActiveFilename(const char* filename)
 {
+#if !HAS_DISPLAY
+  (void) filename;
+#else
   // this variable is read only after printer source change event.
   // should have no race condition issue
   uiState.filename[19] = 0;
   strncpy(uiState.filename, filename, 19);
+#endif
 }
 /** @} */

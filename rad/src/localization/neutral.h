@@ -81,7 +81,7 @@
 
 #ifndef L_HOMING_TRAVEL_LIMIT
 #define L_HOMING_TRAVEL_LIMIT \
-  "E11-Joint has traveled too far without triggering any limit switch"
+  "E11-Joint has traveled too far without triggering endstop"
 #endif
 
 #ifndef L_HOMING_INCORRECT_LIMIT_HIT

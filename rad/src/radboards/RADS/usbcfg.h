@@ -109,10 +109,12 @@ typedef struct
     USB_Descriptor_Endpoint_t                CDC2_DataOutEndpoint;
     USB_Descriptor_Endpoint_t                CDC2_DataInEndpoint;
 
+#if HAL_USE_MSD
     // Mass Storage Interface
     USB_Descriptor_Interface_t               MS_Interface;
     USB_Descriptor_Endpoint_t                MS_DataInEndpoint;
     USB_Descriptor_Endpoint_t                MS_DataOutEndpoint;
+#endif
 } USB_Descriptor_Configuration_t;
 
 #endif  /* _USBCFG_H_ */

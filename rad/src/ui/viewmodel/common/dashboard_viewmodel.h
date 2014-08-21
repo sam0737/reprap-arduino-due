@@ -156,11 +156,11 @@ static void ui_dashboard_viewmodel_core(void)
     t.pv += .5;
     t.sv += .5;
     DashboardTempData* data = &uiState.dashboard.temps[i];
-    if (data->pv != t.pv) {
+    if (data->pv != (int16_t) t.pv) {
       uiState.changed_parts |= DASHBOARD_Temperatures;
       data->pv = t.pv;
     }
-    if (data->sv != t.sv) {
+    if (data->sv != (int16_t) t.sv) {
       uiState.changed_parts |= DASHBOARD_Temperatures;
       data->sv = t.sv;
     }

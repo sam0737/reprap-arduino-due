@@ -72,6 +72,7 @@ extern "C" {
 #endif
   float adccSAM3XATempSensor(const adcsample_t sample, const uint8_t resolution);
   float adccDummy(const adcsample_t sample, const uint8_t resolution);
+  float adccFixedDummy(const adcsample_t sample, const uint8_t resolution);
 #ifdef TEMP_R2
   float adccType1(const adcsample_t sample, const uint8_t resolution);
 #endif

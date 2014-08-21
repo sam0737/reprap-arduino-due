@@ -39,13 +39,13 @@ static void ui_menu_renderer(void) {
           5, DISPLAY_MENU_LINE_HEIGHT,
           active ? HighlightBg : Bg);
       gdispFillArea(
-          GDISP_SCREEN_WIDTH - 15, DISPLAY_MENU_LINE_HEIGHT * i,
+          DISPLAY_WIDTH - 15, DISPLAY_MENU_LINE_HEIGHT * i,
           15, DISPLAY_MENU_LINE_HEIGHT,
           active ? HighlightBg : Bg);
 
       gdispFillStringBox(
           5, DISPLAY_MENU_LINE_HEIGHT * i,
-          GDISP_SCREEN_WIDTH - 15, DISPLAY_MENU_LINE_HEIGHT,
+          DISPLAY_WIDTH - 15, DISPLAY_MENU_LINE_HEIGHT,
           item != NULL ? item->name : "", fontText,
           active ? HighlightFg : Fg,
           active ? HighlightBg : Bg,
@@ -57,7 +57,7 @@ static void ui_menu_renderer(void) {
       switch (item->suffix)
       {
       case '>':
-        gdispFillConvexPoly(GDISP_SCREEN_WIDTH - 10, DISPLAY_MENU_LINE_HEIGHT * i,
+        gdispFillConvexPoly(DISPLAY_WIDTH - 10, DISPLAY_MENU_LINE_HEIGHT * i,
               (point[]) {
                 { .x = 0, .y = DISPLAY_MENU_LINE_HEIGHT / 2 - 5 },
                 { .x = 8, .y = DISPLAY_MENU_LINE_HEIGHT / 2 },
@@ -68,7 +68,7 @@ static void ui_menu_renderer(void) {
           );
         break;
       case '^':
-        gdispFillConvexPoly(GDISP_SCREEN_WIDTH - 10, DISPLAY_MENU_LINE_HEIGHT * i,
+        gdispFillConvexPoly(DISPLAY_WIDTH - 10, DISPLAY_MENU_LINE_HEIGHT * i,
               (point[]) {
                 { .x = -2, .y = DISPLAY_MENU_LINE_HEIGHT / 2 + 3 },
                 { .x = 3, .y = DISPLAY_MENU_LINE_HEIGHT / 2 - 3 },

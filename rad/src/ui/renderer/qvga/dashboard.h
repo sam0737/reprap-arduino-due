@@ -39,8 +39,8 @@ static void _draw_card(coord_t x, coord_t y, RadStorageHost state)
     gdispFillConvexPoly(x, y,
         (point[]) {
           { .x = 6, .y = 0 },
-          { .x = 24, .y = 0 },
-          { .x = 24, .y = 28 },
+          { .x = 23, .y = 0 },
+          { .x = 23, .y = 28 },
           { .x = 0, .y = 28 },
           { .x = 0, .y = 6 },
         },
@@ -203,7 +203,7 @@ static void ui_dashboard_renderer(void) {
   if (uiState.changed_parts & DASHBOARD_Reset)
   {
     gdispClear(Bg);
-    gdispFillArea(0, GDISP_SCREEN_HEIGHT - 75, GDISP_SCREEN_WIDTH, 5, AuxBorder);
+    gdispFillArea(0, DISPLAY_HEIGHT - 75, DISPLAY_WIDTH, 5, AuxBorder);
     _draw_clock(20, 141);
   }
 
@@ -212,13 +212,13 @@ static void ui_dashboard_renderer(void) {
   {
     if (uiState.dashboard.status.marquee.length == 0) {
       uiState.dashboard.status.marquee.length = gdispGetStringWidth(uiState.dashboard.status.text, fontTitle);
-      uiState.dashboard.status.marquee.length -= (GDISP_SCREEN_WIDTH - 10) - 1;
+      uiState.dashboard.status.marquee.length -= (DISPLAY_WIDTH - 10) - 1;
     }
     gdispFillArea(0, 0, 5, 50, uiState.dashboard.status.estopped ? HighlightBg2 : HighlightBg);
-    gdispFillArea(GDISP_SCREEN_WIDTH - 5, 0, 5, 50, uiState.dashboard.status.estopped ? HighlightBg2 : HighlightBg);
+    gdispFillArea(DISPLAY_WIDTH - 5, 0, 5, 50, uiState.dashboard.status.estopped ? HighlightBg2 : HighlightBg);
     gdispFillStringBoxWithOffset(
         5, 0,
-        GDISP_SCREEN_WIDTH - 10, 50,
+        DISPLAY_WIDTH - 10, 50,
         (
             uiState.dashboard.status.marquee.offset <= 0 ? 0 :
             uiState.dashboard.status.marquee.offset > uiState.dashboard.status.marquee.length ? -uiState.dashboard.status.marquee.length :
@@ -264,7 +264,7 @@ static void ui_dashboard_renderer(void) {
     }
     gdispFillStringBox(
         40, 126,
-        60, 30,
+        100, 30,
         text, fontSmall, Fg, Bg, justifyLeft);
   }
 
@@ -275,7 +275,6 @@ static void ui_dashboard_renderer(void) {
 
   if ((uiState.changed_parts & DASHBOARD_Pos))
   {
-    char text[10];
     gdispFillArea(200 - 10, 68, 20, 64, Bg);
     gdispFillArea(218 - 10, 55, 40, 72, Bg);
     gdispFillArea(211, 137 - 10, 104, 20, Bg);
@@ -316,7 +315,7 @@ static void ui_dashboard_renderer(void) {
 
   if ((uiState.changed_parts & DASHBOARD_TemperaturesChangeScreen))
   {
-    gdispFillArea(0, GDISP_SCREEN_HEIGHT - 70, GDISP_SCREEN_WIDTH, 70, AuxBg);
+    gdispFillArea(0, DISPLAY_HEIGHT - 70, DISPLAY_WIDTH, 70, AuxBg);
   }
 
   if ((uiState.changed_parts & (DASHBOARD_Temperatures | DASHBOARD_ActiveExtruder)))

@@ -76,6 +76,7 @@ static void printer_dispatch(void)
     printer_wait_motion();
     // TODO: Change Tool temp
     // TODO: Motion to offset
+    // TODO: Machine specific callback?
     mode.tool = curr_command->t_value;
   }
 
