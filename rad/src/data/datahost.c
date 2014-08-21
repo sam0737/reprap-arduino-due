@@ -49,7 +49,7 @@ typedef struct {
   int32_t last_received_line;
 } HostContext;
 
-static WORKING_AREA(waDataHost, 128 + sizeof(HostContext));
+static WORKING_AREA(waDataHost, 256 + sizeof(HostContext));
 
 static void process_new_line(HostContext* c) {
   PrinterCommand* cmd = &c->command;
@@ -156,7 +156,6 @@ static void process_new_line(HostContext* c) {
             hostprintf(c, "!! %s\n", c->buf);
             break;
           default:
-            // Impossible to be here
             break;
         }
         chThdSleepMilliseconds(1000); // Delay to avoid host bursting us

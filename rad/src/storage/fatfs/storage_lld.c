@@ -40,7 +40,10 @@ static Mutex mutex;
 static RadStorageHost host;
 
 #define SETTINGS_FILENAME "rad.cfg"
+
 FATFS fsWorkArea;
+DIR dir;
+FIL file;
 
 /*===========================================================================*/
 /* Local functions.                                                          */
@@ -95,7 +98,8 @@ void storageInit(void)
   chThdCreateStatic(waStorage, sizeof(waStorage), NORMALPRIO - 2, threadStorage, NULL);
 }
 
-void storageUsbMount(void) {
+void storageUsbMount(void)
+{
 #if HAL_USE_MSD
   chMtxLock(&mutex);
   msdReady(radboard.hmi.usb_msd, radboard.hmi.storage_device);
@@ -104,7 +108,8 @@ void storageUsbMount(void) {
 #endif
 }
 
-void storageUsbUnmount(void) {
+void storageUsbUnmount(void)
+{
 #if HAL_USE_MSD
   chMtxLock(&mutex);
   msdEject(radboard.hmi.usb_msd);
@@ -112,11 +117,42 @@ void storageUsbUnmount(void) {
 #endif
 }
 
-RadStorageHost storageGetHostState(void) {
+RadStorageHost storageGetHostState(void)
+{
   chMtxLock(&mutex);
   RadStorageHost _host = host;
   chMtxUnlock();
   return _host;
+}
+
+void storageChangeDir(const char* path)
+{
+  f_chdir(path);
+}
+
+void storageOpenDir(void)
+{
+  f_opendir(&dir, ".");
+}
+
+bool_t storageReadFile(RadFileInfo* file)
+{
+  FILINFO fno;
+  do
+  {
+    if (f_readdir(&dir, &fno) != FR_OK)
+      return FALSE;
+    if (fno.fname[0] == 0)
+      return FALSE;
+  } while ((fno.fattrib & (AM_SYS | AM_HID)) != 0 || fno.fname[0] == '.');
+  file->type = fno.fattrib & AM_DIR ? FILETYPE_Directory : FILETYPE_File;
+  file->filename = fno.fname;
+  return TRUE;
+}
+
+void storageCloseDir(void)
+{
+  // No-op
 }
 
 bool_t storageDumpConfig(void) {
@@ -127,7 +163,7 @@ bool_t storageDumpConfig(void) {
     goto failed;
   if (f_open(&f, SETTINGS_FILENAME, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
     goto failed;
-  storageDumpConfigCore(&f);
+  // storageDumpConfigCore(&f);
   if (f_close(&f) != FR_OK)
     goto failed;
   chMtxUnlock();

@@ -36,7 +36,7 @@
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-static WORKING_AREA(waTemp, 128);
+static WORKING_AREA(waTemp, 512);
 
 int8_t finishing_count = 0;
 int8_t has_error = 0;

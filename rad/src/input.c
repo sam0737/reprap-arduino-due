@@ -36,7 +36,7 @@
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-static WORKING_AREA(waInput, 64);
+static WORKING_AREA(waInput, 128);
 
 static RadInputState states[RAD_NUMBER_INPUTS];
 

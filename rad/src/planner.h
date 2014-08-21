@@ -33,8 +33,8 @@
 /* Data structures and types.                                                */
 /*===========================================================================*/
 
-#define BLOCK_BUFFER_SIZE 200
-#define DELTA_SEGMENTS_PER_SECOND 200
+#define BLOCK_BUFFER_SIZE 50
+#define DELTA_SEGMENTS_PER_SECOND 50
 
 typedef struct {
   float axes[RAD_NUMBER_AXES];

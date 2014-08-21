@@ -60,7 +60,7 @@ static Mutex estop_mtx;
 static uint8_t message_version = 1;
 static char printer_message[64];
 
-static WORKING_AREA(waPrinter, 256);
+static WORKING_AREA(waPrinter, 512);
 
 /*===========================================================================*/
 /* Local functions.                                                          */

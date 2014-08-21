@@ -43,7 +43,7 @@ typedef struct {
   PrinterCommand command;
 } StorageContext;
 
-static WORKING_AREA(waDataStorage, 128 + sizeof(StorageContext));
+static WORKING_AREA(waDataStorage, 256 + sizeof(StorageContext));
 
 static void process_new_line(StorageContext* c) {
 
@@ -74,6 +74,7 @@ static void process_new_line(StorageContext* c) {
 }
 
 static msg_t threadDataStorage(void* arg) {
+  (void) arg;
   chRegSetThreadName("data-storage");
 
   StorageContext c;

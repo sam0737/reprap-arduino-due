@@ -85,7 +85,7 @@ extern MMCDriver MMCD1;
 /**
  * @brief Define number of ADC inputs
  */
-#define RAD_NUMBER_ADCS       5
+#define RAD_NUMBER_ADCS       1
 
 /**
  * @brief Define board support software display contrast control

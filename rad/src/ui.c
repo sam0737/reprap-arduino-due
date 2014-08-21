@@ -242,7 +242,8 @@ static msg_t threadDisplay(void *arg) {
 }
 #endif
 
-static void uiInputInit()
+#if HAS_DISPLAY
+static void uiInputInit(void)
 {
   ENABLE_INPUT(generic_wheel);
   ENABLE_INPUT(up_button);
@@ -252,6 +253,7 @@ static void uiInputInit()
   ENABLE_INPUT(back_button);
   ENABLE_INPUT(enter_button);
 }
+#endif
 
 /*===========================================================================*/
 /* Exported functions.                                                       */

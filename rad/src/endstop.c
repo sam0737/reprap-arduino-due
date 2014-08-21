@@ -36,7 +36,7 @@
 /* Local variables and types.                                                */
 /*===========================================================================*/
 
-static WORKING_AREA(waEndstop, 64);
+static WORKING_AREA(waEndstop, 128);
 
 /*===========================================================================*/
 /* Local functions.                                                          */

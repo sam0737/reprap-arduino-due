@@ -51,7 +51,7 @@ const UiMenuItem* uiStandardMenuGetNext(void)
   return NULL;
 }
 
-int16_t uiStandardMenuCount()
+int16_t uiStandardMenuCount(void)
 {
   int8_t count = 0;
   for (int8_t i = uiState.menu.standard.menu->count - 1; i >= 0; i--)
@@ -92,17 +92,20 @@ uint8_t ui_menu_shows_back_item(void)
 static void ui_dashboard_viewmodel(void);
 static void ui_menu_goto_dashboard(void)
 {
+  (void) state;
   uiChangePage(ui_dashboard_viewmodel);
 }
 
 static void ui_mainmenu_viewmodel(void);
 static void ui_menu_goto_mainmenu(void)
 {
+  (void) state;
   uiChangePage(ui_mainmenu_viewmodel);
 }
 
 void ui_menu_goto_page(void* state)
 {
+  (void) state;
   uiChangePage((display_viewmodel_t)state);
 }
 
