@@ -46,6 +46,7 @@ extern MMCDriver MMCD1;
  * @brief Board identifier.
  */
 #define RADBOARD_NAME "RADS"
+#define RADBOARD_RADS         TRUE
 
 /**
  * @brief System clock in Hz
@@ -80,7 +81,7 @@ extern MMCDriver MMCD1;
 /**
  * @brief Define number of PWM outputs
  */
-#define RAD_NUMBER_OUTPUTS    5
+#define RAD_NUMBER_OUTPUTS    7
 
 /**
  * @brief Define number of ADC inputs
@@ -96,5 +97,27 @@ extern MMCDriver MMCD1;
     #define RAD_DISPLAY_CONTRAST_SUPPORT TRUE
   #endif
 #endif
+
+/**
+ * Default hardware connections
+ */
+#define RADBOARD_ENDSTOP_X            0
+#define RADBOARD_ENDSTOP_Y            1
+#define RADBOARD_ENDSTOP_Z            2
+
+#define RADBOARD_X_STEPPER            0
+#define RADBOARD_Y_STEPPER            1
+#define RADBOARD_Z_STEPPER            2
+#define RADBOARD_EXTRUDER_1_STEPPER   3
+#define RADBOARD_EXTRUDER_2_STEPPER   4
+
+#define RADBOARD_EXTRUDER_1_OUTPUT    2
+#define RADBOARD_EXTRUDER_2_OUTPUT    3
+#define RADBOARD_BED_OUTPUT           1
+
+#define RADBOARD_EXTRUDER_1_TEMP_ADC  1
+#define RADBOARD_EXTRUDER_2_TEMP_ADC  2
+#define RADBOARD_BED_TEMP_ADC         0
+#define RADBOARD_SYSTEM_TEMP_ADC      3
 
 #endif /* _RADBOARD_H_ */
