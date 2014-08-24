@@ -64,7 +64,7 @@ static void _draw_temp(coord_t x, coord_t y, DashboardTempData *data)
   gdispFillStringBox(
       x + 35, y + 4,
       50, 28,
-      itostr3left(data->pv), fontText, HighlightFg, AuxBg, justifyLeft);
+      data->pv >= TEMPERATURE_UNKNOWN_VALUE ? "N/A" : itostr3left(data->pv), fontText, HighlightFg, AuxBg, justifyLeft);
   gdispFillStringBox(
       x + 48, y + 27,
       37, 18,
@@ -102,6 +102,7 @@ static void _draw_extruder(char* text, coord_t x, coord_t y, bool_t active, Dash
         { .x = 2, .y = 44 },
       },
       8,
+      data->pv >= TEMPERATURE_UNKNOWN_VALUE ? TempUnknown :
       RGB2COLOR(
           (uint8_t) ((int)(RED_OF(TempHigh) - RED_OF(TempLow)) * value + RED_OF(TempLow)),
           (uint8_t) ((int)(GREEN_OF(TempHigh) - GREEN_OF(TempLow)) * value + GREEN_OF(TempLow)),
@@ -127,6 +128,7 @@ static void _draw_heated_bed(coord_t x, coord_t y, DashboardTempData *data)
         { .x = 33, .y = 37 }
       },
       4,
+      data->pv >= TEMPERATURE_UNKNOWN_VALUE ? TempUnknown :
       RGB2COLOR(
           (uint8_t) ((int)(RED_OF(TempHigh) - RED_OF(TempLow)) * value + RED_OF(TempLow)),
           (uint8_t) ((int)(GREEN_OF(TempHigh) - GREEN_OF(TempLow)) * value + GREEN_OF(TempLow)),
@@ -151,8 +153,8 @@ static void _draw_generic_temp(coord_t x, coord_t y, DashboardTempData *data)
       (uint8_t) ((int)(BLUE_OF(TempHigh) - BLUE_OF(TempLow)) * value + BLUE_OF(TempLow))
   );
 
-  gdispFillArea(x + 12 + 3, y + 6, 6, 26, c);
-  gdispFillCircle(x + 18, y + 3 + 25 + 8, 6, c);
+  gdispFillArea(x + 12 + 3, y + 6, 6, 26, data->pv >= TEMPERATURE_UNKNOWN_VALUE ? TempUnknown : c);
+  gdispFillCircle(x + 18, y + 3 + 25 + 8, 6, data->pv >= TEMPERATURE_UNKNOWN_VALUE ? TempUnknown : c);
 
   _draw_temp(x, y, data);
 }
@@ -178,7 +180,7 @@ static void _draw_axis(char* text, coord_t sx, coord_t sy, coord_t dx, coord_t d
   gdispDrawStringBox(sx - 10, sy - 8, 20, 18, text, fontSmall, Fg, justifyCenter);
 }
 
-static void _dashboard_render_temp(uint8_t index)
+static void _dashboard_render_temp(uint8_t index, bool_t refresh_forced)
 {
   coord_t pos = index;
   index += uiState.dashboard.temps_screen;
@@ -186,17 +188,20 @@ static void _dashboard_render_temp(uint8_t index)
   {
     char text[2] = "0";
     text[0] = index + '1';
-    _draw_extruder(text, pos * 80, 180,
-        index == uiState.dashboard.active_extruder, &uiState.dashboard.temps[machine.extruder.devices[index].temp_id]);
+    if (refresh_forced || uiState.dashboard.temps[machine.extruder.devices[index].temp_id].changed)
+      _draw_extruder(text, pos * 80, 180,
+          index == uiState.dashboard.active_extruder, &uiState.dashboard.temps[machine.extruder.devices[index].temp_id]);
   }
 
   index -= RAD_NUMBER_EXTRUDERS;
   if (index < machine.heated_bed.count)
-    _draw_heated_bed(pos * 80, 180, &uiState.dashboard.temps[machine.heated_bed.devices[index].temp_id]);
+    if (refresh_forced || uiState.dashboard.temps[machine.heated_bed.devices[index].temp_id].changed)
+      _draw_heated_bed(pos * 80, 180, &uiState.dashboard.temps[machine.heated_bed.devices[index].temp_id]);
 
   index -= machine.heated_bed.count;
   if (index < machine.temp_monitor.count)
-    _draw_generic_temp(pos * 80, 180, &uiState.dashboard.temps[machine.temp_monitor.devices[index].temp_id]);
+    if (refresh_forced || uiState.dashboard.temps[machine.temp_monitor.devices[index].temp_id].changed)
+      _draw_generic_temp(pos * 80, 180, &uiState.dashboard.temps[machine.temp_monitor.devices[index].temp_id]);
 }
 
 static void ui_dashboard_renderer(void) {
@@ -322,7 +327,8 @@ static void ui_dashboard_renderer(void) {
   {
     for (uint8_t i = 0; i < DISPLAY_DASHBOARD_TEMPS; i++)
     {
-      _dashboard_render_temp(i);
+      _dashboard_render_temp(i,
+          uiState.changed_parts & (DASHBOARD_TemperaturesChangeScreen | DASHBOARD_ActiveExtruder));
     }
   }
 }

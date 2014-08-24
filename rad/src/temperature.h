@@ -32,6 +32,8 @@
 /* Data structures and types.                                                */
 /*===========================================================================*/
 
+#define TEMPERATURE_UNKNOWN_VALUE 999
+
 #if !HAL_USE_ADC
 typedef uint16_t adcsample_t;
 #endif

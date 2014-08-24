@@ -88,6 +88,7 @@ typedef struct {
   DashboardTempState state;
   int16_t pv;
   int16_t sv;
+  bool_t changed;
 } DashboardTempData;
 
 typedef struct {

@@ -25,7 +25,7 @@
 #define HighlightFg  HTML2COLOR(0xFFFFFF)
 #define AuxBg        HTML2COLOR(0x3f5200)
 #define AuxBorder    HTML2COLOR(0x888888)
-#define LimitBg      HTML2COLOR(0xda8198)
+#define LimitBg      HTML2COLOR(0xff004f)
 #define HomedBg      HTML2COLOR(0x81da81)
 
 #define TempBorder   HTML2COLOR(0xcdcdcd)
@@ -33,6 +33,7 @@
 #define TempHeating  HTML2COLOR(0xff2626)
 #define TempHigh     HTML2COLOR(0xeb3c26)
 #define TempLow      HTML2COLOR(0x676059)
+#define TempUnknown  HTML2COLOR(0x4057d7)
 #define TempHighPoint 200
 #define TempLowPoint  30
 
